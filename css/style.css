@@ -2,3 +2,269 @@
    私人哑铃训练系统
    全局样式
 */
+<style>
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+background:#f5f5f5;
+color:#222;
+font-family:
+-apple-system,
+BlinkMacSystemFont,
+"SF Pro Text",
+"PingFang SC",
+"Microsoft YaHei",
+sans-serif;
+}
+
+.container{
+max-width:680px;
+margin:auto;
+padding:18px 16px 45px;
+}
+
+.header{
+padding:10px 4px 18px;
+}
+
+.header h1{
+margin:0 0 6px;
+font-size:26px;
+}
+
+.header p{
+margin:0;
+color:#777;
+font-size:14px;
+}
+
+.status{
+background:white;
+border-radius:12px;
+padding:10px 13px;
+margin-bottom:14px;
+font-size:13px;
+color:#777;
+}
+
+.status.ok{
+color:#222;
+}
+
+.status.error{
+color:#a00;
+}
+
+.tabs{
+display:flex;
+gap:8px;
+overflow-x:auto;
+margin-bottom:16px;
+}
+
+.tab{
+border:0;
+background:white;
+border-radius:12px;
+padding:10px 15px;
+font-size:14px;
+white-space:nowrap;
+}
+
+.tab.active{
+background:#222;
+color:white;
+}
+
+.card{
+background:white;
+border-radius:18px;
+padding:18px;
+margin-bottom:14px;
+box-shadow:0 2px 10px rgba(0,0,0,.04);
+}
+
+.card h2{
+margin:0 0 8px;
+font-size:19px;
+}
+
+.muted{
+color:#888;
+font-size:13px;
+line-height:1.6;
+}
+
+.progress{
+height:8px;
+background:#eee;
+border-radius:20px;
+overflow:hidden;
+margin:12px 0;
+}
+
+.progress-bar{
+height:100%;
+width:0%;
+background:#222;
+transition:width .25s ease;
+}
+
+.exercise{
+border-top:1px solid #eee;
+padding:15px 0;
+}
+
+.exercise:first-child{
+border-top:0;
+}
+
+.exercise-row{
+display:flex;
+justify-content:space-between;
+gap:12px;
+align-items:center;
+}
+
+.exercise-info{
+flex:1;
+}
+
+.exercise-name{
+font-weight:600;
+margin-bottom:5px;
+}
+
+.exercise-detail{
+color:#777;
+font-size:13px;
+line-height:1.55;
+}
+
+.complete-btn{
+border:1px solid #ddd;
+background:#fafafa;
+border-radius:12px;
+width:48px;
+height:42px;
+font-size:20px;
+}
+
+.complete-btn.done{
+background:#222;
+color:white;
+border-color:#222;
+}
+
+.primary-btn{
+width:100%;
+border:0;
+background:#222;
+color:white;
+padding:13px;
+border-radius:13px;
+font-size:15px;
+}
+
+.primary-btn:disabled{
+background:#aaa;
+}
+
+.note{
+width:100%;
+border:1px solid #ddd;
+border-radius:12px;
+padding:11px;
+margin-top:10px;
+font-family:inherit;
+resize:vertical;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+margin-top:14px;
+}
+
+.stat{
+background:#f7f7f7;
+border-radius:13px;
+padding:12px 7px;
+text-align:center;
+}
+
+.stat-number{
+font-size:20px;
+font-weight:700;
+}
+
+.stat-label{
+margin-top:4px;
+color:#888;
+font-size:11px;
+}
+
+.analysis{
+line-height:1.75;
+font-size:14px;
+margin-top:15px;
+}
+
+.history-item{
+border-bottom:1px solid #eee;
+padding:14px 0;
+}
+
+.history-item:last-child{
+border-bottom:0;
+}
+
+.history-title{
+font-weight:600;
+margin-bottom:4px;
+}
+
+.badge{
+display:inline-block;
+padding:3px 8px;
+border-radius:8px;
+background:#eee;
+font-size:11px;
+margin-left:5px;
+}
+
+.hidden{
+display:none;
+}
+
+.trend-row{
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+border-bottom:1px solid #eee;
+font-size:14px;
+}
+
+.trend-row:last-child{
+border-bottom:0;
+}
+
+.footer{
+text-align:center;
+color:#aaa;
+font-size:11px;
+margin-top:25px;
+}
+
+.loading{
+text-align:center;
+padding:25px 0;
+color:#888;
+}
+
+</style>
