@@ -1,310 +1,347 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f5f5f5">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+<meta name="theme-color"
+content="#f5f5f5">
+
 <title>我的私人哑铃训练</title>
 
 <style>
-*{box-sizing:border-box}
+
+*{
+box-sizing:border-box;
+}
 
 body{
-  margin:0;
-  background:#f5f5f5;
-  color:#222;
-  font-family:-apple-system,BlinkMacSystemFont,
-  "SF Pro Text","PingFang SC",
-  "Microsoft YaHei",sans-serif;
+margin:0;
+background:#f5f5f5;
+color:#222;
+font-family:
+-apple-system,
+BlinkMacSystemFont,
+"SF Pro Text",
+"PingFang SC",
+"Microsoft YaHei",
+sans-serif;
 }
 
 .container{
-  max-width:680px;
-  margin:auto;
-  padding:18px 16px 45px;
+max-width:680px;
+margin:auto;
+padding:18px 16px 45px;
 }
 
 .header{
-  padding:10px 4px 18px;
+padding:10px 4px 18px;
 }
 
 .header h1{
-  margin:0 0 6px;
-  font-size:26px;
+margin:0 0 6px;
+font-size:26px;
 }
 
 .header p{
-  margin:0;
-  color:#777;
-  font-size:14px;
+margin:0;
+color:#777;
+font-size:14px;
 }
 
 .status{
-  background:white;
-  border-radius:12px;
-  padding:10px 13px;
-  margin-bottom:14px;
-  font-size:13px;
-  color:#777;
+background:white;
+border-radius:12px;
+padding:10px 13px;
+margin-bottom:14px;
+font-size:13px;
+color:#777;
 }
 
 .status.ok{
-  color:#222;
+color:#222;
 }
 
 .status.error{
-  color:#a00;
+color:#a00;
 }
 
 .tabs{
-  display:flex;
-  gap:8px;
-  overflow-x:auto;
-  margin-bottom:16px;
+display:flex;
+gap:8px;
+overflow-x:auto;
+margin-bottom:16px;
 }
 
 .tab{
-  border:0;
-  background:white;
-  border-radius:12px;
-  padding:10px 15px;
-  font-size:14px;
-  white-space:nowrap;
+border:0;
+background:white;
+border-radius:12px;
+padding:10px 15px;
+font-size:14px;
+white-space:nowrap;
 }
 
 .tab.active{
-  background:#222;
-  color:white;
+background:#222;
+color:white;
 }
 
 .card{
-  background:white;
-  border-radius:18px;
-  padding:18px;
-  margin-bottom:14px;
-  box-shadow:0 2px 10px rgba(0,0,0,.04);
+background:white;
+border-radius:18px;
+padding:18px;
+margin-bottom:14px;
+box-shadow:0 2px 10px rgba(0,0,0,.04);
 }
 
 .card h2{
-  margin:0 0 8px;
-  font-size:19px;
+margin:0 0 8px;
+font-size:19px;
 }
 
 .muted{
-  color:#888;
-  font-size:13px;
-  line-height:1.6;
+color:#888;
+font-size:13px;
+line-height:1.6;
 }
 
 .progress{
-  height:8px;
-  background:#eee;
-  border-radius:20px;
-  overflow:hidden;
-  margin:12px 0;
+height:8px;
+background:#eee;
+border-radius:20px;
+overflow:hidden;
+margin:12px 0;
 }
 
 .progress-bar{
-  height:100%;
-  width:0%;
-  background:#222;
-  transition:width .25s ease;
+height:100%;
+width:0%;
+background:#222;
+transition:width .25s ease;
 }
 
 .exercise{
-  border-top:1px solid #eee;
-  padding:15px 0;
+border-top:1px solid #eee;
+padding:15px 0;
 }
 
 .exercise:first-child{
-  border-top:0;
+border-top:0;
 }
 
 .exercise-row{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  align-items:center;
+display:flex;
+justify-content:space-between;
+gap:12px;
+align-items:center;
 }
 
 .exercise-info{
-  flex:1;
+flex:1;
 }
 
 .exercise-name{
-  font-weight:600;
-  margin-bottom:5px;
+font-weight:600;
+margin-bottom:5px;
 }
 
 .exercise-detail{
-  color:#777;
-  font-size:13px;
-  line-height:1.55;
+color:#777;
+font-size:13px;
+line-height:1.55;
 }
 
 .complete-btn{
-  border:1px solid #ddd;
-  background:#fafafa;
-  border-radius:12px;
-  width:48px;
-  height:42px;
-  font-size:20px;
+border:1px solid #ddd;
+background:#fafafa;
+border-radius:12px;
+width:48px;
+height:42px;
+font-size:20px;
 }
 
 .complete-btn.done{
-  background:#222;
-  color:white;
-  border-color:#222;
+background:#222;
+color:white;
+border-color:#222;
 }
 
 .primary-btn{
-  width:100%;
-  border:0;
-  background:#222;
-  color:white;
-  padding:13px;
-  border-radius:13px;
-  font-size:15px;
+width:100%;
+border:0;
+background:#222;
+color:white;
+padding:13px;
+border-radius:13px;
+font-size:15px;
 }
 
 .primary-btn:disabled{
-  background:#aaa;
+background:#aaa;
 }
 
 .note{
-  width:100%;
-  border:1px solid #ddd;
-  border-radius:12px;
-  padding:11px;
-  margin-top:10px;
-  font-family:inherit;
-  resize:vertical;
+width:100%;
+border:1px solid #ddd;
+border-radius:12px;
+padding:11px;
+margin-top:10px;
+font-family:inherit;
+resize:vertical;
 }
 
 .stats{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  margin-top:14px;
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+margin-top:14px;
 }
 
 .stat{
-  background:#f7f7f7;
-  border-radius:13px;
-  padding:12px 7px;
-  text-align:center;
+background:#f7f7f7;
+border-radius:13px;
+padding:12px 7px;
+text-align:center;
 }
 
 .stat-number{
-  font-size:20px;
-  font-weight:700;
+font-size:20px;
+font-weight:700;
 }
 
 .stat-label{
-  margin-top:4px;
-  color:#888;
-  font-size:11px;
+margin-top:4px;
+color:#888;
+font-size:11px;
 }
 
 .analysis{
-  line-height:1.75;
-  font-size:14px;
-  margin-top:15px;
-}
-
-.analysis strong{
-  font-weight:700;
+line-height:1.75;
+font-size:14px;
+margin-top:15px;
 }
 
 .history-item{
-  border-bottom:1px solid #eee;
-  padding:14px 0;
+border-bottom:1px solid #eee;
+padding:14px 0;
 }
 
 .history-item:last-child{
-  border-bottom:0;
+border-bottom:0;
 }
 
 .history-title{
-  font-weight:600;
-  margin-bottom:4px;
+font-weight:600;
+margin-bottom:4px;
 }
 
 .badge{
-  display:inline-block;
-  padding:3px 8px;
-  border-radius:8px;
-  background:#eee;
-  font-size:11px;
-  margin-left:5px;
+display:inline-block;
+padding:3px 8px;
+border-radius:8px;
+background:#eee;
+font-size:11px;
+margin-left:5px;
 }
 
 .hidden{
-  display:none;
+display:none;
 }
 
 .trend-row{
-  display:flex;
-  justify-content:space-between;
-  padding:10px 0;
-  border-bottom:1px solid #eee;
-  font-size:14px;
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+border-bottom:1px solid #eee;
+font-size:14px;
 }
 
 .trend-row:last-child{
-  border-bottom:0;
+border-bottom:0;
 }
 
 .footer{
-  text-align:center;
-  color:#aaa;
-  font-size:11px;
-  margin-top:25px;
+text-align:center;
+color:#aaa;
+font-size:11px;
+margin-top:25px;
 }
+
+.loading{
+text-align:center;
+padding:25px 0;
+color:#888;
+}
+
 </style>
+
 </head>
+
 
 <body>
 
+
 <div class="container">
 
+
 <div class="header">
-<h1>🏋️ 我的私人哑铃训练</h1>
+
+<h1>
+🏋️ 我的私人哑铃训练
+</h1>
+
 <p id="today"></p>
+
 </div>
 
-<div id="connectionStatus" class="status">
+
+<div id="connectionStatus"
+class="status">
+
 正在连接训练数据库……
+
 </div>
+
 
 <div class="tabs">
 
-<button class="tab active"
+<button
+class="tab active"
 onclick="showTab('todayTab',this)">
 今日
 </button>
 
-<button class="tab"
+<button
+class="tab"
 onclick="showTab('dailyTab',this)">
 每日
 </button>
 
-<button class="tab"
+<button
+class="tab"
 onclick="showTab('weeklyTab',this)">
 每周
 </button>
 
-<button class="tab"
+<button
+class="tab"
 onclick="showTab('monthlyTab',this)">
 每月
 </button>
 
-<button class="tab"
+<button
+class="tab"
 onclick="showTab('trendTab',this)">
 总趋势
 </button>
 
-<button class="tab"
+<button
+class="tab"
 onclick="showTab('historyTab',this)">
 历史
 </button>
@@ -312,28 +349,20 @@ onclick="showTab('historyTab',this)">
 </div>
 
 
-<!-- ======================================================
-     今日训练
-====================================================== -->
+
+<!-- 今日 -->
 
 <section id="todayTab">
 
-<div class="card">
 
-<h2>第 6 次训练</h2>
+<div
+id="todayPlan"
+class="card">
 
-<div class="muted">
-核心稳定 + 臀部 + 手臂
-</div>
+<div class="loading">
 
-<div class="progress">
-<div class="progress-bar"
-id="progressBar"></div>
-</div>
+正在读取今日训练计划……
 
-<div class="muted"
-id="progressText">
-0 / 4 个动作完成
 </div>
 
 </div>
@@ -341,117 +370,14 @@ id="progressText">
 
 <div class="card">
 
-<div class="exercise">
 
-<div class="exercise-row">
-
-<div class="exercise-info">
-
-<div class="exercise-name">
-① 臀桥
-</div>
-
-<div class="exercise-detail">
-5kg × 15次 × 3组<br>
-重点：臀部发力，腰部保持稳定
-</div>
-
-</div>
-
-<button class="complete-btn"
-onclick="toggleExercise(0)">
-✓
-</button>
-
-</div>
-</div>
+<h2>
+训练感受
+</h2>
 
 
-<div class="exercise">
-
-<div class="exercise-row">
-
-<div class="exercise-info">
-
-<div class="exercise-name">
-② 鸟狗式
-</div>
-
-<div class="exercise-detail">
-自重 × 10次/侧 × 3组<br>
-重点：核心稳定，不要塌腰
-</div>
-
-</div>
-
-<button class="complete-btn"
-onclick="toggleExercise(1)">
-✓
-</button>
-
-</div>
-</div>
-
-
-<div class="exercise">
-
-<div class="exercise-row">
-
-<div class="exercise-info">
-
-<div class="exercise-name">
-③ 单臂肩推
-</div>
-
-<div class="exercise-detail">
-5kg × 7次/侧 × 3组<br>
-左侧优先控制动作
-</div>
-
-</div>
-
-<button class="complete-btn"
-onclick="toggleExercise(2)">
-✓
-</button>
-
-</div>
-</div>
-
-
-<div class="exercise">
-
-<div class="exercise-row">
-
-<div class="exercise-info">
-
-<div class="exercise-name">
-④ 单臂二头弯举
-</div>
-
-<div class="exercise-detail">
-5kg × 4次/侧 × 3组<br>
-保持身体不晃动
-</div>
-
-</div>
-
-<button class="complete-btn"
-onclick="toggleExercise(3)">
-✓
-</button>
-
-</div>
-</div>
-
-</div>
-
-
-<div class="card">
-
-<h2>训练感受</h2>
-
-<select id="difficulty"
+<select
+id="difficulty"
 class="note">
 
 <option value="">
@@ -476,97 +402,133 @@ class="note">
 
 </select>
 
+
 <textarea
 id="bodyNote"
 class="note"
 placeholder="例如：左手还是比较弱、腰没不舒服、臀部发力明显……">
 </textarea>
 
+
 <br><br>
+
 
 <button
 id="saveButton"
 class="primary-btn"
-onclick="finishWorkout()">
+onclick="finishWorkout()"
+disabled>
 
-保存今天训练
+请先读取训练计划
 
 </button>
+
 
 </div>
 
 </section>
 
 
-<!-- ======================================================
-     每日分析
-====================================================== -->
 
-<section id="dailyTab" class="hidden">
+<!-- 每日 -->
+
+<section
+id="dailyTab"
+class="hidden">
+
 
 <div class="card">
 
-<h2>📊 今日分析</h2>
+<h2>
+📊 今日分析
+</h2>
+
 
 <div class="stats">
 
+
 <div class="stat">
-<div class="stat-number"
+
+<div
+class="stat-number"
 id="dailyCompletion">
 0%
 </div>
+
 <div class="stat-label">
 今日完成度
 </div>
+
 </div>
+
 
 <div class="stat">
-<div class="stat-number">
-20–25
+
+<div class="stat-number"
+id="dailyMinutes">
+0
 </div>
+
 <div class="stat-label">
-预计分钟
+训练分钟
 </div>
+
 </div>
+
 
 <div class="stat">
-<div class="stat-number">
-5kg
+
+<div class="stat-number"
+id="dailyExercises">
+0
 </div>
+
 <div class="stat-label">
-主要重量
+完成动作
 </div>
+
 </div>
+
 
 </div>
 
-<div class="analysis"
+
+<div
+class="analysis"
 id="dailyAnalysis">
 
 今天还没有完成训练。
 
 </div>
 
+
 </div>
 
 </section>
 
 
-<!-- ======================================================
-     每周分析
-====================================================== -->
 
-<section id="weeklyTab" class="hidden">
+<!-- 每周 -->
+
+<section
+id="weeklyTab"
+class="hidden">
+
 
 <div class="card">
 
-<h2>📈 本周分析</h2>
+<h2>
+📈 本周分析
+</h2>
+
 
 <div class="stats">
 
+
 <div class="stat">
 
-<div class="stat-number"
+<div
+class="stat-number"
 id="weekCount">
 0
 </div>
@@ -593,7 +555,8 @@ id="weekCount">
 
 <div class="stat">
 
-<div class="stat-number"
+<div
+class="stat-number"
 id="weekAverage">
 —
 </div>
@@ -604,35 +567,46 @@ id="weekAverage">
 
 </div>
 
+
 </div>
 
-<div class="analysis"
+
+<div
+class="analysis"
 id="weeklyAnalysis">
 
 本周完成训练后，这里会自动生成分析。
 
 </div>
 
+
 </div>
 
 </section>
 
 
-<!-- ======================================================
-     每月分析
-====================================================== -->
 
-<section id="monthlyTab" class="hidden">
+<!-- 每月 -->
+
+<section
+id="monthlyTab"
+class="hidden">
+
 
 <div class="card">
 
-<h2>📅 本月分析</h2>
+<h2>
+📅 本月分析
+</h2>
+
 
 <div class="stats">
 
+
 <div class="stat">
 
-<div class="stat-number"
+<div
+class="stat-number"
 id="monthCount">
 0
 </div>
@@ -646,7 +620,8 @@ id="monthCount">
 
 <div class="stat">
 
-<div class="stat-number"
+<div
+class="stat-number"
 id="monthAverage">
 —
 </div>
@@ -660,7 +635,8 @@ id="monthAverage">
 
 <div class="stat">
 
-<div class="stat-number"
+<div
+class="stat-number"
 id="monthMinutes">
 0
 </div>
@@ -671,44 +647,57 @@ id="monthMinutes">
 
 </div>
 
+
 </div>
 
 
-<div class="analysis"
+<div
+class="analysis"
 id="monthlyAnalysis">
 
 本月完成训练后，这里会自动生成月度分析。
 
 </div>
 
+
 </div>
 
 
 <div class="card">
 
-<h2>📌 本月重点</h2>
+<h2>
+📌 本月重点
+</h2>
 
-<div id="monthlyHighlights"
+
+<div
+id="monthlyHighlights"
 class="analysis">
 
 等待更多训练数据……
 
 </div>
 
+
 </div>
 
 </section>
 
 
-<!-- ======================================================
-     总趋势
-====================================================== -->
 
-<section id="trendTab" class="hidden">
+<!-- 总趋势 -->
+
+<section
+id="trendTab"
+class="hidden">
+
 
 <div class="card">
 
-<h2>📊 长期趋势</h2>
+<h2>
+📊 长期趋势
+</h2>
+
 
 <div class="trend-row">
 
@@ -716,7 +705,8 @@ class="analysis">
 累计训练
 </span>
 
-<strong id="totalWorkouts">
+<strong
+id="totalWorkouts">
 0 次
 </strong>
 
@@ -729,7 +719,8 @@ class="analysis">
 累计训练时间
 </span>
 
-<strong id="totalMinutes">
+<strong
+id="totalMinutes">
 0 分钟
 </strong>
 
@@ -742,7 +733,8 @@ class="analysis">
 平均完成度
 </span>
 
-<strong id="totalAverage">
+<strong
+id="totalAverage">
 —
 </strong>
 
@@ -755,62 +747,56 @@ class="analysis">
 最高完成度
 </span>
 
-<strong id="bestCompletion">
+<strong
+id="bestCompletion">
 —
 </strong>
 
 </div>
+
 
 </div>
 
 
 <div class="card">
 
-<h2>💪 动作进步</h2>
+<h2>
+💪 动作进步
+</h2>
 
-<div id="exerciseTrend"
+
+<div
+id="exerciseTrend"
 class="analysis">
 
 训练数据积累后，这里会显示动作进步。
 
 </div>
 
-</div>
-
-
-<div class="card">
-
-<h2>⚖️ 身体变化</h2>
-
-<div class="analysis">
-
-以后记录体重、腰围后，
-这里会自动比较：
-
-<br><br>
-
-体重趋势<br>
-腰围趋势<br>
-训练表现与身体变化
 
 </div>
 
-</div>
 
 </section>
 
 
-<!-- ======================================================
-     历史
-====================================================== -->
 
-<section id="historyTab" class="hidden">
+<!-- 历史 -->
+
+<section
+id="historyTab"
+class="hidden">
+
 
 <div class="card">
 
-<h2>📚 训练历史</h2>
+<h2>
+📚 训练历史
+</h2>
 
-<div id="historyList">
+
+<div
+id="historyList">
 
 <div class="muted">
 正在读取训练历史……
@@ -818,1341 +804,1432 @@ class="analysis">
 
 </div>
 
+
 </div>
 
 </section>
 
 
+
 <div class="footer">
+
 私人哑铃增肌 / 塑形训练系统
-</div>
 
 </div>
+
+
+</div>
+
 
 
 <script>
 
-/* ======================================================
-   Supabase 配置
-====================================================== */
+
+/* ================================
+   Supabase
+================================ */
 
 const SUPABASE_URL =
 "https://wqcxdnitppkaccbzwbjj.supabase.co";
+
 
 const SUPABASE_KEY =
 "sb_publishable_G7NvaEI9mkuim_0QHkphSQ_EtNgvHYC";
 
 
-/* ======================================================
-   状态
-====================================================== */
 
-let state = {
+/* ================================
+   全局状态
+================================ */
 
-  completed:[
-    false,
-    false,
-    false,
-    false
-  ],
+let currentPlan = null;
 
-  records:[]
+let currentExercises = [];
 
-};
+let completed = [];
+
+let records = [];
 
 
-/* ======================================================
-   状态提示
-====================================================== */
 
-function setStatus(
-  text,
-  type=""
-){
-
-  const box =
-    document.getElementById(
-      "connectionStatus"
-    );
-
-  box.textContent = text;
-
-  box.className =
-    "status " + type;
-
-}
-
-
-/* ======================================================
-   Supabase 请求
-====================================================== */
+/* ================================
+   基础请求
+================================ */
 
 async function supabaseRequest(
-  table,
-  options={}
+path,
+options={}
 ){
 
-  const response =
-    await fetch(
+const response =
+await fetch(
 
-      SUPABASE_URL +
-      "/rest/v1/" +
-      table,
+SUPABASE_URL +
+"/rest/v1/" +
+path,
 
-      {
+{
 
-        method:
-          options.method || "GET",
+method:
+options.method || "GET",
 
-        headers:{
+headers:{
 
-          "apikey":
-            SUPABASE_KEY,
+"apikey":
+SUPABASE_KEY,
 
-          "Authorization":
-            "Bearer " +
-            SUPABASE_KEY,
+"Authorization":
+"Bearer " +
+SUPABASE_KEY,
 
-          "Content-Type":
-            "application/json",
+"Content-Type":
+"application/json",
 
-          "Prefer":
-            options.prefer ||
-            "return=representation"
+"Prefer":
+options.prefer ||
+"return=representation"
 
-        },
+},
 
-        body:
-          options.body
-          ?
-          JSON.stringify(
-            options.body
-          )
-          :
-          undefined
+body:
+options.body
+?
+JSON.stringify(options.body)
+:
+undefined
 
-      }
+}
 
-    );
+);
 
 
-  if(!response.ok){
+if(!response.ok){
 
-    throw new Error(
-      await response.text()
-    );
+const text =
+await response.text();
 
-  }
-
-
-  const text =
-    await response.text();
-
-
-  return text
-    ?
-    JSON.parse(text)
-    :
-    [];
+throw new Error(
+"HTTP " +
+response.status +
+"：" +
+text
+);
 
 }
 
 
-/* ======================================================
+const text =
+await response.text();
+
+
+return text
+?
+JSON.parse(text)
+:
+[];
+
+}
+
+
+
+/* ================================
+   状态
+================================ */
+
+function setStatus(
+text,
+type=""
+){
+
+const box =
+document.getElementById(
+"connectionStatus"
+);
+
+box.textContent =
+text;
+
+box.className =
+"status " +
+type;
+
+}
+
+
+
+/* ================================
    日期
-====================================================== */
+================================ */
 
 function todayString(){
 
-  return new Date()
-    .toISOString()
-    .slice(0,10);
+return new Date()
+.toISOString()
+.slice(0,10);
 
 }
 
 
-function updateToday(){
+document.getElementById(
+"today"
+).textContent =
 
-  document.getElementById(
-    "today"
-  ).textContent =
+new Date()
+.toLocaleDateString(
+"zh-CN",
+{
+year:"numeric",
+month:"long",
+day:"numeric",
+weekday:"long"
+}
+);
 
-    new Date()
-      .toLocaleDateString(
-        "zh-CN",
-        {
-          year:"numeric",
-          month:"long",
-          day:"numeric",
-          weekday:"long"
-        }
-      );
+
+
+/* ================================
+   读取当前训练计划
+================================ */
+
+async function loadCurrentPlan(){
+
+try{
+
+const plans =
+await supabaseRequest(
+
+"training_plans" +
+"?select=*" +
+"&order=workout_number.desc" +
+"&limit=1"
+
+);
+
+
+if(
+!plans.length
+){
+
+throw new Error(
+"数据库中没有训练计划"
+);
 
 }
 
 
-/* ======================================================
-   动作
-====================================================== */
+currentPlan =
+plans[0];
+
+
+const exercises =
+await supabaseRequest(
+
+"training_plan_exercises" +
+"?select=*" +
+"&plan_id=eq." +
+currentPlan.id +
+"&order=exercise_order.asc"
+
+);
+
+
+currentExercises =
+exercises;
+
+
+completed =
+new Array(
+currentExercises.length
+).fill(false);
+
+
+renderCurrentPlan();
+
+
+setStatus(
+"☁️ 已连接训练数据库",
+"ok"
+);
+
+
+document.getElementById(
+"saveButton"
+).disabled =
+false;
+
+
+document.getElementById(
+"saveButton"
+).textContent =
+"保存今天训练";
+
+
+}catch(error){
+
+console.error(error);
+
+
+setStatus(
+"⚠️ 训练计划读取失败：" +
+error.message,
+"error"
+);
+
+}
+
+}
+
+
+
+/* ================================
+   显示训练计划
+================================ */
+
+function renderCurrentPlan(){
+
+const box =
+document.getElementById(
+"todayPlan"
+);
+
+
+const exercisesHTML =
+currentExercises
+.map(
+(exercise,index)=>`
+
+<div class="exercise">
+
+<div class="exercise-row">
+
+<div class="exercise-info">
+
+<div class="exercise-name">
+
+${index+1}️⃣
+${escapeHtml(
+exercise.exercise_name
+)}
+
+</div>
+
+
+<div class="exercise-detail">
+
+${
+exercise.weight_kg !== null
+?
+exercise.weight_kg +
+"kg × "
+:
+""
+}
+
+${escapeHtml(
+exercise.reps || ""
+)}
+
+次 ×
+
+${exercise.sets || 0}
+组
+
+<br>
+
+${escapeHtml(
+exercise.notes || ""
+)}
+
+</div>
+
+</div>
+
+
+<button
+class="complete-btn"
+onclick="toggleExercise(${index})">
+
+✓
+
+</button>
+
+
+</div>
+
+</div>
+
+`
+)
+.join("");
+
+
+box.innerHTML = `
+
+<h2>
+
+第
+${currentPlan.workout_number}
+次训练
+
+</h2>
+
+
+<div class="muted">
+
+${escapeHtml(
+currentPlan.title
+)}
+
+</div>
+
+
+<div class="muted">
+
+重点：
+${escapeHtml(
+currentPlan.focus || ""
+)}
+
+</div>
+
+
+<div class="progress">
+
+<div
+id="progressBar"
+class="progress-bar">
+</div>
+
+</div>
+
+
+<div
+id="progressText"
+class="muted">
+
+0 /
+${currentExercises.length}
+个动作完成
+
+</div>
+
+
+${exercisesHTML}
+
+`;
+
+
+
+updateProgress();
+
+}
+
+
+
+/* ================================
+   完成动作
+================================ */
 
 function toggleExercise(
-  index
+index
 ){
 
-  state.completed[index] =
-    !state.completed[index];
+completed[index] =
+!completed[index];
 
-  renderExercises();
 
-  updateProgress();
+const buttons =
+document.querySelectorAll(
+".complete-btn"
+);
 
-  updateDailyAnalysis();
 
-}
+buttons[index]
+.classList.toggle(
+"done",
+completed[index]
+);
 
-
-function renderExercises(){
-
-  document
-    .querySelectorAll(
-      ".complete-btn"
-    )
-    .forEach(
-      (button,index)=>{
-
-        button.classList.toggle(
-          "done",
-          state.completed[index]
-        );
-
-      }
-    );
-
-}
-
-
-function updateProgress(){
-
-  const total =
-    state.completed.length;
-
-  const completed =
-    state.completed
-      .filter(Boolean)
-      .length;
-
-  const percent =
-    Math.round(
-      completed /
-      total *
-      100
-    );
-
-
-  document.getElementById(
-    "progressBar"
-  ).style.width =
-    percent + "%";
-
-
-  document.getElementById(
-    "progressText"
-  ).textContent =
-
-    `${completed} / ${total} 个动作完成`;
-
-
-  document.getElementById(
-    "dailyCompletion"
-  ).textContent =
-    percent + "%";
-
-}
-
-
-/* ======================================================
-   保存训练
-====================================================== */
-
-async function finishWorkout(){
-
-  const completed =
-    state.completed
-      .filter(Boolean)
-      .length;
-
-  if(
-    completed === 0
-  ){
-
-    alert(
-      "至少完成一个动作后再保存训练。"
-    );
-
-    return;
-
-  }
-
-
-  const percent =
-    Math.round(
-      completed /
-      state.completed.length *
-      100
-    );
-
-
-  const difficulty =
-    document.getElementById(
-      "difficulty"
-    ).value;
-
-
-  const note =
-    document.getElementById(
-      "bodyNote"
-    ).value;
-
-
-  const button =
-    document.getElementById(
-      "saveButton"
-    );
-
-
-  button.disabled =
-    true;
-
-  button.textContent =
-    "正在同步……";
-
-
-  try{
-
-    const workout =
-      await supabaseRequest(
-        "workouts",
-        {
-
-          method:"POST",
-
-          body:{
-
-            workout_number:6,
-
-            workout_date:
-              todayString(),
-
-            title:
-              "第6次训练",
-
-            focus:
-              "核心稳定 + 臀部 + 手臂",
-
-            duration_minutes:
-              23,
-
-            completion_percent:
-              percent,
-
-            difficulty:
-              difficulty ||
-              null,
-
-            body_note:
-              note ||
-              null
-
-          }
-
-        }
-      );
-
-
-    const workoutId =
-      workout[0].id;
-
-
-    const exercises = [
-
-      [
-        1,
-        "臀桥",
-        "哑铃",
-        5,
-        "15",
-        3,
-        "臀部发力，腰部保持稳定"
-      ],
-
-      [
-        2,
-        "鸟狗式",
-        "自重",
-        null,
-        "10/侧",
-        3,
-        "核心稳定，不要塌腰"
-      ],
-
-      [
-        3,
-        "单臂肩推",
-        "哑铃",
-        5,
-        "7/侧",
-        3,
-        "左侧优先控制动作"
-      ],
-
-      [
-        4,
-        "单臂二头弯举",
-        "哑铃",
-        5,
-        "4/侧",
-        3,
-        "保持身体不晃动"
-      ]
-
-    ];
-
-
-    for(
-      const e of exercises
-    ){
-
-      await supabaseRequest(
-        "exercises",
-        {
-
-          method:"POST",
-
-          body:{
-
-            workout_id:
-              workoutId,
-
-            exercise_order:
-              e[0],
-
-            exercise_name:
-              e[1],
-
-            equipment:
-              e[2],
-
-            weight_kg:
-              e[3],
-
-            reps:
-              e[4],
-
-            sets:
-              e[5],
-
-            notes:
-              e[6],
-
-            completed:
-              state.completed[
-                e[0]-1
-              ]
-
-          }
-
-        }
-      );
-
-    }
-
-
-    await supabaseRequest(
-      "daily_analysis",
-      {
-
-        method:"POST",
-
-        body:{
-
-          analysis_date:
-            todayString(),
-
-          completion_percent:
-            percent,
-
-          summary:
-            generateDailySummary(
-              percent,
-              difficulty
-            )
-
-        }
-
-      }
-    );
-
-
-    setStatus(
-      "☁️ 已同步到云端",
-      "ok"
-    );
-
-
-    await loadHistory();
-
-
-    alert(
-      "今天的训练已经保存。💪"
-    );
-
-
-  }catch(error){
-
-    console.error(error);
-
-    setStatus(
-      "⚠️ 云端同步失败",
-      "error"
-    );
-
-
-    alert(
-      "同步失败：\n" +
-      error.message
-    );
-
-  }
-
-
-  button.disabled =
-    false;
-
-  button.textContent =
-    "保存今天训练";
-
-}
-
-
-/* ======================================================
-   每日分析
-====================================================== */
-
-function generateDailySummary(
-  percent,
-  difficulty
-){
-
-  if(
-    percent === 100
-  ){
-
-    return "今日训练全部完成，完成度很好。";
-
-  }
-
-
-  if(
-    percent >= 75
-  ){
-
-    return "今日大部分训练完成，继续优先保证动作质量。";
-
-  }
-
-
-  if(
-    percent >= 50
-  ){
-
-    return "今日完成了一半以上训练，可以逐步提高完成度。";
-
-  }
-
-
-  return "今日训练完成度较低，暂时不要增加训练量。";
-
-}
-
-
-function updateDailyAnalysis(){
-
-  const completed =
-    state.completed
-      .filter(Boolean)
-      .length;
-
-  const total =
-    state.completed.length;
-
-  const percent =
-    Math.round(
-      completed /
-      total *
-      100
-    );
-
-
-  let text;
-
-
-  if(
-    completed === 0
-  ){
-
-    text =
-      "今天还没有完成训练。";
-
-  }else if(
-    percent < 50
-  ){
-
-    text =
-      `目前完成度 ${percent}%。
-      先保证动作质量，不需要赶进度。`;
-
-  }else if(
-    percent < 100
-  ){
-
-    text =
-      `目前完成度 ${percent}%。
-      已经完成大部分训练，继续保持。`;
-
-  }else{
-
-    text =
-      "🎉 今天全部动作完成！";
-
-  }
-
-
-  document.getElementById(
-    "dailyAnalysis"
-  ).textContent =
-    text;
-
-}
-
-
-/* ======================================================
-   读取训练
-====================================================== */
-async function loadHistory(){
-
-  try{
-
-    const url =
-      SUPABASE_URL +
-      "/rest/v1/workouts?select=*";
-
-    console.log("正在请求：", url);
-
-    const response =
-      await fetch(url, {
-        method: "GET",
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization":
-            "Bearer " + SUPABASE_KEY
-        }
-      });
-
-    console.log(
-      "HTTP状态：",
-      response.status
-    );
-
-    const text =
-      await response.text();
-
-    console.log(
-      "Supabase返回：",
-      text
-    );
-
-    if(!response.ok){
-
-      throw new Error(
-        "HTTP " +
-        response.status +
-        "：" +
-        text
-      );
-
-    }
-
-    state.records =
-      text ? JSON.parse(text) : [];
-
-    setStatus(
-      "☁️ 已连接训练数据库",
-      "ok"
-    );
-
-    updateWeeklyAnalysis();
-    updateMonthlyAnalysis();
-    updateTrendAnalysis();
-    renderHistory();
-
-  }catch(error){
-
-    console.error(
-      "数据库读取失败：",
-      error
-    );
-
-    setStatus(
-      "⚠️ 数据库读取失败：" +
-      error.message,
-      "error"
-    );
-
-  }
-
-}
-
-
-/* ======================================================
-   每周
-====================================================== */
-
-function getWeekRecords(){
-
-  const now =
-    new Date();
-
-  const day =
-    now.getDay();
-
-  const diff =
-    day === 0
-    ? -6
-    : 1 - day;
-
-
-  const monday =
-    new Date(now);
-
-  monday.setDate(
-    now.getDate() + diff
-  );
-
-
-  monday.setHours(
-    0,0,0,0
-  );
-
-
-  return state.records
-    .filter(record=>{
-
-      const date =
-        new Date(
-          record.workout_date
-        );
-
-      return date >= monday;
-
-    });
-
-}
-
-
-function updateWeeklyAnalysis(){
-
-  const records =
-    getWeekRecords();
-
-
-  document.getElementById(
-    "weekCount"
-  ).textContent =
-    records.length;
-
-
-  if(
-    records.length === 0
-  ){
-
-    document.getElementById(
-      "weekAverage"
-    ).textContent =
-      "—";
-
-    document.getElementById(
-      "weeklyAnalysis"
-    ).textContent =
-      "本周还没有训练记录。";
-
-    return;
-
-  }
-
-
-  const average =
-    Math.round(
-
-      records.reduce(
-        (sum,r)=>
-          sum +
-          (
-            r.completion_percent ||
-            0
-          ),
-        0
-      )
-      /
-      records.length
-
-    );
-
-
-  document.getElementById(
-    "weekAverage"
-  ).textContent =
-    average + "%";
-
-
-  let advice;
-
-
-  if(
-    records.length >= 3
-  ){
-
-    advice =
-      "本周训练频率达到目标范围，保持目前节奏。";
-
-  }else{
-
-    advice =
-      "本周训练次数偏少，下一周可以优先保证3次力量训练。";
-
-  }
-
-
-  document.getElementById(
-    "weeklyAnalysis"
-  ).textContent =
-
-    `本周完成 ${records.length} 次训练，
-    平均完成度 ${average}%。${advice}`;
-
-}
-
-
-/* ======================================================
-   每月
-====================================================== */
-
-function getMonthRecords(){
-
-  const now =
-    new Date();
-
-  const year =
-    now.getFullYear();
-
-  const month =
-    now.getMonth();
-
-
-  return state.records
-    .filter(record=>{
-
-      const date =
-        new Date(
-          record.workout_date
-        );
-
-      return (
-        date.getFullYear() === year &&
-        date.getMonth() === month
-      );
-
-    });
-
-}
-
-
-function updateMonthlyAnalysis(){
-
-  const records =
-    getMonthRecords();
-
-
-  const count =
-    records.length;
-
-
-  const average =
-    count
-    ?
-    Math.round(
-
-      records.reduce(
-        (sum,r)=>
-          sum +
-          (
-            r.completion_percent ||
-            0
-          ),
-        0
-      )
-      /
-      count
-
-    )
-    :
-    0;
-
-
-  const minutes =
-    records.reduce(
-      (sum,r)=>
-        sum +
-        (
-          r.duration_minutes ||
-          0
-        ),
-      0
-    );
-
-
-  document.getElementById(
-    "monthCount"
-  ).textContent =
-    count;
-
-
-  document.getElementById(
-    "monthAverage"
-  ).textContent =
-    count
-    ?
-    average + "%"
-    :
-    "—";
-
-
-  document.getElementById(
-    "monthMinutes"
-  ).textContent =
-    minutes;
-
-
-  if(
-    count === 0
-  ){
-
-    document.getElementById(
-      "monthlyAnalysis"
-    ).textContent =
-      "本月还没有训练记录。";
-
-
-    document.getElementById(
-      "monthlyHighlights"
-    ).textContent =
-      "完成训练后，这里会自动总结本月表现。";
-
-    return;
-
-  }
-
-
-  let summary;
-
-
-  if(
-    average >= 90
-  ){
-
-    summary =
-      "本月训练完成度非常好，说明训练执行力很稳定。";
-
-  }else if(
-    average >= 75
-  ){
-
-    summary =
-      "本月训练整体稳定，继续保持目前节奏。";
-
-  }else{
-
-    summary =
-      "本月完成度还有提升空间，下个月优先保证训练规律性。";
-
-  }
-
-
-  document.getElementById(
-    "monthlyAnalysis"
-  ).textContent =
-
-    `本月共完成 ${count} 次训练，
-    累计约 ${minutes} 分钟，
-    平均完成度 ${average}%。${summary}`;
-
-
-  const best =
-    Math.max(
-      ...records.map(
-        r =>
-          r.completion_percent ||
-          0
-      )
-    );
-
-
-  document.getElementById(
-    "monthlyHighlights"
-  ).innerHTML =
-
-    `本月最高单次完成度：
-    <strong>${best}%</strong><br><br>
-    训练次数：
-    <strong>${count} 次</strong><br><br>
-    累计训练：
-    <strong>${minutes} 分钟</strong>`;
-
-}
-
-
-/* ======================================================
-   总趋势
-====================================================== */
-
-function updateTrendAnalysis(){
-
-  const records =
-    state.records;
-
-
-  const total =
-    records.length;
-
-
-  const minutes =
-    records.reduce(
-      (sum,r)=>
-        sum +
-        (
-          r.duration_minutes ||
-          0
-        ),
-      0
-    );
-
-
-  const average =
-    total
-    ?
-    Math.round(
-
-      records.reduce(
-        (sum,r)=>
-          sum +
-          (
-            r.completion_percent ||
-            0
-          ),
-        0
-      )
-      /
-      total
-
-    )
-    :
-    0;
-
-
-  const best =
-    total
-    ?
-    Math.max(
-      ...records.map(
-        r =>
-          r.completion_percent ||
-          0
-      )
-    )
-    :
-    0;
-
-
-  document.getElementById(
-    "totalWorkouts"
-  ).textContent =
-    total + " 次";
-
-
-  document.getElementById(
-    "totalMinutes"
-  ).textContent =
-    minutes + " 分钟";
-
-
-  document.getElementById(
-    "totalAverage"
-  ).textContent =
-    total
-    ?
-    average + "%"
-    :
-    "—";
-
-
-  document.getElementById(
-    "bestCompletion"
-  ).textContent =
-    total
-    ?
-    best + "%"
-    :
-    "—";
-
-
-  if(
-    total === 0
-  ){
-
-    document.getElementById(
-      "exerciseTrend"
-    ).textContent =
-      "训练数据积累后，这里会显示动作进步。";
-
-    return;
-
-  }
-
-
-  document.getElementById(
-    "exerciseTrend"
-  ).innerHTML =
-
-    `目前已经累计完成
-    <strong>${total} 次</strong>训练。
-    <br><br>
-    平均训练完成度
-    <strong>${average}%</strong>。
-    <br><br>
-    后续训练记录越多，
-    这里就越能准确判断你的力量进步、
-    训练稳定性以及是否需要增加训练难度。`;
-
-}
-
-
-/* ======================================================
-   历史
-====================================================== */
-
-function renderHistory(){
-
-  const container =
-    document.getElementById(
-      "historyList"
-    );
-
-
-  if(
-    state.records.length === 0
-  ){
-
-    container.innerHTML =
-      '<div class="muted">暂时还没有训练记录。</div>';
-
-    return;
-
-  }
-
-
-  container.innerHTML =
-
-    state.records
-      .map(record=>{
-
-        return `
-
-        <div class="history-item">
-
-          <div class="history-title">
-
-            ${escapeHtml(
-              record.title
-            )}
-
-            <span class="badge">
-
-              ${record.completion_percent || 0}%
-
-            </span>
-
-          </div>
-
-          <div class="muted">
-
-            ${record.workout_date}
-
-            ·
-
-            ${record.duration_minutes || 0}
-            分钟
-
-          </div>
-
-          ${
-            record.difficulty
-            ?
-            `<div class="muted">
-              难度：
-              ${difficultyText(
-                record.difficulty
-              )}
-            </div>`
-            :
-            ""
-          }
-
-          ${
-            record.body_note
-            ?
-            `<div class="muted">
-              感受：
-              ${escapeHtml(
-                record.body_note
-              )}
-            </div>`
-            :
-            ""
-          }
-
-        </div>
-
-        `;
-
-      })
-      .join("");
-
-}
-
-
-/* ======================================================
-   标签
-====================================================== */
-
-function showTab(
-  id,
-  button
-){
-
-  document
-    .querySelectorAll(
-      "#todayTab,#dailyTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab"
-    )
-    .forEach(
-      section =>
-        section.classList.add(
-          "hidden"
-        )
-    );
-
-
-  document
-    .getElementById(id)
-    .classList.remove(
-      "hidden"
-    );
-
-
-  document
-    .querySelectorAll(".tab")
-    .forEach(
-      tab =>
-        tab.classList.remove(
-          "active"
-        )
-    );
-
-
-  button.classList.add(
-    "active"
-  );
-
-
-  updateWeeklyAnalysis();
-
-  updateMonthlyAnalysis();
-
-  updateTrendAnalysis();
-
-  renderHistory();
-
-}
-
-
-/* ======================================================
-   工具
-====================================================== */
-
-function difficultyText(
-  value
-){
-
-  const map = {
-
-    easy:"轻松",
-
-    normal:"正常",
-
-    hard:"比较吃力",
-
-    veryhard:"非常吃力"
-
-  };
-
-  return (
-    map[value] ||
-    value
-  );
-
-}
-
-
-function escapeHtml(
-  text
-){
-
-  const div =
-    document.createElement(
-      "div"
-    );
-
-  div.textContent =
-    text;
-
-  return div.innerHTML;
-
-}
-
-
-/* ======================================================
-   启动
-====================================================== */
-
-updateToday();
-
-renderExercises();
 
 updateProgress();
 
 updateDailyAnalysis();
 
+}
+
+
+
+/* ================================
+   进度
+================================ */
+
+function updateProgress(){
+
+const total =
+currentExercises.length;
+
+const count =
+completed.filter(Boolean).length;
+
+
+const percent =
+total
+?
+Math.round(
+count / total * 100
+)
+:
+0;
+
+
+const bar =
+document.getElementById(
+"progressBar"
+);
+
+
+if(bar){
+
+bar.style.width =
+percent + "%";
+
+}
+
+
+const text =
+document.getElementById(
+"progressText"
+);
+
+
+if(text){
+
+text.textContent =
+
+`${count} / ${total} 个动作完成`;
+
+}
+
+
+const daily =
+document.getElementById(
+"dailyCompletion"
+);
+
+
+if(daily){
+
+daily.textContent =
+percent + "%";
+
+}
+
+
+const dailyExercises =
+document.getElementById(
+"dailyExercises"
+);
+
+
+if(dailyExercises){
+
+dailyExercises.textContent =
+count;
+
+}
+
+}
+
+
+
+/* ================================
+   每日分析
+================================ */
+
+function updateDailyAnalysis(){
+
+const total =
+currentExercises.length;
+
+const count =
+completed.filter(Boolean).length;
+
+
+const percent =
+total
+?
+Math.round(
+count / total * 100
+)
+:
+0;
+
+
+let text;
+
+
+if(count === 0){
+
+text =
+"今天还没有完成训练。";
+
+}
+else if(percent < 50){
+
+text =
+`目前完成度 ${percent}%。
+先保证动作质量，不需要赶进度。`;
+
+}
+else if(percent < 100){
+
+text =
+`目前完成度 ${percent}%。
+已经完成大部分训练，继续保持。`;
+
+}
+else{
+
+text =
+"🎉 今天全部动作完成！";
+
+}
+
+
+document.getElementById(
+"dailyAnalysis"
+).textContent =
+text;
+
+}
+
+
+
+/* ================================
+   保存训练
+================================ */
+
+async function finishWorkout(){
+
+if(!currentPlan){
+
+alert(
+"训练计划还没有加载完成。"
+);
+
+return;
+
+}
+
+
+const count =
+completed.filter(Boolean).length;
+
+
+if(count === 0){
+
+alert(
+"至少完成一个动作后再保存训练。"
+);
+
+return;
+
+}
+
+
+const percent =
+Math.round(
+count /
+currentExercises.length *
+100
+);
+
+
+const difficulty =
+document.getElementById(
+"difficulty"
+).value;
+
+
+const note =
+document.getElementById(
+"bodyNote"
+).value;
+
+
+const button =
+document.getElementById(
+"saveButton"
+);
+
+
+button.disabled =
+true;
+
+button.textContent =
+"正在同步……";
+
+
+try{
+
+
+/* 保存训练 */
+
+const workout =
+await supabaseRequest(
+"workouts",
+{
+
+method:"POST",
+
+body:{
+
+workout_number:
+currentPlan.workout_number,
+
+workout_date:
+todayString(),
+
+title:
+currentPlan.title,
+
+focus:
+currentPlan.focus,
+
+duration_minutes:
+currentPlan.duration_minutes,
+
+completion_percent:
+percent,
+
+difficulty:
+difficulty || null,
+
+body_note:
+note || null
+
+}
+
+}
+);
+
+
+const workoutId =
+workout[0].id;
+
+
+
+/* 保存每个动作 */
+
+for(
+let i=0;
+i<currentExercises.length;
+i++
+){
+
+const exercise =
+currentExercises[i];
+
+
+await supabaseRequest(
+"exercises",
+{
+
+method:"POST",
+
+body:{
+
+workout_id:
+workoutId,
+
+exercise_order:
+exercise.exercise_order,
+
+exercise_name:
+exercise.exercise_name,
+
+equipment:
+exercise.equipment,
+
+weight_kg:
+exercise.weight_kg,
+
+reps:
+exercise.reps,
+
+sets:
+exercise.sets,
+
+notes:
+exercise.notes,
+
+completed:
+completed[i]
+
+}
+
+}
+);
+
+}
+
+
+
+/* 每日分析 */
+
+await supabaseRequest(
+"daily_analysis",
+{
+
+method:"POST",
+
+body:{
+
+analysis_date:
+todayString(),
+
+completion_percent:
+percent,
+
+summary:
+generateDailySummary(
+percent
+)
+
+}
+
+}
+);
+
+
+alert(
+"今天的训练已经保存。💪"
+);
+
+
+setStatus(
+"☁️ 已同步到云端",
+"ok"
+);
+
+
+await loadHistory();
+
+
+}catch(error){
+
+console.error(error);
+
+
+setStatus(
+"⚠️ 保存失败：" +
+error.message,
+"error"
+);
+
+
+alert(
+"保存失败：\n" +
+error.message
+);
+
+}
+
+
+button.disabled =
+false;
+
+button.textContent =
+"保存今天训练";
+
+}
+
+
+
+/* ================================
+   每日总结
+================================ */
+
+function generateDailySummary(
+percent
+){
+
+if(percent === 100){
+
+return "今日训练全部完成，完成度很好。";
+
+}
+
+if(percent >= 75){
+
+return "今日大部分训练完成，继续优先保证动作质量。";
+
+}
+
+if(percent >= 50){
+
+return "今日完成了一半以上训练，可以逐步提高完成度。";
+
+}
+
+return "今日训练完成度较低，暂时不要增加训练量。";
+
+}
+
+
+
+/* ================================
+   历史记录
+================================ */
+
+async function loadHistory(){
+
+try{
+
+records =
+await supabaseRequest(
+"workouts?select=*&order=workout_date.desc,created_at.desc"
+);
+
+
+renderHistory();
+
+updateWeeklyAnalysis();
+
+updateMonthlyAnalysis();
+
+updateTrendAnalysis();
+
+
+}catch(error){
+
+console.error(error);
+
+
+setStatus(
+"⚠️ 数据库读取失败：" +
+error.message,
+"error"
+);
+
+}
+
+}
+
+
+
+/* ================================
+   本周
+================================ */
+
+function getWeekRecords(){
+
+const now =
+new Date();
+
+
+const day =
+now.getDay();
+
+
+const diff =
+day === 0
+?
+-6
+:
+1 - day;
+
+
+const monday =
+new Date(now);
+
+
+monday.setDate(
+now.getDate() + diff
+);
+
+
+monday.setHours(
+0,0,0,0
+);
+
+
+return records.filter(
+record => {
+
+const date =
+new Date(
+record.workout_date
+);
+
+return date >= monday;
+
+}
+);
+
+}
+
+
+
+function updateWeeklyAnalysis(){
+
+const list =
+getWeekRecords();
+
+
+document.getElementById(
+"weekCount"
+).textContent =
+list.length;
+
+
+if(!list.length){
+
+document.getElementById(
+"weekAverage"
+).textContent =
+"—";
+
+
+document.getElementById(
+"weeklyAnalysis"
+).textContent =
+"本周还没有训练记录。";
+
+return;
+
+}
+
+
+const average =
+Math.round(
+
+list.reduce(
+(sum,r)=>
+sum +
+(r.completion_percent || 0),
+0
+)
+/
+list.length
+
+);
+
+
+document.getElementById(
+"weekAverage"
+).textContent =
+average + "%";
+
+
+document.getElementById(
+"weeklyAnalysis"
+).textContent =
+
+`本周完成 ${list.length} 次训练，
+平均完成度 ${average}%。`;
+
+}
+
+
+
+/* ================================
+   本月
+================================ */
+
+function getMonthRecords(){
+
+const now =
+new Date();
+
+
+return records.filter(
+record => {
+
+const date =
+new Date(
+record.workout_date
+);
+
+
+return (
+
+date.getFullYear()
+===
+now.getFullYear()
+
+&&
+
+date.getMonth()
+===
+now.getMonth()
+
+);
+
+}
+);
+
+}
+
+
+
+function updateMonthlyAnalysis(){
+
+const list =
+getMonthRecords();
+
+
+const count =
+list.length;
+
+
+const average =
+count
+?
+Math.round(
+
+list.reduce(
+(sum,r)=>
+sum +
+(r.completion_percent || 0),
+0
+)
+/
+count
+
+)
+:
+0;
+
+
+const minutes =
+list.reduce(
+(sum,r)=>
+sum +
+(r.duration_minutes || 0),
+0
+);
+
+
+document.getElementById(
+"monthCount"
+).textContent =
+count;
+
+
+document.getElementById(
+"monthAverage"
+).textContent =
+count
+?
+average + "%"
+:
+"—";
+
+
+document.getElementById(
+"monthMinutes"
+).textContent =
+minutes;
+
+
+if(!count){
+
+document.getElementById(
+"monthlyAnalysis"
+).textContent =
+"本月还没有训练记录。";
+
+return;
+
+}
+
+
+document.getElementById(
+"monthlyAnalysis"
+).textContent =
+
+`本月共完成 ${count} 次训练，
+累计约 ${minutes} 分钟，
+平均完成度 ${average}%。`;
+
+
+document.getElementById(
+"monthlyHighlights"
+).innerHTML =
+
+`本月最高完成度：
+<strong>${Math.max(
+...list.map(
+r => r.completion_percent || 0
+)
+)}%</strong>`;
+
+}
+
+
+
+/* ================================
+   长期趋势
+================================ */
+
+function updateTrendAnalysis(){
+
+const total =
+records.length;
+
+
+const minutes =
+records.reduce(
+(sum,r)=>
+sum +
+(r.duration_minutes || 0),
+0
+);
+
+
+const average =
+total
+?
+Math.round(
+
+records.reduce(
+(sum,r)=>
+sum +
+(r.completion_percent || 0),
+0
+)
+/
+total
+
+)
+:
+0;
+
+
+const best =
+total
+?
+Math.max(
+...records.map(
+r =>
+r.completion_percent || 0
+)
+)
+:
+0;
+
+
+document.getElementById(
+"totalWorkouts"
+).textContent =
+total + " 次";
+
+
+document.getElementById(
+"totalMinutes"
+).textContent =
+minutes + " 分钟";
+
+
+document.getElementById(
+"totalAverage"
+).textContent =
+total
+?
+average + "%"
+:
+"—";
+
+
+document.getElementById(
+"bestCompletion"
+).textContent =
+total
+?
+best + "%"
+:
+"—";
+
+
+if(total){
+
+document.getElementById(
+"exerciseTrend"
+).innerHTML =
+
+`目前累计完成
+<strong>${total} 次</strong>训练，
+平均完成度
+<strong>${average}%</strong>。
+<br><br>
+随着训练次数增加，
+这里会逐渐形成你的长期力量与训练趋势。`;
+
+}
+
+}
+
+
+
+/* ================================
+   历史显示
+================================ */
+
+function renderHistory(){
+
+const box =
+document.getElementById(
+"historyList"
+);
+
+
+if(!records.length){
+
+box.innerHTML =
+'<div class="muted">暂时还没有训练记录。</div>';
+
+return;
+
+}
+
+
+box.innerHTML =
+
+records.map(
+record => `
+
+<div class="history-item">
+
+<div class="history-title">
+
+第
+${record.workout_number}
+次训练
+
+<span class="badge">
+
+${record.completion_percent || 0}%
+
+</span>
+
+</div>
+
+
+<div class="muted">
+
+${record.workout_date}
+
+·
+
+${record.duration_minutes || 0}
+分钟
+
+</div>
+
+
+${
+record.body_note
+?
+`<div class="muted">
+感受：
+${escapeHtml(
+record.body_note
+)}
+</div>`
+:
+""
+}
+
+</div>
+
+`
+)
+.join("");
+
+}
+
+
+
+/* ================================
+   标签切换
+================================ */
+
+function showTab(
+id,
+button
+){
+
+document
+.querySelectorAll(
+"#todayTab,#dailyTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab"
+)
+.forEach(
+section =>
+section.classList.add(
+"hidden"
+)
+);
+
+
+document
+.getElementById(id)
+.classList.remove(
+"hidden"
+);
+
+
+document
+.querySelectorAll(".tab")
+.forEach(
+tab =>
+tab.classList.remove(
+"active"
+)
+);
+
+
+button.classList.add(
+"active"
+);
+
+}
+
+
+
+/* ================================
+   安全显示文字
+================================ */
+
+function escapeHtml(
+text
+){
+
+const div =
+document.createElement(
+"div"
+);
+
+div.textContent =
+text || "";
+
+return div.innerHTML;
+
+}
+
+
+
+/* ================================
+   启动
+================================ */
+
+loadCurrentPlan();
+
 loadHistory();
+
 
 </script>
 
 </body>
+
 </html>
