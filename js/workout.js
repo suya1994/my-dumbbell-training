@@ -49,20 +49,11 @@ function updateProgress() {
   if (text) {
     text.textContent = `${count} / ${total} 个动作完成`;
   }
-
-  const daily = document.getElementById("dailyCompletion");
-
-  if (daily) {
-    daily.textContent = percent + "%";
-  }
-
-  const dailyExercises = document.getElementById("dailyExercises");
-
-  if (dailyExercises) {
-    dailyExercises.textContent = count;
-  }
 }
 
+/* ================================
+   保存训练
+================================ */
 /* ================================
    保存训练
 ================================ */
@@ -96,113 +87,52 @@ async function finishWorkout() {
 
   try {
     /* ================================
-       检查今天是否已经保存
+       保存本次训练
+       
+       当前首页是什么训练编号，
+       就保存什么训练编号。
+       
+       不再覆盖今天已有的训练。
     ================================ */
 
-    const existing = await supabaseRequest(
-      "workouts" +
-        "?select=*" +
-        "&workout_number=eq." +
-        currentPlan.workout_number +
-        "&workout_date=eq." +
-        todayString() +
-        "&limit=1",
+    const workout = await supabaseRequest(
+      "workouts",
+
+      {
+        method: "POST",
+
+        body: {
+          workout_number: currentPlan.workout_number,
+
+          workout_date: todayString(),
+
+          title: currentPlan.title,
+
+          focus: currentPlan.focus,
+
+          duration_minutes: currentPlan.duration_minutes,
+
+          completion_percent: percent,
+
+          difficulty: difficulty || null,
+
+          body_note: note || null,
+        },
+      },
     );
 
-    let workout;
-
-    let workoutId;
-
-    /* ================================
-       已存在 → 更新
-    ================================ */
-
-    if (existing.length) {
-      workout = await supabaseRequest(
-        "workouts?id=eq." + existing[0].id,
-
-        {
-          method: "PATCH",
-
-          body: {
-            title: currentPlan.title,
-
-            focus: currentPlan.focus,
-
-            duration_minutes: currentPlan.duration_minutes,
-
-            completion_percent: percent,
-
-            difficulty: difficulty || null,
-
-            body_note: note || null,
-          },
-        },
-      );
-
-      workoutId = existing[0].id;
-    } else {
-      /* ================================
-       不存在 → 新建
-    ================================ */
-      workout = await supabaseRequest(
-        "workouts",
-
-        {
-          method: "POST",
-
-          body: {
-            workout_number: currentPlan.workout_number,
-
-            workout_date: todayString(),
-
-            title: currentPlan.title,
-
-            focus: currentPlan.focus,
-
-            duration_minutes: currentPlan.duration_minutes,
-
-            completion_percent: percent,
-
-            difficulty: difficulty || null,
-
-            body_note: note || null,
-          },
-        },
-      );
-
-      workoutId = workout[0].id;
+    if (!workout || !workout.length) {
+      throw new Error("训练保存成功，但没有返回训练记录。");
     }
+
+    const workoutId = workout[0].id;
 
     /* ================================
        保存每个动作
-       
-       如果今天已经保存过：
-       → 更新
-       
-       如果没有：
-       → 新建
-       
-       如果没有填写实际数据：
-       → 自动采用计划数据
     ================================ */
 
     for (let i = 0; i < currentExercises.length; i++) {
       const exercise = currentExercises[i];
-
-      const existingExercises = await supabaseRequest(
-        "exercises" +
-          "?select=*" +
-          "&workout_id=eq." +
-          workoutId +
-          "&plan_exercise_id=eq." +
-          exercise.id +
-          "&limit=1",
-      );
-
-      /* ================================
-         实际完成数据
-      ================================ */
 
       const actualSetsInput = document.getElementById("actualSets" + i);
 
@@ -215,7 +145,7 @@ async function finishWorkout() {
       const rightRepsInput = document.getElementById("rightReps" + i);
 
       /* ================================
-         没填 → 默认采用计划数据
+         实际数据
       ================================ */
 
       const actualSets =
@@ -279,38 +209,23 @@ async function finishWorkout() {
         right_reps: rightReps,
       };
 
-      /* ================================
-         已存在 → 更新
-      ================================ */
+      await supabaseRequest(
+        "exercises",
 
-      if (existingExercises.length) {
-        await supabaseRequest(
-          "exercises?id=eq." + existingExercises[0].id,
+        {
+          method: "POST",
 
-          {
-            method: "PATCH",
-
-            body: exerciseData,
-          },
-        );
-      } else {
-        /* ================================
-         不存在 → 新建
-      ================================ */
-        await supabaseRequest(
-          "exercises",
-
-          {
-            method: "POST",
-
-            body: exerciseData,
-          },
-        );
-      }
+          body: exerciseData,
+        },
+      );
     }
 
     /* ================================
-       保存每日分析
+       每日分析
+       
+       这里保留每日分析记录，
+       但统计页面会直接根据 workouts
+       重新计算。
     ================================ */
 
     const summary = generateDailySummary(percent);
@@ -322,10 +237,6 @@ async function finishWorkout() {
         todayString() +
         "&limit=1",
     );
-
-    /* ================================
-       已有 → 更新
-    ================================ */
 
     if (existingAnalysis.length) {
       await supabaseRequest(
@@ -342,9 +253,6 @@ async function finishWorkout() {
         },
       );
     } else {
-      /* ================================
-       没有 → 新建
-    ================================ */
       await supabaseRequest(
         "daily_analysis",
 
@@ -370,8 +278,38 @@ async function finishWorkout() {
 
     setStatus("☁️ 已同步到云端", "ok");
 
+    /* ================================
+       重新读取历史
+       
+       这一步会刷新：
+       每日
+       每周
+       每月
+       总趋势
+       历史
+    ================================ */
+
     if (typeof loadHistory === "function") {
       await loadHistory();
+    }
+
+    /* ================================
+       重新读取动作历史
+    ================================ */
+
+    if (typeof loadExerciseRecords === "function") {
+      await loadExerciseRecords();
+    }
+
+    /* ================================
+       加载下一次训练
+       
+       第7次保存成功
+       → 首页变第8次
+    ================================ */
+
+    if (typeof loadCurrentPlan === "function") {
+      await loadCurrentPlan();
     }
   } catch (error) {
     console.error(error);
@@ -384,6 +322,26 @@ async function finishWorkout() {
   button.disabled = false;
 
   button.textContent = "保存今天训练";
+}
+
+/* ================================
+   每日总结
+================================ */
+
+function generateDailySummary(percent) {
+  if (percent === 100) {
+    return "今日训练全部完成，完成度很好。";
+  }
+
+  if (percent >= 75) {
+    return "今日大部分训练完成，继续优先保证动作质量。";
+  }
+
+  if (percent >= 50) {
+    return "今日完成了一半以上训练，可以逐步提高完成度。";
+  }
+
+  return "今日训练完成度较低，暂时不要增加训练量。";
 }
 
 /* ================================
