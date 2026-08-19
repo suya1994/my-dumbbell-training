@@ -1,12 +1,16 @@
 /*
  * v1.1
  * Supabase 数据库 API
+ *
+ * 注意：
+ * SUPABASE_URL 和 SUPABASE_KEY
+ * 暂时仍由 app.js 提供。
  */
 
 async function supabaseRequest(
   endpoint,
   options = {}
-){
+) {
 
   const response =
     await fetch(
@@ -17,7 +21,7 @@ async function supabaseRequest(
 
         ...options,
 
-        headers:{
+        headers: {
 
           "apikey":
           SUPABASE_KEY,
@@ -42,7 +46,7 @@ async function supabaseRequest(
     );
 
 
-  if(!response.ok){
+  if (!response.ok) {
 
     const text =
       await response.text();
