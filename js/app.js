@@ -114,5 +114,6 @@ return div.innerHTML;
 loadCurrentPlan();
 
 loadHistory();
+loadBodyMetrics();
 
 
