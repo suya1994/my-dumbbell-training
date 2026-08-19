@@ -549,6 +549,10 @@ id="bestCompletion">
 
 
 
+<!-- ================================
+     动作进步
+================================ -->
+
 <div class="card">
 
 
@@ -562,6 +566,32 @@ id="exerciseTrend"
 class="analysis">
 
 训练数据积累后，这里会显示动作进步。
+
+</div>
+
+
+</div>
+
+
+
+<!-- ================================
+     训练 × 身体变化
+================================ -->
+
+<div class="card">
+
+
+<h2>
+🏋️‍♀️ 训练 × 身体变化
+</h2>
+
+
+<div
+id="trainingBodyAnalysis"
+class="analysis">
+
+开始记录身体数据后，
+这里会分析训练与身体变化的关系。
 
 </div>
 
@@ -713,7 +743,7 @@ onclick="saveBodyMetrics()">
 
 
 <!-- ================================
-     身体数据趋势
+     最近变化
 ================================ -->
 
 <div class="card">
@@ -736,11 +766,19 @@ class="analysis">
 
 </div>
 
-     <div class="card">
+
+
+<!-- ================================
+     本月变化
+================================ -->
+
+<div class="card">
+
 
 <h2>
 📅 本月变化
 </h2>
+
 
 <div
 id="metricsMonthly"
@@ -751,14 +789,22 @@ class="analysis">
 
 </div>
 
+
 </div>
 
 
+
+<!-- ================================
+     长期变化
+================================ -->
+
 <div class="card">
+
 
 <h2>
 📊 长期变化
 </h2>
+
 
 <div
 id="metricsLongTerm"
@@ -768,6 +814,7 @@ class="analysis">
 这里会显示长期变化。
 
 </div>
+
 
 </div>
 
@@ -829,9 +876,9 @@ id="metricsHistory">
 
 <script src="js/workout.js"></script>
 
-<script src="js/analysis.js"></script>
-
 <script src="js/metrics.js"></script>
+
+<script src="js/analysis.js"></script>
 
 <script src="js/app.js"></script>
 
