@@ -1,6 +1,7 @@
 /* ================================
    analysis.js
    每日 / 每周 / 每月 / 长期分析
+   + 训练 × 身体数据综合分析
 ================================ */
 
 
@@ -41,16 +42,18 @@ function updateDailyAnalysis(){
   else if(percent < 50){
 
     text =
-      `目前完成度 ${percent}%。
-先保证动作质量，不需要赶进度。`;
+      `目前完成度 ${percent}%。`
+      +
+      `先保证动作质量，不需要赶进度。`;
 
   }
 
   else if(percent < 100){
 
     text =
-      `目前完成度 ${percent}%。
-已经完成大部分训练，继续保持。`;
+      `目前完成度 ${percent}%。`
+      +
+      `已经完成大部分训练，继续保持。`;
 
   }
 
@@ -80,47 +83,7 @@ function updateDailyAnalysis(){
 
 
 /* ================================
-   历史记录
-================================ */
-
-async function loadHistory(){
-
-  try{
-
-    records =
-      await supabaseRequest(
-        "workouts?select=*&order=workout_date.desc,created_at.desc"
-      );
-
-
-    renderHistory();
-
-    updateWeeklyAnalysis();
-
-    updateMonthlyAnalysis();
-
-    updateTrendAnalysis();
-
-
-  }catch(error){
-
-    console.error(error);
-
-
-    setStatus(
-      "⚠️ 数据库读取失败：" +
-      error.message,
-      "error"
-    );
-
-  }
-
-}
-
-
-
-/* ================================
-   本周记录
+   每周
 ================================ */
 
 function getWeekRecords(){
@@ -151,10 +114,7 @@ function getWeekRecords(){
 
 
   monday.setHours(
-    0,
-    0,
-    0,
-    0
+    0,0,0,0
   );
 
 
@@ -176,34 +136,58 @@ function getWeekRecords(){
 
 
 
-/* ================================
-   每周分析
-================================ */
-
 function updateWeeklyAnalysis(){
 
   const list =
     getWeekRecords();
 
 
-  document.getElementById(
-    "weekCount"
-  ).textContent =
+  const count =
     list.length;
 
 
-  if(!list.length){
+  const countBox =
+    document.getElementById(
+      "weekCount"
+    );
 
+
+  const averageBox =
     document.getElementById(
       "weekAverage"
-    ).textContent =
-      "—";
+    );
 
 
+  const analysisBox =
     document.getElementById(
       "weeklyAnalysis"
-    ).textContent =
-      "本周还没有训练记录。";
+    );
+
+
+  if(countBox){
+
+    countBox.textContent =
+      count;
+
+  }
+
+
+  if(!count){
+
+    if(averageBox){
+
+      averageBox.textContent =
+        "—";
+
+    }
+
+
+    if(analysisBox){
+
+      analysisBox.textContent =
+        "本周还没有训练记录。";
+
+    }
 
 
     return;
@@ -221,30 +205,34 @@ function updateWeeklyAnalysis(){
         0
       )
       /
-      list.length
+      count
 
     );
 
 
-  document.getElementById(
-    "weekAverage"
-  ).textContent =
-    average + "%";
+  if(averageBox){
+
+    averageBox.textContent =
+      average + "%";
+
+  }
 
 
-  document.getElementById(
-    "weeklyAnalysis"
-  ).textContent =
+  if(analysisBox){
 
-    `本周完成 ${list.length} 次训练，
-平均完成度 ${average}%。`;
+    analysisBox.textContent =
+
+      `本周完成 ${count} 次训练，
+      平均完成度 ${average}%。`;
+
+  }
 
 }
 
 
 
 /* ================================
-   本月记录
+   每月
 ================================ */
 
 function getMonthRecords(){
@@ -282,10 +270,6 @@ function getMonthRecords(){
 }
 
 
-
-/* ================================
-   每月分析
-================================ */
 
 function updateMonthlyAnalysis(){
 
@@ -325,34 +309,80 @@ function updateMonthlyAnalysis(){
     );
 
 
-  document.getElementById(
-    "monthCount"
-  ).textContent =
-    count;
+  const countBox =
+    document.getElementById(
+      "monthCount"
+    );
 
 
-  document.getElementById(
-    "monthAverage"
-  ).textContent =
-    count
-    ?
-    average + "%"
-    :
-    "—";
+  const averageBox =
+    document.getElementById(
+      "monthAverage"
+    );
 
 
-  document.getElementById(
-    "monthMinutes"
-  ).textContent =
-    minutes;
+  const minutesBox =
+    document.getElementById(
+      "monthMinutes"
+    );
+
+
+  const analysisBox =
+    document.getElementById(
+      "monthlyAnalysis"
+    );
+
+
+  const highlightBox =
+    document.getElementById(
+      "monthlyHighlights"
+    );
+
+
+  if(countBox){
+
+    countBox.textContent =
+      count;
+
+  }
+
+
+  if(averageBox){
+
+    averageBox.textContent =
+      count
+      ?
+      average + "%"
+      :
+      "—";
+
+  }
+
+
+  if(minutesBox){
+
+    minutesBox.textContent =
+      minutes;
+
+  }
 
 
   if(!count){
 
-    document.getElementById(
-      "monthlyAnalysis"
-    ).textContent =
-      "本月还没有训练记录。";
+    if(analysisBox){
+
+      analysisBox.textContent =
+        "本月还没有训练记录。";
+
+    }
+
+
+    if(highlightBox){
+
+      highlightBox.textContent =
+        "等待更多训练数据……";
+
+    }
 
 
     return;
@@ -360,28 +390,34 @@ function updateMonthlyAnalysis(){
   }
 
 
-  document.getElementById(
-    "monthlyAnalysis"
-  ).textContent =
+  if(analysisBox){
 
-    `本月共完成 ${count} 次训练，
-累计约 ${minutes} 分钟，
-平均完成度 ${average}%。`;
+    analysisBox.textContent =
+
+      `本月共完成 ${count} 次训练，
+      累计约 ${minutes} 分钟，
+      平均完成度 ${average}%。`;
+
+  }
 
 
-  document.getElementById(
-    "monthlyHighlights"
-  ).innerHTML =
-
-    `本月最高完成度：
-    <strong>${
-      Math.max(
-        ...list.map(
-          r =>
-            r.completion_percent || 0
-        )
+  const best =
+    Math.max(
+      ...list.map(
+        r =>
+          r.completion_percent || 0
       )
-    }%</strong>`;
+    );
+
+
+  if(highlightBox){
+
+    highlightBox.innerHTML =
+
+      `本月最高完成度：
+      <strong>${best}%</strong>`;
+
+  }
 
 }
 
@@ -438,74 +474,217 @@ function updateTrendAnalysis(){
     0;
 
 
-  document.getElementById(
-    "totalWorkouts"
-  ).textContent =
-    total + " 次";
+  setText(
+    "totalWorkouts",
+    total + " 次"
+  );
 
 
-  document.getElementById(
-    "totalMinutes"
-  ).textContent =
-    minutes + " 分钟";
+  setText(
+    "totalMinutes",
+    minutes + " 分钟"
+  );
 
 
-  document.getElementById(
-    "totalAverage"
-  ).textContent =
+  setText(
+    "totalAverage",
     total
     ?
     average + "%"
     :
-    "—";
+    "—"
+  );
 
 
-  document.getElementById(
-    "bestCompletion"
-  ).textContent =
+  setText(
+    "bestCompletion",
     total
     ?
     best + "%"
     :
-    "—";
+    "—"
+  );
 
 
-  if(total){
-
+  const box =
     document.getElementById(
       "exerciseTrend"
-    ).innerHTML =
+    );
 
-      `目前累计完成
-      <strong>${total} 次</strong>训练，
-      平均完成度
-      <strong>${average}%</strong>。
-      <br><br>
-      随着训练次数增加，
-      这里会逐渐形成你的长期力量与训练趋势。`;
+
+  if(box){
+
+    if(total){
+
+      box.innerHTML =
+
+        `目前累计完成
+        <strong>${total} 次</strong>训练，
+        平均完成度
+        <strong>${average}%</strong>。
+        <br><br>
+        随着训练次数增加，
+        这里会逐渐形成你的长期力量与训练趋势。`;
+
+    }
+
+    else{
+
+      box.textContent =
+        "训练数据积累后，这里会显示动作进步。";
+
+    }
 
   }
+
+
+  updateTrainingBodyAnalysis();
 
 }
 
 
 
 /* ================================
-   历史记录显示
+   训练 × 身体数据
 ================================ */
 
-function renderHistory(){
+function updateTrainingBodyAnalysis(){
 
   const box =
     document.getElementById(
-      "historyList"
+      "trainingBodyAnalysis"
     );
 
 
-  if(!records.length){
+  if(!box){
 
-    box.innerHTML =
-      '<div class="muted">暂时还没有训练记录。</div>';
+    return;
+
+  }
+
+
+  /*
+    body_metrics
+    由 metrics.js 负责读取
+
+    使用全局变量：
+    bodyMetricsRecords
+  */
+
+  const data =
+    typeof bodyMetricsRecords !== "undefined"
+    ?
+    bodyMetricsRecords
+    :
+    [];
+
+
+  if(!data.length){
+
+    box.textContent =
+      "开始记录身体数据后，
+      这里会分析训练与身体变化的关系。";
+
+    return;
+
+  }
+
+
+  if(data.length < 2){
+
+    box.textContent =
+      "目前只有1条身体数据记录。
+      再记录一次后，就可以开始分析变化趋势。";
+
+    return;
+
+  }
+
+
+  const first =
+    data[data.length - 1];
+
+
+  const latest =
+    data[0];
+
+
+  const lines = [];
+
+
+  /*
+    体重
+  */
+
+  if(
+    first.weight_kg !== null &&
+    latest.weight_kg !== null
+  ){
+
+    const change =
+      latest.weight_kg -
+      first.weight_kg;
+
+
+    lines.push(
+      `体重 ${
+        formatChange(change)
+      } kg`
+    );
+
+  }
+
+
+  /*
+    腰围
+  */
+
+  if(
+    first.waist_cm !== null &&
+    latest.waist_cm !== null
+  ){
+
+    const change =
+      latest.waist_cm -
+      first.waist_cm;
+
+
+    lines.push(
+      `腰围 ${
+        formatChange(change)
+      } cm`
+    );
+
+  }
+
+
+  /*
+    臀围
+  */
+
+  if(
+    first.hip_cm !== null &&
+    latest.hip_cm !== null
+  ){
+
+    const change =
+      latest.hip_cm -
+      first.hip_cm;
+
+
+    lines.push(
+      `臀围 ${
+        formatChange(change)
+      } cm`
+    );
+
+  }
+
+
+  if(!lines.length){
+
+    box.textContent =
+      "目前没有足够的身体数据进行比较。";
 
     return;
 
@@ -514,101 +693,44 @@ function renderHistory(){
 
   box.innerHTML =
 
-    records.map(
-      record => `
+    `从第一次身体记录
+    ${first.record_date}
+    到最新记录
+    ${latest.record_date}：
 
-        <div class="history-item">
+    <br><br>
 
-          <div class="history-title">
+    <strong>
+    ${lines.join("，")}
+    </strong>
 
-            第
-            ${record.workout_number}
-            次训练
+    <br><br>
 
-            <span class="badge">
-
-              ${record.completion_percent || 0}%
-
-            </span>
-
-          </div>
-
-
-          <div class="muted">
-
-            ${record.workout_date}
-
-            ·
-
-            ${record.duration_minutes || 0}
-            分钟
-
-          </div>
-
-
-          ${
-            record.body_note
-            ?
-            `<div class="muted">
-              感受：
-              ${escapeHtml(
-                record.body_note
-              )}
-            </div>`
-            :
-            ""
-          }
-
-        </div>
-
-      `
-    )
-    .join("");
+    继续保持每周 3–4 次力量训练，
+    后续数据积累后会更容易判断塑形效果。`;
 
 }
 
 
 
 /* ================================
-   标签切换
+   工具
 ================================ */
 
-function showTab(
+function setText(
   id,
-  button
+  text
 ){
 
-  document
-    .querySelectorAll(
-      "#todayTab,#dailyTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab"
-    )
-    .forEach(
-      section =>
-        section.classList.add(
-          "hidden"
-        )
-    );
+  const element =
+    document.getElementById(id);
 
 
-  document
-    .getElementById(id)
-    .classList.remove(
-      "hidden"
-    );
+  if(element){
 
+    element.textContent =
+      text;
 
-  document
-    .querySelectorAll(".tab")
-    .forEach(
-      tab =>
-        tab.classList.remove(
-          "active"
-        )
-    );
-
-
-  button.classList.add(
-    "active"
-  );
+  }
 
 }
