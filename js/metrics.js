@@ -5,6 +5,13 @@
 
 
 /* ================================
+   全局身体数据
+================================ */
+
+let bodyMetricsRecords = [];
+
+
+/* ================================
    保存身体数据
 ================================ */
 
@@ -33,6 +40,10 @@ async function saveBodyMetrics(){
       "metricNote"
     )?.value;
 
+
+  /*
+    至少填写一项
+  */
 
   if(
     weight === "" &&
@@ -83,6 +94,10 @@ async function saveBodyMetrics(){
     };
 
 
+    /*
+      检查今天是否已经记录
+    */
+
     const existing =
       await supabaseRequest(
 
@@ -94,6 +109,11 @@ async function saveBodyMetrics(){
 
       );
 
+
+    /*
+      今天已有记录
+      → 更新
+    */
 
     if(existing.length){
 
@@ -112,7 +132,15 @@ async function saveBodyMetrics(){
 
       );
 
-    }else{
+    }
+
+
+    /*
+      今天没有记录
+      → 新建
+    */
+
+    else{
 
       await supabaseRequest(
 
@@ -135,6 +163,10 @@ async function saveBodyMetrics(){
       "身体数据已保存。📊"
     );
 
+
+    /*
+      保存后重新读取
+    */
 
     await loadBodyMetrics();
 
@@ -173,24 +205,67 @@ async function loadBodyMetrics(){
       );
 
 
+    /*
+      保存到全局变量
+
+      analysis.js
+      会读取这个变量
+    */
+
+    bodyMetricsRecords =
+      data;
+
+
+    /*
+      页面显示
+    */
+
     renderBodyMetrics(
       data
     );
 
+
+    /*
+      最近两次变化
+    */
 
     updateBodyMetricsTrend(
       data
     );
 
 
+    /*
+      本月变化
+    */
+
     updateBodyMetricsMonthly(
       data
     );
 
 
+    /*
+      长期变化
+    */
+
     updateBodyMetricsLongTerm(
       data
     );
+
+
+    /*
+      如果已经有训练记录
+      同时刷新训练 × 身体变化
+    */
+
+    if(
+      typeof updateTrainingBodyAnalysis
+      ===
+      "function"
+    ){
+
+      updateTrainingBodyAnalysis();
+
+    }
 
 
   }catch(error){
@@ -260,7 +335,9 @@ function renderBodyMetrics(
 
             <div class="history-title">
 
-              ${item.record_date}
+              ${escapeHtml(
+                item.record_date
+              )}
 
             </div>
 
@@ -299,7 +376,9 @@ function renderBodyMetrics(
               ?
               `<div class="muted">
                 备注：
-                ${escapeHtml(item.body_note)}
+                ${escapeHtml(
+                  item.body_note
+                )}
               </div>`
               :
               ""
@@ -367,22 +446,32 @@ function updateBodyMetricsTrend(
   const changes = [];
 
 
+  /*
+    体重
+  */
+
   if(
     latest.weight_kg !== null &&
     previous.weight_kg !== null
   ){
 
     changes.push(
+
       `体重 ${
         formatChange(
           latest.weight_kg -
           previous.weight_kg
         )
       } kg`
+
     );
 
   }
 
+
+  /*
+    腰围
+  */
 
   if(
     latest.waist_cm !== null &&
@@ -390,16 +479,22 @@ function updateBodyMetricsTrend(
   ){
 
     changes.push(
+
       `腰围 ${
         formatChange(
           latest.waist_cm -
           previous.waist_cm
         )
       } cm`
+
     );
 
   }
 
+
+  /*
+    臀围
+  */
 
   if(
     latest.hip_cm !== null &&
@@ -407,12 +502,14 @@ function updateBodyMetricsTrend(
   ){
 
     changes.push(
+
       `臀围 ${
         formatChange(
           latest.hip_cm -
           previous.hip_cm
         )
       } cm`
+
     );
 
   }
@@ -431,7 +528,9 @@ function updateBodyMetricsTrend(
   box.innerHTML =
 
     `最近一次记录与上一次相比：
-    <strong>${changes.join("，")}</strong>。`;
+    <strong>
+    ${changes.join("，")}
+    </strong>。`;
 
 }
 
@@ -511,22 +610,32 @@ function updateBodyMetricsMonthly(
   const changes = [];
 
 
+  /*
+    体重
+  */
+
   if(
     latest.weight_kg !== null &&
     earliest.weight_kg !== null
   ){
 
     changes.push(
+
       `体重 ${
         formatChange(
           latest.weight_kg -
           earliest.weight_kg
         )
       } kg`
+
     );
 
   }
 
+
+  /*
+    腰围
+  */
 
   if(
     latest.waist_cm !== null &&
@@ -534,16 +643,22 @@ function updateBodyMetricsMonthly(
   ){
 
     changes.push(
+
       `腰围 ${
         formatChange(
           latest.waist_cm -
           earliest.waist_cm
         )
       } cm`
+
     );
 
   }
 
+
+  /*
+    臀围
+  */
 
   if(
     latest.hip_cm !== null &&
@@ -551,22 +666,38 @@ function updateBodyMetricsMonthly(
   ){
 
     changes.push(
+
       `臀围 ${
         formatChange(
           latest.hip_cm -
           earliest.hip_cm
         )
       } cm`
+
     );
+
+  }
+
+
+  if(!changes.length){
+
+    box.textContent =
+      "本月还没有足够的数据进行比较。";
+
+    return;
 
   }
 
 
   box.innerHTML =
 
-    `本月从 ${earliest.record_date}
-    到 ${latest.record_date}：
+    `本月从
+    ${earliest.record_date}
+    到
+    ${latest.record_date}：
+
     <br><br>
+
     <strong>
     ${changes.join("，")}
     </strong>`;
@@ -617,22 +748,32 @@ function updateBodyMetricsLongTerm(
   const changes = [];
 
 
+  /*
+    体重
+  */
+
   if(
     latest.weight_kg !== null &&
     earliest.weight_kg !== null
   ){
 
     changes.push(
+
       `体重 ${
         formatChange(
           latest.weight_kg -
           earliest.weight_kg
         )
       } kg`
+
     );
 
   }
 
+
+  /*
+    腰围
+  */
 
   if(
     latest.waist_cm !== null &&
@@ -640,16 +781,22 @@ function updateBodyMetricsLongTerm(
   ){
 
     changes.push(
+
       `腰围 ${
         formatChange(
           latest.waist_cm -
           earliest.waist_cm
         )
       } cm`
+
     );
 
   }
 
+
+  /*
+    臀围
+  */
 
   if(
     latest.hip_cm !== null &&
@@ -657,13 +804,25 @@ function updateBodyMetricsLongTerm(
   ){
 
     changes.push(
+
       `臀围 ${
         formatChange(
           latest.hip_cm -
           earliest.hip_cm
         )
       } cm`
+
     );
+
+  }
+
+
+  if(!changes.length){
+
+    box.textContent =
+      "目前没有足够的身体数据进行比较。";
+
+    return;
 
   }
 
@@ -674,7 +833,9 @@ function updateBodyMetricsLongTerm(
     ${earliest.record_date}
     到最新记录
     ${latest.record_date}：
+
     <br><br>
+
     <strong>
     ${changes.join("，")}
     </strong>`;
@@ -695,6 +856,15 @@ function formatChange(
     Number(value);
 
 
+  if(
+    Number.isNaN(number)
+  ){
+
+    return "0.0";
+
+  }
+
+
   if(number > 0){
 
     return "+" +
@@ -706,3 +876,18 @@ function formatChange(
   return number.toFixed(1);
 
 }
+
+
+
+/* ================================
+   页面启动时读取身体数据
+================================ */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    loadBodyMetrics();
+
+  }
+);
