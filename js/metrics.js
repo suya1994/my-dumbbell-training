@@ -28,12 +28,6 @@ async function saveBodyMetrics(){
     )?.value;
 
 
-  const arm =
-    document.getElementById(
-      "metricArm"
-    )?.value;
-
-
   const note =
     document.getElementById(
       "metricNote"
@@ -41,10 +35,9 @@ async function saveBodyMetrics(){
 
 
   if(
-    !weight &&
-    !waist &&
-    !hip &&
-    !arm
+    weight === "" &&
+    waist === "" &&
+    hip === ""
   ){
 
     alert(
@@ -60,7 +53,7 @@ async function saveBodyMetrics(){
 
     const data = {
 
-      metric_date:
+      record_date:
         todayString(),
 
       weight_kg:
@@ -84,32 +77,66 @@ async function saveBodyMetrics(){
         :
         null,
 
-      arm_cm:
-        arm !== ""
-        ?
-        Number(arm)
-        :
-        null,
-
-      note:
+      body_note:
         note || null
 
     };
 
 
-    await supabaseRequest(
+    /*
+      今天已经有记录：
+      更新今天的数据
 
-      "body_metrics",
+      没有：
+      新建
+    */
 
-      {
+    const existing =
+      await supabaseRequest(
 
-        method:"POST",
+        "body_metrics" +
+        "?select=*" +
+        "&record_date=eq." +
+        todayString() +
+        "&limit=1"
 
-        body:data
+      );
 
-      }
 
-    );
+    if(existing.length){
+
+      await supabaseRequest(
+
+        "body_metrics?id=eq." +
+        existing[0].id,
+
+        {
+
+          method:"PATCH",
+
+          body:data
+
+        }
+
+      );
+
+    }else{
+
+      await supabaseRequest(
+
+        "body_metrics",
+
+        {
+
+          method:"POST",
+
+          body:data
+
+        }
+
+      );
+
+    }
 
 
     alert(
@@ -149,7 +176,7 @@ async function loadBodyMetrics(){
 
         "body_metrics" +
         "?select=*" +
-        "&order=metric_date.desc"
+        "&order=record_date.desc"
 
       );
 
@@ -168,6 +195,21 @@ async function loadBodyMetrics(){
 
     console.error(error);
 
+
+    const box =
+      document.getElementById(
+        "metricsTrend"
+      );
+
+
+    if(box){
+
+      box.textContent =
+        "身体数据读取失败：" +
+        error.message;
+
+    }
+
   }
 
 }
@@ -175,7 +217,7 @@ async function loadBodyMetrics(){
 
 
 /* ================================
-   显示最近数据
+   显示最近记录
 ================================ */
 
 function renderBodyMetrics(
@@ -216,7 +258,7 @@ function renderBodyMetrics(
 
             <div class="history-title">
 
-              ${item.metric_date}
+              ${item.record_date}
 
             </div>
 
@@ -247,22 +289,15 @@ function renderBodyMetrics(
                 ""
               }
 
-              ${
-                item.arm_cm !== null
-                ?
-                ` · 手臂 ${item.arm_cm} cm`
-                :
-                ""
-              }
-
             </div>
 
 
             ${
-              item.note
+              item.body_note
               ?
               `<div class="muted">
-                ${escapeHtml(item.note)}
+                备注：
+                ${escapeHtml(item.body_note)}
               </div>`
               :
               ""
@@ -286,21 +321,6 @@ function updateBodyMetricsTrend(
   data
 ){
 
-  if(!data.length){
-
-    return;
-
-  }
-
-
-  const latest =
-    data[0];
-
-
-  const previous =
-    data[1];
-
-
   const box =
     document.getElementById(
       "metricsTrend"
@@ -314,14 +334,32 @@ function updateBodyMetricsTrend(
   }
 
 
-  if(!previous){
+  if(!data.length){
 
     box.textContent =
-      "这是你的第一条身体数据，继续记录后就能看到变化趋势。";
+      "记录身体数据后，这里会显示你的变化趋势。";
 
     return;
 
   }
+
+
+  if(data.length < 2){
+
+    box.textContent =
+      "目前只有1条记录，继续记录后就可以看到变化趋势。";
+
+    return;
+
+  }
+
+
+  const latest =
+    data[0];
+
+
+  const previous =
+    data[1];
 
 
   const changes = [];
@@ -371,23 +409,6 @@ function updateBodyMetricsTrend(
         (
           latest.hip_cm -
           previous.hip_cm
-        ).toFixed(1)
-      } cm`
-    );
-
-  }
-
-
-  if(
-    latest.arm_cm !== null &&
-    previous.arm_cm !== null
-  ){
-
-    changes.push(
-      `手臂 ${
-        (
-          latest.arm_cm -
-          previous.arm_cm
         ).toFixed(1)
       } cm`
     );
