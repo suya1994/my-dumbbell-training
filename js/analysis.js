@@ -9,11 +9,6 @@
    每日分析
 ================================ */
 
-/* ================================
-   每日分析
-   优先读取今天已经保存的训练记录
-================================ */
-
 function updateDailyAnalysis() {
   const box = document.getElementById("dailyAnalysis");
 
@@ -88,7 +83,7 @@ function updateDailyAnalysis() {
 }
 
 /* ================================
-   每周
+   每周记录
 ================================ */
 
 function getWeekRecords() {
@@ -111,10 +106,36 @@ function getWeekRecords() {
   });
 }
 
+/* ================================
+   读取每周训练目标
+================================ */
+
+function getWeeklyGoalSettings() {
+  const savedMin = localStorage.getItem("weekly_min_goal");
+
+  const savedIdeal = localStorage.getItem("weekly_ideal_goal");
+
+  return {
+    min: savedMin !== null ? Number(savedMin) : 3,
+
+    ideal: savedIdeal !== null ? Number(savedIdeal) : 4,
+  };
+}
+
+/* ================================
+   每周分析
+================================ */
+
 function updateWeeklyAnalysis() {
   const list = getWeekRecords();
 
   const count = list.length;
+
+  const goals = getWeeklyGoalSettings();
+
+  const minimumGoal = goals.min;
+
+  const idealGoal = goals.ideal;
 
   /* ================================
      基础元素
@@ -123,6 +144,8 @@ function updateWeeklyAnalysis() {
   const countBox = document.getElementById("weekCount");
 
   const remainingBox = document.getElementById("weekRemaining");
+
+  const goalDisplayBox = document.getElementById("weeklyGoalDisplay");
 
   const goalBox = document.getElementById("weeklyGoal");
 
@@ -135,6 +158,14 @@ function updateWeeklyAnalysis() {
   const analysisBox = document.getElementById("weeklyAnalysis");
 
   /* ================================
+     显示目标次数
+  ================================ */
+
+  if (goalDisplayBox) {
+    goalDisplayBox.textContent = `${minimumGoal}–${idealGoal}`;
+  }
+
+  /* ================================
      已完成次数
   ================================ */
 
@@ -144,11 +175,7 @@ function updateWeeklyAnalysis() {
 
   /* ================================
      距离最低目标还差几次
-     
-     每周最低目标 = 3次
   ================================ */
-
-  const minimumGoal = 3;
 
   const remaining = Math.max(minimumGoal - count, 0);
 
@@ -162,7 +189,7 @@ function updateWeeklyAnalysis() {
 
   if (!count) {
     if (remainingBox) {
-      remainingBox.textContent = "3";
+      remainingBox.textContent = minimumGoal;
     }
 
     if (averageBox) {
@@ -179,8 +206,10 @@ function updateWeeklyAnalysis() {
 
     if (goalBox) {
       goalBox.innerHTML = `本周还没有训练。<br><br>
-        🎯 最低目标：3 次<br>
-        💪 理想目标：3–4 次`;
+         🎯 最低目标：
+         <strong>${minimumGoal} 次</strong><br>
+         💪 理想目标：
+         <strong>${idealGoal} 次</strong>`;
     }
 
     if (analysisBox) {
@@ -195,20 +224,23 @@ function updateWeeklyAnalysis() {
   ================================ */
 
   const average = Math.round(
-    list.reduce((sum, r) => sum + (r.completion_percent || 0), 0) / count,
+    list.reduce((sum, r) => sum + Number(r.completion_percent || 0), 0) / count,
   );
 
   /* ================================
      累计训练时间
   ================================ */
 
-  const minutes = list.reduce((sum, r) => sum + (r.duration_minutes || 0), 0);
+  const minutes = list.reduce(
+    (sum, r) => sum + Number(r.duration_minutes || 0),
+    0,
+  );
 
   /* ================================
      最高完成度
   ================================ */
 
-  const best = Math.max(...list.map((r) => r.completion_percent || 0));
+  const best = Math.max(...list.map((r) => Number(r.completion_percent || 0)));
 
   if (averageBox) {
     averageBox.textContent = average + "%";
@@ -227,26 +259,31 @@ function updateWeeklyAnalysis() {
   ================================ */
 
   if (goalBox) {
-    if (count < 3) {
-      const left = 3 - count;
+    if (count < minimumGoal) {
+      const left = minimumGoal - count;
 
       goalBox.innerHTML = `本周已经完成
-        <strong>${count} 次</strong>训练。<br><br>
-        再完成
-        <strong>${left} 次</strong>，
-        就达到本周最低目标。<br><br>
-        🎯 理想目标：3–4 次`;
-    } else if (count === 3) {
+         <strong>${count} 次</strong>训练。<br><br>
+         再完成
+         <strong>${left} 次</strong>，
+         就达到本周最低目标。<br><br>
+         🎯 理想目标：
+         <strong>${idealGoal} 次</strong>`;
+    } else if (count < idealGoal) {
+      const left = idealGoal - count;
+
       goalBox.innerHTML = `🎉 本周已经完成
-        <strong>3 次</strong>训练，
-        达到最低目标！<br><br>
-        如果状态良好，可以再完成第 4 次。`;
+         <strong>${count} 次</strong>训练，
+         已达到最低目标！<br><br>
+         如果状态良好，再完成
+         <strong>${left} 次</strong>，
+         就达到理想目标。`;
     } else {
       goalBox.innerHTML = `🔥 本周已经完成
-        <strong>${count} 次</strong>训练，
-        已经超过最低目标！<br><br>
-        当前训练频率很好，
-        注意给身体足够恢复时间。`;
+         <strong>${count} 次</strong>训练，
+         已达到理想目标！<br><br>
+         当前训练频率很好，
+         注意给身体足够恢复时间。`;
     }
   }
 
@@ -257,16 +294,17 @@ function updateWeeklyAnalysis() {
   if (analysisBox) {
     if (average >= 90) {
       analysisBox.textContent = `本周完成 ${count} 次训练，
-        平均完成度 ${average}%。
-        训练执行得很好，继续保持。`;
+         平均完成度 ${average}%。
+         训练执行得很好，继续保持。`;
     } else if (average >= 70) {
       analysisBox.textContent = `本周完成 ${count} 次训练，
-        平均完成度 ${average}%。
-        整体不错，继续优先保证动作质量。`;
+         平均完成度 ${average}%。
+         整体不错，继续优先保证动作质量。`;
     } else {
       analysisBox.textContent = `本周完成 ${count} 次训练，
-        平均完成度 ${average}%。
-        不需要急着增加训练量，先把动作完成质量做好。`;
+         平均完成度 ${average}%。
+         不需要急着增加训练量，
+         先把动作完成质量做好。`;
     }
   }
 }
@@ -295,11 +333,15 @@ function updateMonthlyAnalysis() {
 
   const average = count
     ? Math.round(
-        list.reduce((sum, r) => sum + (r.completion_percent || 0), 0) / count,
+        list.reduce((sum, r) => sum + Number(r.completion_percent || 0), 0) /
+          count,
       )
     : 0;
 
-  const minutes = list.reduce((sum, r) => sum + (r.duration_minutes || 0), 0);
+  const minutes = list.reduce(
+    (sum, r) => sum + Number(r.duration_minutes || 0),
+    0,
+  );
 
   const countBox = document.getElementById("monthCount");
 
@@ -339,10 +381,11 @@ function updateMonthlyAnalysis() {
     analysisBox.textContent = `本月共完成 ${count} 次训练，累计约 ${minutes} 分钟，平均完成度 ${average}%。`;
   }
 
-  const best = Math.max(...list.map((r) => r.completion_percent || 0));
+  const best = Math.max(...list.map((r) => Number(r.completion_percent || 0)));
 
   if (highlightBox) {
-    highlightBox.innerHTML = `本月最高完成度：<strong>${best}%</strong>`;
+    highlightBox.innerHTML = `本月最高完成度：
+       <strong>${best}%</strong>`;
   }
 }
 
@@ -354,19 +397,19 @@ function updateTrendAnalysis() {
   const total = records.length;
 
   const minutes = records.reduce(
-    (sum, r) => sum + (r.duration_minutes || 0),
+    (sum, r) => sum + Number(r.duration_minutes || 0),
     0,
   );
 
   const average = total
     ? Math.round(
-        records.reduce((sum, r) => sum + (r.completion_percent || 0), 0) /
+        records.reduce((sum, r) => sum + Number(r.completion_percent || 0), 0) /
           total,
       )
     : 0;
 
   const best = total
-    ? Math.max(...records.map((r) => r.completion_percent || 0))
+    ? Math.max(...records.map((r) => Number(r.completion_percent || 0)))
     : 0;
 
   setText("totalWorkouts", total + " 次");
@@ -453,20 +496,20 @@ function updateExerciseProgressAnalysis() {
       const latest = list[list.length - 1];
 
       /*
-            第一次训练
-          */
+          第一次训练
+        */
 
       const first = list[0];
 
       /*
-            上一次训练
-          */
+          上一次训练
+        */
 
       const previous = list.length >= 2 ? list[list.length - 2] : null;
 
       /* ================================
-             当前数据
-          ================================ */
+           当前数据
+        ================================ */
 
       const latestWeight = Number(
         latest.actual_weight_kg ?? latest.weight_kg ?? 0,
@@ -475,8 +518,8 @@ function updateExerciseProgressAnalysis() {
       const latestReps = parseFirstNumber(latest.actual_reps ?? latest.reps);
 
       /* ================================
-             只有一次记录
-          ================================ */
+           只有一次记录
+        ================================ */
 
       if (!previous) {
         let detail = `已训练 1 次`;
@@ -491,32 +534,32 @@ function updateExerciseProgressAnalysis() {
 
         return `
 
-              <div class="history-item">
+            <div class="history-item">
 
-                <div class="history-title">
-                  ${escapeHtml(name)}
-                </div>
-
-                <div class="muted">
-                  ${detail}
-                </div>
-
-                <div class="muted">
-                  🆕 首次记录
-                </div>
-
-                <div class="muted">
-                  暂无历史数据，下一次训练后开始比较。
-                </div>
-
+              <div class="history-title">
+                ${escapeHtml(name)}
               </div>
 
-            `;
+              <div class="muted">
+                ${detail}
+              </div>
+
+              <div class="muted">
+                🆕 首次记录
+              </div>
+
+              <div class="muted">
+                暂无历史数据，下一次训练后开始比较。
+              </div>
+
+            </div>
+
+          `;
       }
 
       /* ================================
-             上一次数据
-          ================================ */
+           上一次数据
+        ================================ */
 
       const previousWeight = Number(
         previous.actual_weight_kg ?? previous.weight_kg ?? 0,
@@ -531,8 +574,8 @@ function updateExerciseProgressAnalysis() {
       const repsChange = latestReps - previousReps;
 
       /* ================================
-             判断状态
-          ================================ */
+           判断状态
+        ================================ */
 
       let progressText = "➡️ 保持稳定";
 
@@ -570,8 +613,8 @@ function updateExerciseProgressAnalysis() {
       }
 
       /* ================================
-             左右手
-          ================================ */
+           左右手
+        ================================ */
 
       const left = parseFirstNumber(latest.left_reps);
 
@@ -592,8 +635,8 @@ function updateExerciseProgressAnalysis() {
       }
 
       /* ================================
-             当前状态
-          ================================ */
+           当前状态
+        ================================ */
 
       let detail = `已训练 ${list.length} 次`;
 
@@ -607,54 +650,54 @@ function updateExerciseProgressAnalysis() {
 
       return `
 
-            <div class="history-item">
+          <div class="history-item">
 
-              <div class="history-title">
-                ${escapeHtml(name)}
-              </div>
-
-              <div class="muted">
-                ${detail}
-              </div>
-
-              <div class="muted">
-                ${progressText}
-              </div>
-
-              <div class="muted">
-                ${escapeHtml(changeText)}
-              </div>
-
-              ${
-                sideText
-                  ? `
-                <div class="muted">
-                  ${escapeHtml(sideText)}
-                </div>
-                `
-                  : ""
-              }
-
+            <div class="history-title">
+              ${escapeHtml(name)}
             </div>
 
-          `;
+            <div class="muted">
+              ${detail}
+            </div>
+
+            <div class="muted">
+              ${progressText}
+            </div>
+
+            <div class="muted">
+              ${escapeHtml(changeText)}
+            </div>
+
+            ${
+              sideText
+                ? `
+                  <div class="muted">
+                    ${escapeHtml(sideText)}
+                  </div>
+                `
+                : ""
+            }
+
+          </div>
+
+        `;
     })
     .join("");
 
   box.innerHTML = `
 
-      <div class="muted">
+    <div class="muted">
 
-        已记录 ${data.length} 条动作数据，
-        当前追踪 ${names.length} 个动作。
+      已记录 ${data.length} 条动作数据，
+      当前追踪 ${names.length} 个动作。
 
-      </div>
+    </div>
 
-      <br>
+    <br>
 
-      ${html}
+    ${html}
 
-    `;
+  `;
 }
 
 /* ================================
@@ -729,7 +772,7 @@ function updateTrainingBodyAnalysis() {
   box.innerHTML = `从第一次身体记录 ${first.record_date} 到最新记录 ${latest.record_date}：<br><br>
     <strong>${lines.join("，")}</strong>
     <br><br>
-    继续保持每周 3–4 次力量训练，后续数据积累后会更容易判断塑形效果。`;
+    继续保持每周力量训练，后续数据积累后会更容易判断塑形效果。`;
 }
 
 /* ================================

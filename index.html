@@ -277,13 +277,49 @@
 
                          <div class="stat">
 
-                              <div class="stat-number">
+                              <div class="stat-number" id="weeklyGoalDisplay">
                                    3–4
                               </div>
 
                               <div class="stat-label">
                                    目标次数
                               </div>
+
+                              <button type="button" class="secondary-btn" onclick="toggleWeeklyGoalEditor()"
+                                   style="margin-top:8px;">
+                                   ✏️ 修改
+                              </button>
+
+                         </div>
+
+                         <div id="weeklyGoalEditor" class="analysis" style="display:none; margin-top:20px;">
+
+                              <strong>修改本周训练目标</strong>
+
+                              <br><br>
+
+                              <label>
+                                   最低目标
+                              </label>
+
+                              <input id="weeklyMinGoal" class="note" type="number" step="1" placeholder="例如 3">
+
+                              <label>
+                                   理想目标
+                              </label>
+
+                              <input id="weeklyIdealGoal" class="note" type="number" step="1" placeholder="例如 4">
+
+                              <br>
+
+                              <button type="button" class="primary-btn" onclick="saveWeeklyGoal()">
+                                   保存
+                              </button>
+
+                              <button type="button" class="secondary-btn" onclick="cancelWeeklyGoalEdit()"
+                                   style="margin-left:8px;">
+                                   取消
+                              </button>
 
                          </div>
 

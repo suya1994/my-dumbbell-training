@@ -41,6 +41,123 @@ if (todayBox) {
 }
 
 /* ================================
+   每周训练目标设置
+================================ */
+
+function getWeeklyGoalSettings() {
+  const savedMin = localStorage.getItem("weekly_min_goal");
+
+  const savedIdeal = localStorage.getItem("weekly_ideal_goal");
+
+  return {
+    min: savedMin !== null ? Number(savedMin) : 3,
+
+    ideal: savedIdeal !== null ? Number(savedIdeal) : 4,
+  };
+}
+
+/* ================================
+   打开每周目标编辑器
+================================ */
+
+function toggleWeeklyGoalEditor() {
+  const editor = document.getElementById("weeklyGoalEditor");
+
+  if (!editor) {
+    return;
+  }
+
+  const goals = getWeeklyGoalSettings();
+
+  const minInput = document.getElementById("weeklyMinGoal");
+
+  const idealInput = document.getElementById("weeklyIdealGoal");
+
+  if (minInput) {
+    minInput.value = goals.min;
+  }
+
+  if (idealInput) {
+    idealInput.value = goals.ideal;
+  }
+
+  editor.style.display = editor.style.display === "none" ? "block" : "none";
+}
+
+/* ================================
+   保存每周训练目标
+================================ */
+
+function saveWeeklyGoal() {
+  const minInput = document.getElementById("weeklyMinGoal");
+
+  const idealInput = document.getElementById("weeklyIdealGoal");
+
+  if (!minInput || !idealInput) {
+    return;
+  }
+
+  const min = Number(minInput.value);
+
+  const ideal = Number(idealInput.value);
+
+  /* ================================
+     只判断是不是数字
+     
+     不限制大小关系
+  ================================ */
+
+  if (
+    minInput.value === "" ||
+    idealInput.value === "" ||
+    Number.isNaN(min) ||
+    Number.isNaN(ideal)
+  ) {
+    alert("请输入有效的训练目标次数。");
+
+    return;
+  }
+
+  /* ================================
+     保存到浏览器
+  ================================ */
+
+  localStorage.setItem("weekly_min_goal", String(min));
+
+  localStorage.setItem("weekly_ideal_goal", String(ideal));
+
+  /* ================================
+     关闭编辑器
+  ================================ */
+
+  const editor = document.getElementById("weeklyGoalEditor");
+
+  if (editor) {
+    editor.style.display = "none";
+  }
+
+  /* ================================
+     立即刷新每周页面
+  ================================ */
+
+  if (typeof updateWeeklyAnalysis === "function") {
+    updateWeeklyAnalysis();
+  }
+}
+
+/* ================================
+   取消修改
+================================ */
+
+function cancelWeeklyGoalEdit() {
+  const editor = document.getElementById("weeklyGoalEditor");
+
+  if (editor) {
+    editor.style.display = "none";
+  }
+}
+
+/* ================================
    Tab 切换
 ================================ */
 function showTab(id, button) {
