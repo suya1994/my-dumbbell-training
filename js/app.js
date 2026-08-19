@@ -287,48 +287,57 @@ async function loadHistory() {
           <div class="muted">
             目前还没有训练记录。
           </div>
-          `;
+        `;
       } else {
         historyBox.innerHTML = records
           .map((record) => {
             return `
 
-                  <div class="history-item">
+              <div class="history-item">
 
-                    <div class="history-title">
-                      ${escapeHtml(record.title || "训练")}
-                    </div>
+                <div class="history-title">
+                  ${escapeHtml(record.title || "训练")}
+                </div>
 
-                    <div class="muted">
-                      ${record.workout_date || ""}
-                    </div>
+                <div class="muted">
+                  ${record.workout_date || ""}
+                </div>
 
-                    <div class="muted">
-                      完成度：
-                      ${record.completion_percent ?? 0}%
-                    </div>
+                <div class="muted">
+                  完成度：
+                  ${record.completion_percent ?? 0}%
+                </div>
 
-                    ${
-                      record.duration_minutes
-                        ? `
-                      <div class="muted">
-                        训练时间：
-                        ${record.duration_minutes} 分钟
-                      </div>
-                      `
-                        : ""
-                    }
-
+                ${
+                  record.duration_minutes
+                    ? `
+                  <div class="muted">
+                    训练时间：
+                    ${record.duration_minutes} 分钟
                   </div>
+                  `
+                    : ""
+                }
 
-                `;
+                <br>
+
+                <button
+                  class="secondary-btn"
+                  onclick="deleteWorkout('${record.id}')"
+                >
+                  🗑 删除这次训练
+                </button>
+
+              </div>
+
+            `;
           })
           .join("");
       }
     }
 
     /* ================================
-   刷新每日分析
+       刷新每日分析
     ================================ */
 
     if (typeof updateDailyAnalysis === "function") {
@@ -370,8 +379,131 @@ async function loadHistory() {
         <div class="muted">
           ⚠️ 训练历史读取失败
         </div>
-        `;
+      `;
     }
+  }
+}
+
+/* ================================
+   删除训练历史
+================================ */
+
+async function deleteWorkout(workoutId) {
+  if (!workoutId) {
+    alert("找不到这次训练的 ID，无法删除。");
+    return;
+  }
+
+  const record = records.find((item) => String(item.id) === String(workoutId));
+
+  const title = record?.title || "这次训练";
+  const date = record?.workout_date || "";
+
+  const confirmed = confirm(
+    `确定删除${title}${date ? `（${date}）` : ""}吗？\n\n` +
+      "这次训练以及对应的动作完成记录都会被删除，且无法恢复。",
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    /* ================================
+       1. 删除对应动作记录
+       
+       return=representation
+       要求 Supabase 返回实际删除的记录
+    ================================ */
+
+    const deletedExercises = await supabaseRequest(
+      "exercises?workout_id=eq." + encodeURIComponent(workoutId),
+      {
+        method: "DELETE",
+        prefer: "return=representation",
+      },
+    );
+
+    console.log(
+      "删除动作记录：",
+      Array.isArray(deletedExercises) ? deletedExercises.length : 0,
+      "条",
+    );
+
+    /* ================================
+       2. 删除训练记录
+       
+       同样要求返回实际删除的记录
+    ================================ */
+
+    const deletedWorkouts = await supabaseRequest(
+      "workouts?id=eq." + encodeURIComponent(workoutId),
+      {
+        method: "DELETE",
+        prefer: "return=representation",
+      },
+    );
+
+    /* ================================
+       3. 检查是否真的删除成功
+    ================================ */
+
+    if (!Array.isArray(deletedWorkouts) || deletedWorkouts.length === 0) {
+      console.error("删除请求返回成功，但没有实际删除 workouts 记录。", {
+        workoutId,
+        deletedWorkouts,
+      });
+
+      alert(
+        "删除失败：数据库没有删除这条训练记录。\n\n" +
+          "请检查 Supabase 的 DELETE 权限或 RLS Policy。",
+      );
+
+      return;
+    }
+
+    console.log("训练记录删除成功：", deletedWorkouts.length, "条");
+
+    /* ================================
+       4. 重新读取训练历史
+       
+       会刷新：
+       - 历史
+       - 今日
+       - 每周
+       - 每月
+       - 总趋势
+    ================================ */
+
+    await loadHistory();
+
+    /* ================================
+       5. 重新读取动作历史
+       
+       因为 exercises 也被删除了
+    ================================ */
+
+    if (typeof loadExerciseRecords === "function") {
+      await loadExerciseRecords();
+    }
+
+    /* ================================
+       6. 重新读取当前训练计划
+    ================================ */
+
+    if (typeof loadCurrentPlan === "function") {
+      await loadCurrentPlan();
+    }
+
+    /* ================================
+       7. 最后才提示删除成功
+    ================================ */
+
+    alert("训练记录已成功删除。");
+  } catch (error) {
+    console.error("删除训练失败：", error);
+
+    alert("删除训练失败。\n\n" + error.message);
   }
 }
 
