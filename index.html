@@ -1477,236 +1477,473 @@ text;
 
 async function finishWorkout(){
 
-if(!currentPlan){
+  if(!currentPlan){
 
-alert(
-"训练计划还没有加载完成。"
-);
+    alert("训练计划还没有加载完成。");
 
-return;
+    return;
 
-}
+  }
 
 
-const count =
-completed.filter(Boolean).length;
+  const count =
+    completed.filter(Boolean).length;
 
 
-if(count === 0){
+  if(count === 0){
 
-alert(
-"至少完成一个动作后再保存训练。"
-);
+    alert("至少完成一个动作后再保存训练。");
 
-return;
+    return;
 
-}
+  }
 
 
-const percent =
-Math.round(
-count /
-currentExercises.length *
-100
-);
+  const percent =
+    Math.round(
+      count /
+      currentExercises.length *
+      100
+    );
 
 
-const difficulty =
-document.getElementById(
-"difficulty"
-).value;
+  const difficulty =
+    document.getElementById(
+      "difficulty"
+    ).value;
 
 
-const note =
-document.getElementById(
-"bodyNote"
-).value;
+  const note =
+    document.getElementById(
+      "bodyNote"
+    ).value;
 
 
-const button =
-document.getElementById(
-"saveButton"
-);
+  const button =
+    document.getElementById(
+      "saveButton"
+    );
 
 
-button.disabled =
-true;
+  button.disabled = true;
 
-button.textContent =
-"正在同步……";
+  button.textContent =
+    "正在同步……";
 
 
-try{
+  try{
 
+    /*
+      先检查今天是否已经保存过
+    */
 
-/* 保存训练 */
+    const existing =
+      await supabaseRequest(
 
-const workout =
-await supabaseRequest(
-"workouts",
-{
+        "workouts" +
+        "?select=*" +
+        "&workout_number=eq." +
+        currentPlan.workout_number +
+        "&workout_date=eq." +
+        todayString() +
+        "&limit=1"
 
-method:"POST",
+      );
 
-body:{
 
-workout_number:
-currentPlan.workout_number,
+    let workout;
 
-workout_date:
-todayString(),
+    let workoutId;
 
-title:
-currentPlan.title,
 
-focus:
-currentPlan.focus,
+    /*
+      如果今天已经保存过
+      就更新，不重复创建
+    */
 
-duration_minutes:
-currentPlan.duration_minutes,
+    if(existing.length){
 
-completion_percent:
-percent,
+      workout =
+        await supabaseRequest(
 
-difficulty:
-difficulty || null,
+          "workouts?id=eq." +
+          existing[0].id,
 
-body_note:
-note || null
+          {
 
-}
+            method:"PATCH",
 
-}
-);
+            body:{
 
+              title:
+              currentPlan.title,
 
-const workoutId =
-workout[0].id;
+              focus:
+              currentPlan.focus,
 
+              duration_minutes:
+              currentPlan.duration_minutes,
 
+              completion_percent:
+              percent,
 
-/* 保存每个动作 */
+              difficulty:
+              difficulty || null,
 
-for(
-let i=0;
-i<currentExercises.length;
-i++
-){
+              body_note:
+              note || null
 
-const exercise =
-currentExercises[i];
+            }
 
+          }
 
-await supabaseRequest(
-"exercises",
-{
+        );
 
-method:"POST",
 
-body:{
+      workoutId =
+        existing[0].id;
 
-workout_id:
-workoutId,
 
-exercise_order:
-exercise.exercise_order,
+    }else{
 
-exercise_name:
-exercise.exercise_name,
 
-equipment:
-exercise.equipment,
+      /*
+        第一次保存
+      */
 
-weight_kg:
-exercise.weight_kg,
+      workout =
+        await supabaseRequest(
 
-reps:
-exercise.reps,
+          "workouts",
 
-sets:
-exercise.sets,
+          {
 
-notes:
-exercise.notes,
+            method:"POST",
 
-completed:
-completed[i]
+            body:{
 
-}
+              workout_number:
+              currentPlan.workout_number,
 
-}
-);
+              workout_date:
+              todayString(),
 
-}
+              title:
+              currentPlan.title,
 
+              focus:
+              currentPlan.focus,
 
+              duration_minutes:
+              currentPlan.duration_minutes,
 
-/* 每日分析 */
+              completion_percent:
+              percent,
 
-await supabaseRequest(
-"daily_analysis",
-{
+              difficulty:
+              difficulty || null,
 
-method:"POST",
+              body_note:
+              note || null
 
-body:{
+            }
 
-analysis_date:
-todayString(),
+          }
 
-completion_percent:
-percent,
+        );
 
-summary:
-generateDailySummary(
-percent
-)
 
-}
+      workoutId =
+        workout[0].id;
 
-}
-);
+    }
 
 
-alert(
-"今天的训练已经保存。💪"
-);
 
+    /*
+      保存每个动作
+    */
 
-setStatus(
-"☁️ 已同步到云端",
-"ok"
-);
+    for(
+      let i = 0;
+      i < currentExercises.length;
+      i++
+    ){
 
+      const exercise =
+        currentExercises[i];
 
-await loadHistory();
 
+      /*
+        如果完成了：
+        没填实际数据
+        → 自动使用计划数据
+      */
 
-}catch(error){
 
-console.error(error);
+      const actualSetsInput =
+        document.getElementById(
+          "actualSets" + i
+        );
 
 
-setStatus(
-"⚠️ 保存失败：" +
-error.message,
-"error"
-);
+      const actualRepsInput =
+        document.getElementById(
+          "actualReps" + i
+        );
 
 
-alert(
-"保存失败：\n" +
-error.message
-);
+      const actualWeightInput =
+        document.getElementById(
+          "actualWeight" + i
+        );
 
-}
 
+      const leftRepsInput =
+        document.getElementById(
+          "leftReps" + i
+        );
 
-button.disabled =
-false;
 
-button.textContent =
-"保存今天训练";
+      const rightRepsInput =
+        document.getElementById(
+          "rightReps" + i
+        );
+
+
+
+      const actualSets =
+        actualSetsInput &&
+        actualSetsInput.value !== ""
+        ?
+        Number(
+          actualSetsInput.value
+        )
+        :
+        exercise.sets;
+
+
+      const actualReps =
+        actualRepsInput &&
+        actualRepsInput.value.trim() !== ""
+        ?
+        actualRepsInput.value.trim()
+        :
+        exercise.reps;
+
+
+      const actualWeight =
+        actualWeightInput &&
+        actualWeightInput.value !== ""
+        ?
+        Number(
+          actualWeightInput.value
+        )
+        :
+        exercise.weight_kg;
+
+
+
+      const leftReps =
+        leftRepsInput &&
+        leftRepsInput.value.trim() !== ""
+        ?
+        leftRepsInput.value.trim()
+        :
+        null;
+
+
+      const rightReps =
+        rightRepsInput &&
+        rightRepsInput.value.trim() !== ""
+        ?
+        rightRepsInput.value.trim()
+        :
+        null;
+
+
+
+      await supabaseRequest(
+
+        "exercises",
+
+        {
+
+          method:"POST",
+
+          body:{
+
+            workout_id:
+            workoutId,
+
+            plan_exercise_id:
+            exercise.id,
+
+            exercise_order:
+            exercise.exercise_order,
+
+            exercise_name:
+            exercise.exercise_name,
+
+            equipment:
+            exercise.equipment,
+
+            weight_kg:
+            exercise.weight_kg,
+
+            reps:
+            exercise.reps,
+
+            sets:
+            exercise.sets,
+
+            notes:
+            exercise.notes,
+
+            completed:
+            completed[i],
+
+            actual_sets:
+            actualSets,
+
+            actual_reps:
+            actualReps,
+
+            actual_weight_kg:
+            actualWeight,
+
+            left_reps:
+            leftReps,
+
+            right_reps:
+            rightReps
+
+          }
+
+        }
+
+      );
+
+    }
+
+
+
+    /*
+      保存每日分析
+    */
+
+    const summary =
+      generateDailySummary(
+        percent
+      );
+
+
+    const existingAnalysis =
+      await supabaseRequest(
+
+        "daily_analysis" +
+        "?select=*" +
+        "&analysis_date=eq." +
+        todayString() +
+        "&limit=1"
+
+      );
+
+
+    if(existingAnalysis.length){
+
+      await supabaseRequest(
+
+        "daily_analysis?id=eq." +
+        existingAnalysis[0].id,
+
+        {
+
+          method:"PATCH",
+
+          body:{
+
+            completion_percent:
+            percent,
+
+            summary:
+            summary
+
+          }
+
+        }
+
+      );
+
+    }else{
+
+      await supabaseRequest(
+
+        "daily_analysis",
+
+        {
+
+          method:"POST",
+
+          body:{
+
+            analysis_date:
+            todayString(),
+
+            completion_percent:
+            percent,
+
+            summary:
+            summary
+
+          }
+
+        }
+
+      );
+
+    }
+
+
+
+    alert(
+      "今天的训练已经保存。💪"
+    );
+
+
+    setStatus(
+      "☁️ 已同步到云端",
+      "ok"
+    );
+
+
+    await loadHistory();
+
+
+  }catch(error){
+
+    console.error(error);
+
+
+    setStatus(
+      "⚠️ 保存失败：" +
+      error.message,
+      "error"
+    );
+
+
+    alert(
+      "保存失败：\n" +
+      error.message
+    );
+
+  }
+
+
+  button.disabled = false;
+
+  button.textContent =
+    "保存今天训练";
 
 }
 
