@@ -1,72 +1,77 @@
-/*
- * v1.1
- * Supabase 数据库 API
- *
- * 注意：
- * SUPABASE_URL 和 SUPABASE_KEY
- * 暂时仍由 app.js 提供。
- */
+/* ================================
+   基础请求
+================================ */
 
 async function supabaseRequest(
-  endpoint,
-  options = {}
-) {
+path,
+options={}
+){
 
-  const response =
-    await fetch(
-      SUPABASE_URL +
-      "/rest/v1/" +
-      endpoint,
-      {
+const response =
+await fetch(
 
-        ...options,
+SUPABASE_URL +
+"/rest/v1/" +
+path,
 
-        headers: {
+{
 
-          "apikey":
-          SUPABASE_KEY,
+method:
+options.method || "GET",
 
-          "Authorization":
-          "Bearer " +
-          SUPABASE_KEY,
+headers:{
 
-          "Content-Type":
-          "application/json",
+"apikey":
+SUPABASE_KEY,
 
-          "Prefer":
-          options.method === "POST"
-            ? "return=representation"
-            : "return=minimal",
+"Authorization":
+"Bearer " +
+SUPABASE_KEY,
 
-          ...(options.headers || {})
+"Content-Type":
+"application/json",
 
-        }
+"Prefer":
+options.prefer ||
+"return=representation"
 
-      }
-    );
+},
 
+body:
+options.body
+?
+JSON.stringify(options.body)
+:
+undefined
 
-  if (!response.ok) {
+}
 
-    const text =
-      await response.text();
-
-    throw new Error(
-      "HTTP " +
-      response.status +
-      "：" +
-      text
-    );
-
-  }
+);
 
 
-  const text =
-    await response.text();
+if(!response.ok){
+
+const text =
+await response.text();
+
+throw new Error(
+"HTTP " +
+response.status +
+"：" +
+text
+);
+
+}
 
 
-  return text
-    ? JSON.parse(text)
-    : [];
+const text =
+await response.text();
+
+
+return text
+?
+JSON.parse(text)
+:
+[];
 
 }
