@@ -1,7 +1,8 @@
 /* ================================
    analysis.js
    每日 / 每周 / 每月 / 长期分析
-   + 训练 × 身体数据综合分析
+   + 训练 × 身体数据
+   + 动作进步分析
 ================================ */
 
 
@@ -44,7 +45,7 @@ function updateDailyAnalysis(){
     text =
       `目前完成度 ${percent}%。`
       +
-      `先保证动作质量，不需要赶进度。`;
+      "先保证动作质量，不需要赶进度。";
 
   }
 
@@ -53,7 +54,7 @@ function updateDailyAnalysis(){
     text =
       `目前完成度 ${percent}%。`
       +
-      `已经完成大部分训练，继续保持。`;
+      "已经完成大部分训练，继续保持。";
 
   }
 
@@ -135,7 +136,6 @@ function getWeekRecords(){
 }
 
 
-
 function updateWeeklyAnalysis(){
 
   const list =
@@ -146,9 +146,25 @@ function updateWeeklyAnalysis(){
     list.length;
 
 
+  /* ================================
+     基础元素
+  ================================ */
+
   const countBox =
     document.getElementById(
       "weekCount"
+    );
+
+
+  const remainingBox =
+    document.getElementById(
+      "weekRemaining"
+    );
+
+
+  const goalBox =
+    document.getElementById(
+      "weeklyGoal"
     );
 
 
@@ -158,11 +174,27 @@ function updateWeeklyAnalysis(){
     );
 
 
+  const minutesBox =
+    document.getElementById(
+      "weekMinutes"
+    );
+
+
+  const bestBox =
+    document.getElementById(
+      "weekBest"
+    );
+
+
   const analysisBox =
     document.getElementById(
       "weeklyAnalysis"
     );
 
+
+  /* ================================
+     已完成次数
+  ================================ */
 
   if(countBox){
 
@@ -172,7 +204,44 @@ function updateWeeklyAnalysis(){
   }
 
 
+  /* ================================
+     距离最低目标还差几次
+     
+     每周最低目标 = 3次
+  ================================ */
+
+  const minimumGoal =
+    3;
+
+
+  const remaining =
+    Math.max(
+      minimumGoal - count,
+      0
+    );
+
+
+  if(remainingBox){
+
+    remainingBox.textContent =
+      remaining;
+
+  }
+
+
+  /* ================================
+     还没有训练
+  ================================ */
+
   if(!count){
+
+    if(remainingBox){
+
+      remainingBox.textContent =
+        "3";
+
+    }
+
 
     if(averageBox){
 
@@ -182,10 +251,37 @@ function updateWeeklyAnalysis(){
     }
 
 
+    if(minutesBox){
+
+      minutesBox.textContent =
+        "0";
+
+    }
+
+
+    if(bestBox){
+
+      bestBox.textContent =
+        "—";
+
+    }
+
+
+    if(goalBox){
+
+      goalBox.innerHTML =
+
+        `本周还没有训练。<br><br>
+        🎯 最低目标：3 次<br>
+        💪 理想目标：3–4 次`;
+
+    }
+
+
     if(analysisBox){
 
       analysisBox.textContent =
-        "本周还没有训练记录。";
+        "完成第一次训练后，这里会开始统计本周表现。";
 
     }
 
@@ -194,6 +290,10 @@ function updateWeeklyAnalysis(){
 
   }
 
+
+  /* ================================
+     平均完成度
+  ================================ */
 
   const average =
     Math.round(
@@ -210,6 +310,32 @@ function updateWeeklyAnalysis(){
     );
 
 
+  /* ================================
+     累计训练时间
+  ================================ */
+
+  const minutes =
+    list.reduce(
+      (sum,r) =>
+        sum +
+        (r.duration_minutes || 0),
+      0
+    );
+
+
+  /* ================================
+     最高完成度
+  ================================ */
+
+  const best =
+    Math.max(
+      ...list.map(
+        r =>
+          r.completion_percent || 0
+      )
+    );
+
+
   if(averageBox){
 
     averageBox.textContent =
@@ -218,16 +344,113 @@ function updateWeeklyAnalysis(){
   }
 
 
+  if(minutesBox){
+
+    minutesBox.textContent =
+      minutes;
+
+  }
+
+
+  if(bestBox){
+
+    bestBox.textContent =
+      best + "%";
+
+  }
+
+
+  /* ================================
+     本周目标状态
+  ================================ */
+
+  if(goalBox){
+
+    if(count < 3){
+
+      const left =
+        3 - count;
+
+
+      goalBox.innerHTML =
+
+        `本周已经完成
+        <strong>${count} 次</strong>训练。<br><br>
+        再完成
+        <strong>${left} 次</strong>，
+        就达到本周最低目标。<br><br>
+        🎯 理想目标：3–4 次`;
+
+    }
+
+
+    else if(count === 3){
+
+      goalBox.innerHTML =
+
+        `🎉 本周已经完成
+        <strong>3 次</strong>训练，
+        达到最低目标！<br><br>
+        如果状态良好，可以再完成第 4 次。`;
+
+    }
+
+
+    else{
+
+      goalBox.innerHTML =
+
+        `🔥 本周已经完成
+        <strong>${count} 次</strong>训练，
+        已经超过最低目标！<br><br>
+        当前训练频率很好，
+        注意给身体足够恢复时间。`;
+
+    }
+
+  }
+
+
+  /* ================================
+     每周分析
+  ================================ */
+
   if(analysisBox){
 
-    analysisBox.textContent =
+    if(average >= 90){
 
-      `本周完成 ${count} 次训练，
-      平均完成度 ${average}%。`;
+      analysisBox.textContent =
+
+        `本周完成 ${count} 次训练，
+        平均完成度 ${average}%。
+        训练执行得很好，继续保持。`;
+
+    }
+
+    else if(average >= 70){
+
+      analysisBox.textContent =
+
+        `本周完成 ${count} 次训练，
+        平均完成度 ${average}%。
+        整体不错，继续优先保证动作质量。`;
+
+    }
+
+    else{
+
+      analysisBox.textContent =
+
+        `本周完成 ${count} 次训练，
+        平均完成度 ${average}%。
+        不需要急着增加训练量，先把动作完成质量做好。`;
+
+    }
 
   }
 
 }
+
 
 
 
@@ -393,10 +616,7 @@ function updateMonthlyAnalysis(){
   if(analysisBox){
 
     analysisBox.textContent =
-
-      `本月共完成 ${count} 次训练，
-      累计约 ${minutes} 分钟，
-      平均完成度 ${average}%。`;
+      `本月共完成 ${count} 次训练，累计约 ${minutes} 分钟，平均完成度 ${average}%。`;
 
   }
 
@@ -413,9 +633,7 @@ function updateMonthlyAnalysis(){
   if(highlightBox){
 
     highlightBox.innerHTML =
-
-      `本月最高完成度：
-      <strong>${best}%</strong>`;
+      `本月最高完成度：<strong>${best}%</strong>`;
 
   }
 
@@ -506,39 +724,542 @@ function updateTrendAnalysis(){
   );
 
 
+  /*
+    动作进步
+  */
+
+  updateExerciseProgressAnalysis();
+
+
+  /*
+    训练 × 身体数据
+  */
+
+  updateTrainingBodyAnalysis();
+
+}
+
+
+
+/* ================================
+   动作进步分析
+================================ */
+
+function updateExerciseProgressAnalysis(){
+
   const box =
     document.getElementById(
       "exerciseTrend"
     );
 
 
-  if(box){
+  if(!box){
 
-    if(total){
-
-      box.innerHTML =
-
-        `目前累计完成
-        <strong>${total} 次</strong>训练，
-        平均完成度
-        <strong>${average}%</strong>。
-        <br><br>
-        随着训练次数增加，
-        这里会逐渐形成你的长期力量与训练趋势。`;
-
-    }
-
-    else{
-
-      box.textContent =
-        "训练数据积累后，这里会显示动作进步。";
-
-    }
+    return;
 
   }
 
 
-  updateTrainingBodyAnalysis();
+  const data =
+    typeof exerciseRecords !== "undefined"
+    ?
+    exerciseRecords
+    :
+    [];
+
+
+  if(!data.length){
+
+    box.textContent =
+      "完成几次训练并保存后，这里会开始显示动作进步。";
+
+    return;
+
+  }
+
+
+  /* ================================
+     按动作名称分组
+  ================================ */
+
+  const groups = {};
+
+
+  data.forEach(
+    item => {
+
+      if(
+        !item.exercise_name
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        item.completed === false
+      ){
+
+        return;
+
+      }
+
+
+      const name =
+        item.exercise_name;
+
+
+      if(
+        !groups[name]
+      ){
+
+        groups[name] = [];
+
+      }
+
+
+      groups[name].push(
+        item
+      );
+
+    }
+  );
+
+
+  const names =
+    Object.keys(groups);
+
+
+  if(!names.length){
+
+    box.textContent =
+      "目前还没有已完成动作的数据。";
+
+    return;
+
+  }
+
+
+  /* ================================
+     动作分析
+  ================================ */
+
+  const html =
+    names
+      .slice(0,8)
+      .map(
+        name => {
+
+          const list =
+            groups[name];
+
+
+          const latest =
+            list[list.length - 1];
+
+
+          /*
+            第一次训练
+          */
+
+          const first =
+            list[0];
+
+
+          /*
+            上一次训练
+          */
+
+          const previous =
+            list.length >= 2
+            ?
+            list[list.length - 2]
+            :
+            null;
+
+
+          /* ================================
+             当前数据
+          ================================ */
+
+          const latestWeight =
+            Number(
+              latest.actual_weight_kg ??
+              latest.weight_kg ??
+              0
+            );
+
+
+          const latestReps =
+            parseFirstNumber(
+              latest.actual_reps ??
+              latest.reps
+            );
+
+
+          /* ================================
+             只有一次记录
+          ================================ */
+
+          if(!previous){
+
+            let detail =
+              `已训练 1 次`;
+
+
+            if(
+              latestWeight > 0
+            ){
+
+              detail +=
+                ` · 当前 ${latestWeight} kg`;
+
+            }
+
+
+            if(
+              latestReps > 0
+            ){
+
+              detail +=
+                ` × ${latestReps}次`;
+
+            }
+
+
+            return `
+
+              <div class="history-item">
+
+                <div class="history-title">
+                  ${escapeHtml(name)}
+                </div>
+
+                <div class="muted">
+                  ${detail}
+                </div>
+
+                <div class="muted">
+                  🆕 首次记录
+                </div>
+
+                <div class="muted">
+                  暂无历史数据，下一次训练后开始比较。
+                </div>
+
+              </div>
+
+            `;
+
+          }
+
+
+          /* ================================
+             上一次数据
+          ================================ */
+
+          const previousWeight =
+            Number(
+              previous.actual_weight_kg ??
+              previous.weight_kg ??
+              0
+            );
+
+
+          const previousReps =
+            parseFirstNumber(
+              previous.actual_reps ??
+              previous.reps
+            );
+
+
+          const weightChange =
+            latestWeight -
+            previousWeight;
+
+
+          const repsChange =
+            latestReps -
+            previousReps;
+
+
+          /* ================================
+             判断状态
+          ================================ */
+
+          let progressText =
+            "➡️ 保持稳定";
+
+
+          let changeText =
+            "本次训练与上次基本一致。";
+
+
+          if(
+            weightChange > 0 ||
+            repsChange > 0
+          ){
+
+            progressText =
+              "📈 有进步";
+
+
+            const changes = [];
+
+
+            if(
+              repsChange > 0
+            ){
+
+              changes.push(
+                `次数 +${repsChange}`
+              );
+
+            }
+
+
+            if(
+              weightChange > 0
+            ){
+
+              changes.push(
+                `重量 +${weightChange.toFixed(1)} kg`
+              );
+
+            }
+
+
+            changeText =
+              changes.join("，");
+
+          }
+
+
+          else if(
+            weightChange < 0 ||
+            repsChange < 0
+          ){
+
+            progressText =
+              "↔️ 本次略低";
+
+
+            const changes = [];
+
+
+            if(
+              repsChange < 0
+            ){
+
+              changes.push(
+                `次数 ${repsChange}`
+              );
+
+            }
+
+
+            if(
+              weightChange < 0
+            ){
+
+              changes.push(
+                `重量 ${weightChange.toFixed(1)} kg`
+              );
+
+            }
+
+
+            changeText =
+              changes.join("，")
+              +
+              "。先保证动作质量，不需要强行追赶上一次。";
+
+          }
+
+
+          /* ================================
+             左右手
+          ================================ */
+
+          const left =
+            parseFirstNumber(
+              latest.left_reps
+            );
+
+
+          const right =
+            parseFirstNumber(
+              latest.right_reps
+            );
+
+
+          let sideText =
+            "";
+
+
+          if(
+            left > 0 &&
+            right > 0
+          ){
+
+            const difference =
+              Math.abs(
+                left - right
+              );
+
+
+            if(
+              difference === 0
+            ){
+
+              sideText =
+                `左右手：${left} / ${right} 次 · 很平衡`;
+
+            }
+
+            else{
+
+              const weaker =
+                left < right
+                ?
+                "左手"
+                :
+                "右手";
+
+
+              sideText =
+                `左右手：${left} / ${right} 次 · ${weaker}少 ${difference} 次`;
+
+            }
+
+          }
+
+
+          /* ================================
+             当前状态
+          ================================ */
+
+          let detail =
+            `已训练 ${list.length} 次`;
+
+
+          if(
+            latestWeight > 0
+          ){
+
+            detail +=
+              ` · 当前 ${latestWeight} kg`;
+
+          }
+
+
+          if(
+            latestReps > 0
+          ){
+
+            detail +=
+              ` × ${latestReps}次`;
+
+          }
+
+
+          return `
+
+            <div class="history-item">
+
+              <div class="history-title">
+                ${escapeHtml(name)}
+              </div>
+
+              <div class="muted">
+                ${detail}
+              </div>
+
+              <div class="muted">
+                ${progressText}
+              </div>
+
+              <div class="muted">
+                ${escapeHtml(changeText)}
+              </div>
+
+              ${
+                sideText
+                ?
+                `
+                <div class="muted">
+                  ${escapeHtml(sideText)}
+                </div>
+                `
+                :
+                ""
+              }
+
+            </div>
+
+          `;
+
+        }
+      )
+      .join("");
+
+
+  box.innerHTML =
+
+    `
+
+      <div class="muted">
+
+        已记录 ${data.length} 条动作数据，
+        当前追踪 ${names.length} 个动作。
+
+      </div>
+
+      <br>
+
+      ${html}
+
+    `;
+
+}
+
+
+
+/* ================================
+   提取次数中的第一个数字
+================================ */
+
+function parseFirstNumber(
+  value
+){
+
+  if(
+    value === null ||
+    value === undefined
+  ){
+
+    return 0;
+
+  }
+
+
+  const match =
+    String(value).match(
+      /[\d.]+/
+    );
+
+
+  if(!match){
+
+    return 0;
+
+  }
+
+
+  return Number(
+    match[0]
+  ) || 0;
 
 }
 
@@ -563,14 +1284,6 @@ function updateTrainingBodyAnalysis(){
   }
 
 
-  /*
-    body_metrics
-    由 metrics.js 负责读取
-
-    使用全局变量：
-    bodyMetricsRecords
-  */
-
   const data =
     typeof bodyMetricsRecords !== "undefined"
     ?
@@ -578,25 +1291,24 @@ function updateTrainingBodyAnalysis(){
     :
     [];
 
-    if(!data.length){
+
+  if(!data.length){
 
     box.textContent =
-      "开始记录身体数据后，" +
-      "这里会分析训练与身体变化的关系。";
+      "开始记录身体数据后，这里会分析训练与身体变化的关系。";
 
     return;
 
   }
 
 
-
   if(data.length < 2){
 
     box.textContent =
-      "目前只有1条身体数据记录。" + 
-      "再记录一次后，就可以开始分析变化趋势。";
+      "目前只有1条身体数据记录。再记录一次后，就可以开始分析变化趋势。";
 
     return;
+
   }
 
 
@@ -611,70 +1323,46 @@ function updateTrainingBodyAnalysis(){
   const lines = [];
 
 
-  /*
-    体重
-  */
-
   if(
     first.weight_kg !== null &&
     latest.weight_kg !== null
   ){
 
-    const change =
-      latest.weight_kg -
-      first.weight_kg;
-
-
     lines.push(
-      `体重 ${
-        formatChange(change)
-      } kg`
+      `体重 ${formatChange(
+        latest.weight_kg -
+        first.weight_kg
+      )} kg`
     );
 
   }
 
-
-  /*
-    腰围
-  */
 
   if(
     first.waist_cm !== null &&
     latest.waist_cm !== null
   ){
 
-    const change =
-      latest.waist_cm -
-      first.waist_cm;
-
-
     lines.push(
-      `腰围 ${
-        formatChange(change)
-      } cm`
+      `腰围 ${formatChange(
+        latest.waist_cm -
+        first.waist_cm
+      )} cm`
     );
 
   }
 
-
-  /*
-    臀围
-  */
 
   if(
     first.hip_cm !== null &&
     latest.hip_cm !== null
   ){
 
-    const change =
-      latest.hip_cm -
-      first.hip_cm;
-
-
     lines.push(
-      `臀围 ${
-        formatChange(change)
-      } cm`
+      `臀围 ${formatChange(
+        latest.hip_cm -
+        first.hip_cm
+      )} cm`
     );
 
   }
@@ -691,22 +1379,10 @@ function updateTrainingBodyAnalysis(){
 
 
   box.innerHTML =
-
-    `从第一次身体记录
-    ${first.record_date}
-    到最新记录
-    ${latest.record_date}：
-
+    `从第一次身体记录 ${first.record_date} 到最新记录 ${latest.record_date}：<br><br>
+    <strong>${lines.join("，")}</strong>
     <br><br>
-
-    <strong>
-    ${lines.join("，")}
-    </strong>
-
-    <br><br>
-
-    继续保持每周 3–4 次力量训练，
-    后续数据积累后会更容易判断塑形效果。`;
+    继续保持每周 3–4 次力量训练，后续数据积累后会更容易判断塑形效果。`;
 
 }
 
@@ -722,7 +1398,9 @@ function setText(
 ){
 
   const element =
-    document.getElementById(id);
+    document.getElementById(
+      id
+    );
 
 
   if(element){

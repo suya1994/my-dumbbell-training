@@ -3,334 +3,176 @@
    训练执行与保存模块
 ================================ */
 
-
 /* ================================
    完成动作
 ================================ */
 
-function toggleExercise(index){
+function toggleExercise(index) {
+  completed[index] = !completed[index];
 
-  completed[index] =
-    !completed[index];
+  const button = document.getElementById("exerciseBtn" + index);
 
+  const actualBox = document.getElementById("actualBox" + index);
 
-  const button =
-    document.getElementById(
-      "exerciseBtn" + index
-    );
-
-
-  const actualBox =
-    document.getElementById(
-      "actualBox" + index
-    );
-
-
-  if(button){
-
-    button.classList.toggle(
-      "done",
-      completed[index]
-    );
-
+  if (button) {
+    button.classList.toggle("done", completed[index]);
   }
 
-
-  if(actualBox){
-
-    actualBox.classList.toggle(
-      "hidden",
-      !completed[index]
-    );
-
+  if (actualBox) {
+    actualBox.classList.toggle("hidden", !completed[index]);
   }
-
 
   updateProgress();
 
   updateDailyAnalysis();
-
 }
-
-
 
 /* ================================
    训练进度
 ================================ */
 
-function updateProgress(){
+function updateProgress() {
+  const total = currentExercises.length;
 
-  const total =
-    currentExercises.length;
+  const count = completed.filter(Boolean).length;
 
+  const percent = total ? Math.round((count / total) * 100) : 0;
 
-  const count =
-    completed.filter(Boolean).length;
+  const bar = document.getElementById("progressBar");
 
-
-  const percent =
-    total
-    ?
-    Math.round(
-      count / total * 100
-    )
-    :
-    0;
-
-
-  const bar =
-    document.getElementById(
-      "progressBar"
-    );
-
-
-  if(bar){
-
-    bar.style.width =
-      percent + "%";
-
+  if (bar) {
+    bar.style.width = percent + "%";
   }
 
+  const text = document.getElementById("progressText");
 
-  const text =
-    document.getElementById(
-      "progressText"
-    );
-
-
-  if(text){
-
-    text.textContent =
-      `${count} / ${total} 个动作完成`;
-
+  if (text) {
+    text.textContent = `${count} / ${total} 个动作完成`;
   }
 
+  const daily = document.getElementById("dailyCompletion");
 
-  const daily =
-    document.getElementById(
-      "dailyCompletion"
-    );
-
-
-  if(daily){
-
-    daily.textContent =
-      percent + "%";
-
+  if (daily) {
+    daily.textContent = percent + "%";
   }
 
+  const dailyExercises = document.getElementById("dailyExercises");
 
-  const dailyExercises =
-    document.getElementById(
-      "dailyExercises"
-    );
-
-
-  if(dailyExercises){
-
-    dailyExercises.textContent =
-      count;
-
+  if (dailyExercises) {
+    dailyExercises.textContent = count;
   }
-
 }
-
-
 
 /* ================================
    保存训练
 ================================ */
 
-async function finishWorkout(){
-
-  if(!currentPlan){
-
-    alert(
-      "训练计划还没有加载完成。"
-    );
+async function finishWorkout() {
+  if (!currentPlan) {
+    alert("训练计划还没有加载完成。");
 
     return;
-
   }
 
+  const count = completed.filter(Boolean).length;
 
-  const count =
-    completed.filter(Boolean).length;
-
-
-  if(count === 0){
-
-    alert(
-      "至少完成一个动作后再保存训练。"
-    );
+  if (count === 0) {
+    alert("至少完成一个动作后再保存训练。");
 
     return;
-
   }
 
+  const percent = Math.round((count / currentExercises.length) * 100);
 
-  const percent =
-    Math.round(
-      count /
-      currentExercises.length *
-      100
-    );
+  const difficulty = document.getElementById("difficulty").value;
 
+  const note = document.getElementById("bodyNote").value;
 
-  const difficulty =
-    document.getElementById(
-      "difficulty"
-    ).value;
-
-
-  const note =
-    document.getElementById(
-      "bodyNote"
-    ).value;
-
-
-  const button =
-    document.getElementById(
-      "saveButton"
-    );
-
+  const button = document.getElementById("saveButton");
 
   button.disabled = true;
 
-  button.textContent =
-    "正在同步……";
+  button.textContent = "正在同步……";
 
-
-  try{
-
-
+  try {
     /* ================================
        检查今天是否已经保存
     ================================ */
 
-    const existing =
-      await supabaseRequest(
-
-        "workouts" +
+    const existing = await supabaseRequest(
+      "workouts" +
         "?select=*" +
         "&workout_number=eq." +
         currentPlan.workout_number +
         "&workout_date=eq." +
         todayString() +
-        "&limit=1"
-
-      );
-
+        "&limit=1",
+    );
 
     let workout;
 
     let workoutId;
 
-
     /* ================================
        已存在 → 更新
     ================================ */
 
-    if(existing.length){
+    if (existing.length) {
+      workout = await supabaseRequest(
+        "workouts?id=eq." + existing[0].id,
 
-      workout =
-        await supabaseRequest(
+        {
+          method: "PATCH",
 
-          "workouts?id=eq." +
-          existing[0].id,
+          body: {
+            title: currentPlan.title,
 
-          {
+            focus: currentPlan.focus,
 
-            method:"PATCH",
+            duration_minutes: currentPlan.duration_minutes,
 
-            body:{
+            completion_percent: percent,
 
-              title:
-              currentPlan.title,
+            difficulty: difficulty || null,
 
-              focus:
-              currentPlan.focus,
+            body_note: note || null,
+          },
+        },
+      );
 
-              duration_minutes:
-              currentPlan.duration_minutes,
-
-              completion_percent:
-              percent,
-
-              difficulty:
-              difficulty || null,
-
-              body_note:
-              note || null
-
-            }
-
-          }
-
-        );
-
-
-      workoutId =
-        existing[0].id;
-
-
-    }
-
-
-    /* ================================
+      workoutId = existing[0].id;
+    } else {
+      /* ================================
        不存在 → 新建
     ================================ */
+      workout = await supabaseRequest(
+        "workouts",
 
-    else{
+        {
+          method: "POST",
 
-      workout =
-        await supabaseRequest(
+          body: {
+            workout_number: currentPlan.workout_number,
 
-          "workouts",
+            workout_date: todayString(),
 
-          {
+            title: currentPlan.title,
 
-            method:"POST",
+            focus: currentPlan.focus,
 
-            body:{
+            duration_minutes: currentPlan.duration_minutes,
 
-              workout_number:
-              currentPlan.workout_number,
+            completion_percent: percent,
 
-              workout_date:
-              todayString(),
+            difficulty: difficulty || null,
 
-              title:
-              currentPlan.title,
+            body_note: note || null,
+          },
+        },
+      );
 
-              focus:
-              currentPlan.focus,
-
-              duration_minutes:
-              currentPlan.duration_minutes,
-
-              completion_percent:
-              percent,
-
-              difficulty:
-              difficulty || null,
-
-              body_note:
-              note || null
-
-            }
-
-          }
-
-        );
-
-
-      workoutId =
-        workout[0].id;
-
+      workoutId = workout[0].id;
     }
-
-
 
     /* ================================
        保存每个动作
@@ -345,386 +187,221 @@ async function finishWorkout(){
        → 自动采用计划数据
     ================================ */
 
-    for(
-      let i = 0;
-      i < currentExercises.length;
-      i++
-    ){
+    for (let i = 0; i < currentExercises.length; i++) {
+      const exercise = currentExercises[i];
 
-      const exercise =
-        currentExercises[i];
-
-
-      const existingExercises =
-        await supabaseRequest(
-
-          "exercises" +
+      const existingExercises = await supabaseRequest(
+        "exercises" +
           "?select=*" +
           "&workout_id=eq." +
           workoutId +
           "&plan_exercise_id=eq." +
           exercise.id +
-          "&limit=1"
-
-        );
-
+          "&limit=1",
+      );
 
       /* ================================
          实际完成数据
       ================================ */
 
-      const actualSetsInput =
-        document.getElementById(
-          "actualSets" + i
-        );
+      const actualSetsInput = document.getElementById("actualSets" + i);
 
+      const actualRepsInput = document.getElementById("actualReps" + i);
 
-      const actualRepsInput =
-        document.getElementById(
-          "actualReps" + i
-        );
+      const actualWeightInput = document.getElementById("actualWeight" + i);
 
+      const leftRepsInput = document.getElementById("leftReps" + i);
 
-      const actualWeightInput =
-        document.getElementById(
-          "actualWeight" + i
-        );
-
-
-      const leftRepsInput =
-        document.getElementById(
-          "leftReps" + i
-        );
-
-
-      const rightRepsInput =
-        document.getElementById(
-          "rightReps" + i
-        );
-
+      const rightRepsInput = document.getElementById("rightReps" + i);
 
       /* ================================
          没填 → 默认采用计划数据
       ================================ */
 
       const actualSets =
-        actualSetsInput &&
-        actualSetsInput.value !== ""
-        ?
-        Number(
-          actualSetsInput.value
-        )
-        :
-        exercise.sets;
-
+        actualSetsInput && actualSetsInput.value !== ""
+          ? Number(actualSetsInput.value)
+          : exercise.sets;
 
       const actualReps =
-        actualRepsInput &&
-        actualRepsInput.value.trim() !== ""
-        ?
-        actualRepsInput.value.trim()
-        :
-        exercise.reps;
-
+        actualRepsInput && actualRepsInput.value.trim() !== ""
+          ? actualRepsInput.value.trim()
+          : exercise.reps;
 
       const actualWeight =
-        actualWeightInput &&
-        actualWeightInput.value !== ""
-        ?
-        Number(
-          actualWeightInput.value
-        )
-        :
-        exercise.weight_kg;
-
+        actualWeightInput && actualWeightInput.value !== ""
+          ? Number(actualWeightInput.value)
+          : exercise.weight_kg;
 
       const leftReps =
-        leftRepsInput &&
-        leftRepsInput.value.trim() !== ""
-        ?
-        leftRepsInput.value.trim()
-        :
-        null;
-
+        leftRepsInput && leftRepsInput.value.trim() !== ""
+          ? leftRepsInput.value.trim()
+          : null;
 
       const rightReps =
-        rightRepsInput &&
-        rightRepsInput.value.trim() !== ""
-        ?
-        rightRepsInput.value.trim()
-        :
-        null;
-
+        rightRepsInput && rightRepsInput.value.trim() !== ""
+          ? rightRepsInput.value.trim()
+          : null;
 
       /* ================================
          动作数据
       ================================ */
 
       const exerciseData = {
+        workout_id: workoutId,
 
-        workout_id:
-        workoutId,
+        plan_exercise_id: exercise.id,
 
-        plan_exercise_id:
-        exercise.id,
+        exercise_order: exercise.exercise_order,
 
-        exercise_order:
-        exercise.exercise_order,
+        exercise_name: exercise.exercise_name,
 
-        exercise_name:
-        exercise.exercise_name,
+        equipment: exercise.equipment,
 
-        equipment:
-        exercise.equipment,
+        weight_kg: exercise.weight_kg,
 
-        weight_kg:
-        exercise.weight_kg,
+        reps: exercise.reps,
 
-        reps:
-        exercise.reps,
+        sets: exercise.sets,
 
-        sets:
-        exercise.sets,
+        notes: exercise.notes,
 
-        notes:
-        exercise.notes,
+        completed: completed[i],
 
-        completed:
-        completed[i],
+        actual_sets: actualSets,
 
-        actual_sets:
-        actualSets,
+        actual_reps: actualReps,
 
-        actual_reps:
-        actualReps,
+        actual_weight_kg: actualWeight,
 
-        actual_weight_kg:
-        actualWeight,
+        left_reps: leftReps,
 
-        left_reps:
-        leftReps,
-
-        right_reps:
-        rightReps
-
+        right_reps: rightReps,
       };
-
 
       /* ================================
          已存在 → 更新
       ================================ */
 
-      if(existingExercises.length){
-
+      if (existingExercises.length) {
         await supabaseRequest(
-
-          "exercises?id=eq." +
-          existingExercises[0].id,
+          "exercises?id=eq." + existingExercises[0].id,
 
           {
+            method: "PATCH",
 
-            method:"PATCH",
-
-            body:exerciseData
-
-          }
-
+            body: exerciseData,
+          },
         );
-
-      }
-
-
-      /* ================================
+      } else {
+        /* ================================
          不存在 → 新建
       ================================ */
-
-      else{
-
         await supabaseRequest(
-
           "exercises",
 
           {
+            method: "POST",
 
-            method:"POST",
-
-            body:exerciseData
-
-          }
-
+            body: exerciseData,
+          },
         );
-
       }
-
     }
-
-
 
     /* ================================
        保存每日分析
     ================================ */
 
-    const summary =
-      generateDailySummary(
-        percent
-      );
+    const summary = generateDailySummary(percent);
 
-
-    const existingAnalysis =
-      await supabaseRequest(
-
-        "daily_analysis" +
+    const existingAnalysis = await supabaseRequest(
+      "daily_analysis" +
         "?select=*" +
         "&analysis_date=eq." +
         todayString() +
-        "&limit=1"
-
-      );
-
+        "&limit=1",
+    );
 
     /* ================================
        已有 → 更新
     ================================ */
 
-    if(existingAnalysis.length){
-
+    if (existingAnalysis.length) {
       await supabaseRequest(
-
-        "daily_analysis?id=eq." +
-        existingAnalysis[0].id,
+        "daily_analysis?id=eq." + existingAnalysis[0].id,
 
         {
+          method: "PATCH",
 
-          method:"PATCH",
+          body: {
+            completion_percent: percent,
 
-          body:{
-
-            completion_percent:
-            percent,
-
-            summary:
-            summary
-
-          }
-
-        }
-
+            summary: summary,
+          },
+        },
       );
-
-    }
-
-
-    /* ================================
+    } else {
+      /* ================================
        没有 → 新建
     ================================ */
-
-    else{
-
       await supabaseRequest(
-
         "daily_analysis",
 
         {
+          method: "POST",
 
-          method:"POST",
+          body: {
+            analysis_date: todayString(),
 
-          body:{
+            completion_percent: percent,
 
-            analysis_date:
-            todayString(),
-
-            completion_percent:
-            percent,
-
-            summary:
-            summary
-
-          }
-
-        }
-
+            summary: summary,
+          },
+        },
       );
-
     }
-
-
 
     /* ================================
        保存成功
     ================================ */
 
-    alert(
-      "今天的训练已经保存。💪"
-    );
+    alert("今天的训练已经保存。💪");
 
+    setStatus("☁️ 已同步到云端", "ok");
 
-    setStatus(
-      "☁️ 已同步到云端",
-      "ok"
-    );
-
-
-    await loadHistory();
-
-
-  }catch(error){
-
+    if (typeof loadHistory === "function") {
+      await loadHistory();
+    }
+  } catch (error) {
     console.error(error);
 
+    setStatus("⚠️ 保存失败：" + error.message, "error");
 
-    setStatus(
-      "⚠️ 保存失败：" +
-      error.message,
-      "error"
-    );
-
-
-    alert(
-      "保存失败：\n" +
-      error.message
-    );
-
+    alert("保存失败：\n" + error.message);
   }
-
 
   button.disabled = false;
 
-  button.textContent =
-    "保存今天训练";
-
+  button.textContent = "保存今天训练";
 }
-
-
 
 /* ================================
    每日总结
 ================================ */
 
-function generateDailySummary(
-  percent
-){
-
-  if(percent === 100){
-
+function generateDailySummary(percent) {
+  if (percent === 100) {
     return "今日训练全部完成，完成度很好。";
-
   }
 
-
-  if(percent >= 75){
-
+  if (percent >= 75) {
     return "今日大部分训练完成，继续优先保证动作质量。";
-
   }
 
-
-  if(percent >= 50){
-
+  if (percent >= 50) {
     return "今日完成了一半以上训练，可以逐步提高完成度。";
-
   }
-
 
   return "今日训练完成度较低，暂时不要增加训练量。";
-
 }

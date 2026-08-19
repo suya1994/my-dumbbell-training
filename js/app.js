@@ -1,6 +1,7 @@
 /* ================================
    app.js
    页面状态、Tab切换、安全显示
+   + 训练动作历史读取
 ================================ */
 
 
@@ -131,6 +132,22 @@ function showTab(
 
   }
 
+
+  /*
+    点击总趋势时，
+    重新生成动作进步分析
+  */
+
+  if(
+    id === "trendTab" &&
+    typeof updateExerciseProgressAnalysis ===
+    "function"
+  ){
+
+    updateExerciseProgressAnalysis();
+
+  }
+
 }
 
 
@@ -152,6 +169,74 @@ function escapeHtml(
     text || "";
 
   return div.innerHTML;
+
+}
+
+
+
+/* ================================
+   动作历史数据
+================================ */
+
+let exerciseRecords = [];
+
+
+
+async function loadExerciseRecords(){
+
+  try{
+
+    const data =
+      await supabaseRequest(
+
+        "exercises" +
+        "?select=*" 
+
+      );
+
+
+    exerciseRecords =
+      Array.isArray(data)
+      ?
+      data
+      :
+      [];
+
+
+    console.log(
+      "动作历史读取成功：",
+      exerciseRecords.length,
+      "条"
+    );
+
+
+    /*
+      读取完成后，
+      如果总趋势已经存在，
+      立即刷新动作进步分析。
+    */
+
+    if(
+      typeof updateExerciseProgressAnalysis ===
+      "function"
+    ){
+
+      updateExerciseProgressAnalysis();
+
+    }
+
+
+  }catch(error){
+
+    console.error(
+      "动作历史读取失败：",
+      error
+    );
+
+
+    exerciseRecords = [];
+
+  }
 
 }
 
@@ -203,6 +288,20 @@ document.addEventListener(
     ){
 
       loadBodyMetrics();
+
+    }
+
+
+    /*
+      动作历史
+    */
+
+    if(
+      typeof loadExerciseRecords ===
+      "function"
+    ){
+
+      loadExerciseRecords();
 
     }
 
