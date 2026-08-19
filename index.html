@@ -15,8 +15,8 @@ content="#f5f5f5">
 
 <link rel="stylesheet" href="css/style.css">
 
-
 </head>
+
 
 <body>
 
@@ -43,7 +43,13 @@ class="status">
 </div>
 
 
+
+<!-- ================================
+     标签
+================================ -->
+
 <div class="tabs">
+
 
 <button
 class="tab active"
@@ -51,11 +57,13 @@ onclick="showTab('todayTab',this)">
 今日
 </button>
 
+
 <button
 class="tab"
 onclick="showTab('dailyTab',this)">
 每日
 </button>
+
 
 <button
 class="tab"
@@ -63,11 +71,13 @@ onclick="showTab('weeklyTab',this)">
 每周
 </button>
 
+
 <button
 class="tab"
 onclick="showTab('monthlyTab',this)">
 每月
 </button>
+
 
 <button
 class="tab"
@@ -75,17 +85,28 @@ onclick="showTab('trendTab',this)">
 总趋势
 </button>
 
+
 <button
 class="tab"
 onclick="showTab('historyTab',this)">
 历史
 </button>
 
+
+<button
+class="tab"
+onclick="showTab('metricsTab',this)">
+身体数据
+</button>
+
+
 </div>
 
 
 
-<!-- 今日 -->
+<!-- ================================
+     今日
+================================ -->
 
 <section id="todayTab">
 
@@ -101,6 +122,7 @@ class="card">
 </div>
 
 </div>
+
 
 
 <div class="card">
@@ -119,23 +141,28 @@ class="note">
 选择今天的难度
 </option>
 
+
 <option value="easy">
 轻松
 </option>
+
 
 <option value="normal">
 正常
 </option>
 
+
 <option value="hard">
 比较吃力
 </option>
+
 
 <option value="veryhard">
 非常吃力
 </option>
 
 </select>
+
 
 
 <textarea
@@ -165,7 +192,9 @@ disabled>
 
 
 
-<!-- 每日 -->
+<!-- ================================
+     每日
+================================ -->
 
 <section
 id="dailyTab"
@@ -173,6 +202,7 @@ class="hidden">
 
 
 <div class="card">
+
 
 <h2>
 📊 今日分析
@@ -197,9 +227,11 @@ id="dailyCompletion">
 </div>
 
 
+
 <div class="stat">
 
-<div class="stat-number"
+<div
+class="stat-number"
 id="dailyMinutes">
 0
 </div>
@@ -211,9 +243,11 @@ id="dailyMinutes">
 </div>
 
 
+
 <div class="stat">
 
-<div class="stat-number"
+<div
+class="stat-number"
 id="dailyExercises">
 0
 </div>
@@ -226,6 +260,7 @@ id="dailyExercises">
 
 
 </div>
+
 
 
 <div
@@ -243,7 +278,9 @@ id="dailyAnalysis">
 
 
 
-<!-- 每周 -->
+<!-- ================================
+     每周
+================================ -->
 
 <section
 id="weeklyTab"
@@ -251,6 +288,7 @@ class="hidden">
 
 
 <div class="card">
+
 
 <h2>
 📈 本周分析
@@ -275,6 +313,7 @@ id="weekCount">
 </div>
 
 
+
 <div class="stat">
 
 <div class="stat-number">
@@ -286,6 +325,7 @@ id="weekCount">
 </div>
 
 </div>
+
 
 
 <div class="stat">
@@ -306,6 +346,7 @@ id="weekAverage">
 </div>
 
 
+
 <div
 class="analysis"
 id="weeklyAnalysis">
@@ -321,7 +362,9 @@ id="weeklyAnalysis">
 
 
 
-<!-- 每月 -->
+<!-- ================================
+     每月
+================================ -->
 
 <section
 id="monthlyTab"
@@ -329,6 +372,7 @@ class="hidden">
 
 
 <div class="card">
+
 
 <h2>
 📅 本月分析
@@ -353,6 +397,7 @@ id="monthCount">
 </div>
 
 
+
 <div class="stat">
 
 <div
@@ -366,6 +411,7 @@ id="monthAverage">
 </div>
 
 </div>
+
 
 
 <div class="stat">
@@ -386,6 +432,7 @@ id="monthMinutes">
 </div>
 
 
+
 <div
 class="analysis"
 id="monthlyAnalysis">
@@ -398,7 +445,9 @@ id="monthlyAnalysis">
 </div>
 
 
+
 <div class="card">
+
 
 <h2>
 📌 本月重点
@@ -420,7 +469,9 @@ class="analysis">
 
 
 
-<!-- 总趋势 -->
+<!-- ================================
+     总趋势
+================================ -->
 
 <section
 id="trendTab"
@@ -428,6 +479,7 @@ class="hidden">
 
 
 <div class="card">
+
 
 <h2>
 📊 长期趋势
@@ -448,6 +500,7 @@ id="totalWorkouts">
 </div>
 
 
+
 <div class="trend-row">
 
 <span>
@@ -462,6 +515,7 @@ id="totalMinutes">
 </div>
 
 
+
 <div class="trend-row">
 
 <span>
@@ -474,6 +528,7 @@ id="totalAverage">
 </strong>
 
 </div>
+
 
 
 <div class="trend-row">
@@ -493,7 +548,9 @@ id="bestCompletion">
 </div>
 
 
+
 <div class="card">
+
 
 <h2>
 💪 动作进步
@@ -516,7 +573,9 @@ class="analysis">
 
 
 
-<!-- 历史 -->
+<!-- ================================
+     历史
+================================ -->
 
 <section
 id="historyTab"
@@ -524,6 +583,7 @@ class="hidden">
 
 
 <div class="card">
+
 
 <h2>
 📚 训练历史
@@ -546,6 +606,173 @@ id="historyList">
 
 
 
+<!-- ================================
+     身体数据
+================================ -->
+
+<section
+id="metricsTab"
+class="hidden">
+
+
+<div class="card">
+
+
+<h2>
+📏 身体数据
+</h2>
+
+
+<div class="muted">
+
+建议每周固定一天，
+早晨空腹记录，方便观察真实变化。
+
+</div>
+
+
+<br>
+
+
+
+<label>
+体重 kg
+</label>
+
+
+<input
+id="metricWeight"
+class="note"
+type="number"
+step="0.1"
+min="0"
+placeholder="例如 52.0"
+>
+
+
+
+<label>
+腰围 cm
+</label>
+
+
+<input
+id="metricWaist"
+class="note"
+type="number"
+step="0.1"
+min="0"
+placeholder="例如 68.0"
+>
+
+
+
+<label>
+臀围 cm
+</label>
+
+
+<input
+id="metricHip"
+class="note"
+type="number"
+step="0.1"
+min="0"
+placeholder="例如 90.0"
+>
+
+
+
+<label>
+身体备注
+</label>
+
+
+<textarea
+id="metricNote"
+class="note"
+placeholder="例如：腰腹感觉更紧实，臀部训练后有酸胀感……">
+</textarea>
+
+
+
+<br><br>
+
+
+<button
+class="primary-btn"
+onclick="saveBodyMetrics()">
+
+保存今天身体数据
+
+</button>
+
+
+</div>
+
+
+
+<!-- ================================
+     身体数据趋势
+================================ -->
+
+<div class="card">
+
+
+<h2>
+📈 最近变化
+</h2>
+
+
+<div
+id="metricsTrend"
+class="analysis">
+
+记录身体数据后，
+这里会显示你的变化趋势。
+
+</div>
+
+
+</div>
+
+
+
+<!-- ================================
+     身体数据历史
+================================ -->
+
+<div class="card">
+
+
+<h2>
+📚 最近身体记录
+</h2>
+
+
+<div
+id="metricsHistory">
+
+<div class="muted">
+
+正在读取身体数据……
+
+</div>
+
+</div>
+
+
+</div>
+
+
+</section>
+
+
+
+<!-- ================================
+     底部
+================================ -->
+
 <div class="footer">
 
 私人哑铃增肌 / 塑形训练系统
@@ -555,14 +782,23 @@ id="historyList">
 
 </div>
 
+
+
+<!-- ================================
+     JavaScript
+================================ -->
+
 <script src="js/api.js"></script>
+
 <script src="js/plan.js"></script>
+
 <script src="js/workout.js"></script>
+
 <script src="js/analysis.js"></script>
+
 <script src="js/metrics.js"></script>
+
 <script src="js/app.js"></script>
-
-
 
 
 </body>
