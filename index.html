@@ -1660,171 +1660,225 @@ async function finishWorkout(){
 
 
 
-    /*
-      保存每个动作
-    */
-
-    for(
-      let i = 0;
-      i < currentExercises.length;
-      i++
-    ){
-
-      const exercise =
-        currentExercises[i];
 
 
-      /*
-        如果完成了：
-        没填实际数据
-        → 自动使用计划数据
-      */
+/*
+  保存每个动作
+  如果今天已经保存过：
+  → 更新原来的动作
+  不再重复 INSERT
+*/
+
+for(
+  let i = 0;
+  i < currentExercises.length;
+  i++
+){
+
+  const exercise =
+    currentExercises[i];
 
 
-      const actualSetsInput =
-        document.getElementById(
-          "actualSets" + i
-        );
+  /*
+    找出这个训练记录中
+    是否已经存在同一个计划动作
+  */
+
+  const existingExercises =
+    await supabaseRequest(
+
+      "exercises" +
+      "?select=*" +
+      "&workout_id=eq." +
+      workoutId +
+      "&plan_exercise_id=eq." +
+      exercise.id +
+      "&limit=1"
+
+    );
 
 
-      const actualRepsInput =
-        document.getElementById(
-          "actualReps" + i
-        );
+  /*
+    如果没有填写实际数据
+    自动采用计划数据
+  */
+
+  const actualSetsInput =
+    document.getElementById(
+      "actualSets" + i
+    );
 
 
-      const actualWeightInput =
-        document.getElementById(
-          "actualWeight" + i
-        );
+  const actualRepsInput =
+    document.getElementById(
+      "actualReps" + i
+    );
 
 
-      const leftRepsInput =
-        document.getElementById(
-          "leftReps" + i
-        );
+  const actualWeightInput =
+    document.getElementById(
+      "actualWeight" + i
+    );
 
 
-      const rightRepsInput =
-        document.getElementById(
-          "rightReps" + i
-        );
+  const leftRepsInput =
+    document.getElementById(
+      "leftReps" + i
+    );
 
 
-
-      const actualSets =
-        actualSetsInput &&
-        actualSetsInput.value !== ""
-        ?
-        Number(
-          actualSetsInput.value
-        )
-        :
-        exercise.sets;
+  const rightRepsInput =
+    document.getElementById(
+      "rightReps" + i
+    );
 
 
-      const actualReps =
-        actualRepsInput &&
-        actualRepsInput.value.trim() !== ""
-        ?
-        actualRepsInput.value.trim()
-        :
-        exercise.reps;
+  const actualSets =
+    actualSetsInput &&
+    actualSetsInput.value !== ""
+    ?
+    Number(
+      actualSetsInput.value
+    )
+    :
+    exercise.sets;
 
 
-      const actualWeight =
-        actualWeightInput &&
-        actualWeightInput.value !== ""
-        ?
-        Number(
-          actualWeightInput.value
-        )
-        :
-        exercise.weight_kg;
+  const actualReps =
+    actualRepsInput &&
+    actualRepsInput.value.trim() !== ""
+    ?
+    actualRepsInput.value.trim()
+    :
+    exercise.reps;
 
 
-
-      const leftReps =
-        leftRepsInput &&
-        leftRepsInput.value.trim() !== ""
-        ?
-        leftRepsInput.value.trim()
-        :
-        null;
-
-
-      const rightReps =
-        rightRepsInput &&
-        rightRepsInput.value.trim() !== ""
-        ?
-        rightRepsInput.value.trim()
-        :
-        null;
+  const actualWeight =
+    actualWeightInput &&
+    actualWeightInput.value !== ""
+    ?
+    Number(
+      actualWeightInput.value
+    )
+    :
+    exercise.weight_kg;
 
 
+  const leftReps =
+    leftRepsInput &&
+    leftRepsInput.value.trim() !== ""
+    ?
+    leftRepsInput.value.trim()
+    :
+    null;
 
-      await supabaseRequest(
 
-        "exercises",
+  const rightReps =
+    rightRepsInput &&
+    rightRepsInput.value.trim() !== ""
+    ?
+    rightRepsInput.value.trim()
+    :
+    null;
 
-        {
 
-          method:"POST",
+  const exerciseData = {
 
-          body:{
+    workout_id:
+    workoutId,
 
-            workout_id:
-            workoutId,
+    plan_exercise_id:
+    exercise.id,
 
-            plan_exercise_id:
-            exercise.id,
+    exercise_order:
+    exercise.exercise_order,
 
-            exercise_order:
-            exercise.exercise_order,
+    exercise_name:
+    exercise.exercise_name,
 
-            exercise_name:
-            exercise.exercise_name,
+    equipment:
+    exercise.equipment,
 
-            equipment:
-            exercise.equipment,
+    weight_kg:
+    exercise.weight_kg,
 
-            weight_kg:
-            exercise.weight_kg,
+    reps:
+    exercise.reps,
 
-            reps:
-            exercise.reps,
+    sets:
+    exercise.sets,
 
-            sets:
-            exercise.sets,
+    notes:
+    exercise.notes,
 
-            notes:
-            exercise.notes,
+    completed:
+    completed[i],
 
-            completed:
-            completed[i],
+    actual_sets:
+    actualSets,
 
-            actual_sets:
-            actualSets,
+    actual_reps:
+    actualReps,
 
-            actual_reps:
-            actualReps,
+    actual_weight_kg:
+    actualWeight,
 
-            actual_weight_kg:
-            actualWeight,
+    left_reps:
+    leftReps,
 
-            left_reps:
-            leftReps,
+    right_reps:
+    rightReps
 
-            right_reps:
-            rightReps
+  };
 
-          }
 
-        }
+  /*
+    已经存在 → 更新
+  */
 
-      );
+  if(existingExercises.length){
 
-    }
+    await supabaseRequest(
+
+      "exercises?id=eq." +
+      existingExercises[0].id,
+
+      {
+
+        method:"PATCH",
+
+        body:exerciseData
+
+      }
+
+    );
+
+  }
+
+
+  /*
+    不存在 → 新建
+  */
+
+  else{
+
+    await supabaseRequest(
+
+      "exercises",
+
+      {
+
+        method:"POST",
+
+        body:exerciseData
+
+      }
+
+    );
+
+  }
+
+}
 
 
 
