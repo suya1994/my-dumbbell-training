@@ -1087,140 +1087,189 @@ error.message,
 
 function renderCurrentPlan(){
 
-const box =
-document.getElementById(
-"todayPlan"
-);
+  const box =
+    document.getElementById("todayPlan");
+
+  const exercisesHTML =
+    currentExercises
+      .map((exercise, index) => `
+
+        <div class="exercise">
+
+          <div class="exercise-row">
+
+            <div class="exercise-info">
+
+              <div class="exercise-name">
+                ${index + 1}️⃣
+                ${escapeHtml(exercise.exercise_name)}
+              </div>
+
+              <div class="exercise-detail">
+
+                ${
+                  exercise.weight_kg !== null
+                    ? exercise.weight_kg + "kg × "
+                    : ""
+                }
+
+                ${escapeHtml(exercise.reps || "")}
+                次 ×
+                ${exercise.sets || 0}
+                组
+
+                <br>
+
+                ${escapeHtml(exercise.notes || "")}
+
+              </div>
+
+            </div>
+
+            <button
+              class="complete-btn"
+              onclick="toggleExercise(${index})"
+              id="exerciseBtn${index}">
+
+              ✓
+
+            </button>
+
+          </div>
 
 
-const exercisesHTML =
-currentExercises
-.map(
-(exercise,index)=>`
+          <!-- 实际训练记录 -->
 
-<div class="exercise">
+          <div
+            id="actualBox${index}"
+            class="hidden"
+            style="margin-top:12px;">
 
-<div class="exercise-row">
-
-<div class="exercise-info">
-
-<div class="exercise-name">
-
-${index+1}️⃣
-${escapeHtml(
-exercise.exercise_name
-)}
-
-</div>
+            <div class="muted">
+              实际完成情况
+            </div>
 
 
-<div class="exercise-detail">
-
-${
-exercise.weight_kg !== null
-?
-exercise.weight_kg +
-"kg × "
-:
-""
-}
-
-${escapeHtml(
-exercise.reps || ""
-)}
-
-次 ×
-
-${exercise.sets || 0}
-组
-
-<br>
-
-${escapeHtml(
-exercise.notes || ""
-)}
-
-</div>
-
-</div>
+            <input
+              id="actualSets${index}"
+              class="note"
+              type="number"
+              min="0"
+              max="20"
+              placeholder="实际完成几组，例如 3">
 
 
-<button
-class="complete-btn"
-onclick="toggleExercise(${index})">
-
-✓
-
-</button>
+            <input
+              id="actualReps${index}"
+              class="note"
+              type="text"
+              placeholder="实际次数，例如 7/7/6">
 
 
-</div>
-
-</div>
-
-`
-)
-.join("");
-
-
-box.innerHTML = `
-
-<h2>
-
-第
-${currentPlan.workout_number}
-次训练
-
-</h2>
+            <input
+              id="actualWeight${index}"
+              class="note"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="实际重量 kg，例如 5">
 
 
-<div class="muted">
+            ${
+              exercise.exercise_name.includes("单臂")
+              ||
+              exercise.exercise_name.includes("单手")
+              ?
+              `
 
-${escapeHtml(
-currentPlan.title
-)}
-
-</div>
-
-
-<div class="muted">
-
-重点：
-${escapeHtml(
-currentPlan.focus || ""
-)}
-
-</div>
+              <input
+                id="leftReps${index}"
+                class="note"
+                type="text"
+                placeholder="左手次数，例如 7/7/6">
 
 
-<div class="progress">
+              <input
+                id="rightReps${index}"
+                class="note"
+                type="text"
+                placeholder="右手次数，例如 7/7/7">
 
-<div
-id="progressBar"
-class="progress-bar">
-</div>
+              `
+              :
+              ""
+            }
 
-</div>
+          </div>
 
+        </div>
 
-<div
-id="progressText"
-class="muted">
-
-0 /
-${currentExercises.length}
-个动作完成
-
-</div>
+      `)
+      .join("");
 
 
-${exercisesHTML}
+  box.innerHTML = `
 
-`;
+    <h2>
+
+      第
+      ${currentPlan.workout_number}
+      次训练
+
+    </h2>
 
 
+    <div class="muted">
 
-updateProgress();
+      ${escapeHtml(currentPlan.title)}
+
+    </div>
+
+
+    <div class="muted">
+
+      重点：
+      ${escapeHtml(currentPlan.focus || "")}
+
+    </div>
+
+
+    <div class="muted">
+
+      建议训练时间：
+      ${currentPlan.duration_minutes || 25}
+      分钟
+
+    </div>
+
+
+    <div class="progress">
+
+      <div
+        id="progressBar"
+        class="progress-bar">
+      </div>
+
+    </div>
+
+
+    <div
+      id="progressText"
+      class="muted">
+
+      0 /
+      ${currentExercises.length}
+      个动作完成
+
+    </div>
+
+
+    ${exercisesHTML}
+
+  `;
+
+
+  updateProgress();
 
 }
 
@@ -1230,30 +1279,47 @@ updateProgress();
    完成动作
 ================================ */
 
-function toggleExercise(
-index
-){
+function toggleExercise(index){
 
-completed[index] =
-!completed[index];
+  completed[index] =
+    !completed[index];
 
 
-const buttons =
-document.querySelectorAll(
-".complete-btn"
-);
+  const button =
+    document.getElementById(
+      "exerciseBtn" + index
+    );
 
 
-buttons[index]
-.classList.toggle(
-"done",
-completed[index]
-);
+  const actualBox =
+    document.getElementById(
+      "actualBox" + index
+    );
 
 
-updateProgress();
+  if(button){
 
-updateDailyAnalysis();
+    button.classList.toggle(
+      "done",
+      completed[index]
+    );
+
+  }
+
+
+  if(actualBox){
+
+    actualBox.classList.toggle(
+      "hidden",
+      !completed[index]
+    );
+
+  }
+
+
+  updateProgress();
+
+  updateDailyAnalysis();
 
 }
 
