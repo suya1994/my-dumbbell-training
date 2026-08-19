@@ -1,6 +1,6 @@
 /* ================================
    metrics.js
-   身体数据记录与趋势
+   身体数据记录与趋势分析
 ================================ */
 
 
@@ -82,14 +82,6 @@ async function saveBodyMetrics(){
 
     };
 
-
-    /*
-      今天已经有记录：
-      更新今天的数据
-
-      没有：
-      新建
-    */
 
     const existing =
       await supabaseRequest(
@@ -191,6 +183,16 @@ async function loadBodyMetrics(){
     );
 
 
+    updateBodyMetricsMonthly(
+      data
+    );
+
+
+    updateBodyMetricsLongTerm(
+      data
+    );
+
+
   }catch(error){
 
     console.error(error);
@@ -217,7 +219,7 @@ async function loadBodyMetrics(){
 
 
 /* ================================
-   显示最近记录
+   最近身体记录
 ================================ */
 
 function renderBodyMetrics(
@@ -314,7 +316,7 @@ function renderBodyMetrics(
 
 
 /* ================================
-   身体数据趋势
+   最近两次变化
 ================================ */
 
 function updateBodyMetricsTrend(
@@ -372,10 +374,10 @@ function updateBodyMetricsTrend(
 
     changes.push(
       `体重 ${
-        (
+        formatChange(
           latest.weight_kg -
           previous.weight_kg
-        ).toFixed(1)
+        )
       } kg`
     );
 
@@ -389,10 +391,10 @@ function updateBodyMetricsTrend(
 
     changes.push(
       `腰围 ${
-        (
+        formatChange(
           latest.waist_cm -
           previous.waist_cm
-        ).toFixed(1)
+        )
       } cm`
     );
 
@@ -406,10 +408,10 @@ function updateBodyMetricsTrend(
 
     changes.push(
       `臀围 ${
-        (
+        formatChange(
           latest.hip_cm -
           previous.hip_cm
-        ).toFixed(1)
+        )
       } cm`
     );
 
@@ -430,5 +432,277 @@ function updateBodyMetricsTrend(
 
     `最近一次记录与上一次相比：
     <strong>${changes.join("，")}</strong>。`;
+
+}
+
+
+
+/* ================================
+   本月身体数据
+================================ */
+
+function updateBodyMetricsMonthly(
+  data
+){
+
+  const box =
+    document.getElementById(
+      "metricsMonthly"
+    );
+
+
+  if(!box){
+
+    return;
+
+  }
+
+
+  const now =
+    new Date();
+
+
+  const list =
+    data.filter(
+      item => {
+
+        const date =
+          new Date(
+            item.record_date
+          );
+
+
+        return (
+
+          date.getFullYear()
+          ===
+          now.getFullYear()
+
+          &&
+
+          date.getMonth()
+          ===
+          now.getMonth()
+
+        );
+
+      }
+    );
+
+
+  if(list.length < 2){
+
+    box.textContent =
+      "本月记录还不够，继续记录后会显示月度变化。";
+
+    return;
+
+  }
+
+
+  const latest =
+    list[0];
+
+
+  const earliest =
+    list[list.length - 1];
+
+
+  const changes = [];
+
+
+  if(
+    latest.weight_kg !== null &&
+    earliest.weight_kg !== null
+  ){
+
+    changes.push(
+      `体重 ${
+        formatChange(
+          latest.weight_kg -
+          earliest.weight_kg
+        )
+      } kg`
+    );
+
+  }
+
+
+  if(
+    latest.waist_cm !== null &&
+    earliest.waist_cm !== null
+  ){
+
+    changes.push(
+      `腰围 ${
+        formatChange(
+          latest.waist_cm -
+          earliest.waist_cm
+        )
+      } cm`
+    );
+
+  }
+
+
+  if(
+    latest.hip_cm !== null &&
+    earliest.hip_cm !== null
+  ){
+
+    changes.push(
+      `臀围 ${
+        formatChange(
+          latest.hip_cm -
+          earliest.hip_cm
+        )
+      } cm`
+    );
+
+  }
+
+
+  box.innerHTML =
+
+    `本月从 ${earliest.record_date}
+    到 ${latest.record_date}：
+    <br><br>
+    <strong>
+    ${changes.join("，")}
+    </strong>`;
+
+}
+
+
+
+/* ================================
+   长期身体趋势
+================================ */
+
+function updateBodyMetricsLongTerm(
+  data
+){
+
+  const box =
+    document.getElementById(
+      "metricsLongTerm"
+    );
+
+
+  if(!box){
+
+    return;
+
+  }
+
+
+  if(data.length < 2){
+
+    box.textContent =
+      "身体数据积累后，这里会显示长期变化。";
+
+    return;
+
+  }
+
+
+  const latest =
+    data[0];
+
+
+  const earliest =
+    data[data.length - 1];
+
+
+  const changes = [];
+
+
+  if(
+    latest.weight_kg !== null &&
+    earliest.weight_kg !== null
+  ){
+
+    changes.push(
+      `体重 ${
+        formatChange(
+          latest.weight_kg -
+          earliest.weight_kg
+        )
+      } kg`
+    );
+
+  }
+
+
+  if(
+    latest.waist_cm !== null &&
+    earliest.waist_cm !== null
+  ){
+
+    changes.push(
+      `腰围 ${
+        formatChange(
+          latest.waist_cm -
+          earliest.waist_cm
+        )
+      } cm`
+    );
+
+  }
+
+
+  if(
+    latest.hip_cm !== null &&
+    earliest.hip_cm !== null
+  ){
+
+    changes.push(
+      `臀围 ${
+        formatChange(
+          latest.hip_cm -
+          earliest.hip_cm
+        )
+      } cm`
+    );
+
+  }
+
+
+  box.innerHTML =
+
+    `从第一条记录
+    ${earliest.record_date}
+    到最新记录
+    ${latest.record_date}：
+    <br><br>
+    <strong>
+    ${changes.join("，")}
+    </strong>`;
+
+}
+
+
+
+/* ================================
+   数字变化格式
+================================ */
+
+function formatChange(
+  value
+){
+
+  const number =
+    Number(value);
+
+
+  if(number > 0){
+
+    return "+" +
+      number.toFixed(1);
+
+  }
+
+
+  return number.toFixed(1);
 
 }
