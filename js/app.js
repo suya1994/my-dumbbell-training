@@ -1,30 +1,7 @@
-
 /* ================================
-   Supabase
+   app.js
+   页面状态、Tab切换、安全显示
 ================================ */
-
-const SUPABASE_URL =
-"https://wqcxdnitppkaccbzwbjj.supabase.co";
-
-
-const SUPABASE_KEY =
-"sb_publishable_G7NvaEI9mkuim_0QHkphSQ_EtNgvHYC";
-
-
-
-/* ================================
-   全局状态
-================================ */
-
-let currentPlan = null;
-
-let currentExercises = [];
-
-let completed = [];
-
-let records = [];
-
-
 
 
 /* ================================
@@ -32,22 +9,25 @@ let records = [];
 ================================ */
 
 function setStatus(
-text,
-type=""
+  text,
+  type = ""
 ){
 
-const box =
-document.getElementById(
-"connectionStatus"
-);
+  const box =
+    document.getElementById(
+      "connectionStatus"
+    );
 
-box.textContent =
-text;
+  if(!box){
+    return;
+  }
 
-box.className =
-"status " +
-type;
+  box.textContent =
+    text;
 
+  box.className =
+    "status " +
+    type;
 }
 
 
@@ -58,30 +38,100 @@ type;
 
 function todayString(){
 
-return new Date()
-.toISOString()
-.slice(0,10);
+  return new Date()
+    .toISOString()
+    .slice(0,10);
 
 }
 
 
-document.getElementById(
-"today"
-).textContent =
+const todayBox =
+  document.getElementById(
+    "today"
+  );
 
-new Date()
-.toLocaleDateString(
-"zh-CN",
-{
-year:"numeric",
-month:"long",
-day:"numeric",
-weekday:"long"
+
+if(todayBox){
+
+  todayBox.textContent =
+    new Date()
+      .toLocaleDateString(
+        "zh-CN",
+        {
+          year:"numeric",
+          month:"long",
+          day:"numeric",
+          weekday:"long"
+        }
+      );
+
 }
-);
 
 
 
+/* ================================
+   Tab 切换
+================================ */
+
+function showTab(
+  id,
+  button
+){
+
+  document
+    .querySelectorAll(
+      "#todayTab,#dailyTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab,#metricsTab"
+    )
+    .forEach(
+      section => {
+
+        section.classList.add(
+          "hidden"
+        );
+
+      }
+    );
+
+
+  const target =
+    document.getElementById(
+      id
+    );
+
+
+  if(target){
+
+    target.classList.remove(
+      "hidden"
+    );
+
+  }
+
+
+  document
+    .querySelectorAll(
+      ".tab"
+    )
+    .forEach(
+      tab => {
+
+        tab.classList.remove(
+          "active"
+        );
+
+      }
+    );
+
+
+  if(button){
+
+    button.classList.add(
+      "active"
+    );
+
+  }
+
+}
 
 
 
@@ -90,30 +140,71 @@ weekday:"long"
 ================================ */
 
 function escapeHtml(
-text
+  text
 ){
 
-const div =
-document.createElement(
-"div"
-);
+  const div =
+    document.createElement(
+      "div"
+    );
 
-div.textContent =
-text || "";
+  div.textContent =
+    text || "";
 
-return div.innerHTML;
+  return div.innerHTML;
 
 }
 
 
 
 /* ================================
-   启动
+   页面启动
 ================================ */
 
-loadCurrentPlan();
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
 
-loadHistory();
-loadBodyMetrics();
+    /*
+      训练计划
+    */
+
+    if(
+      typeof loadCurrentPlan ===
+      "function"
+    ){
+
+      loadCurrentPlan();
+
+    }
 
 
+    /*
+      训练历史
+    */
+
+    if(
+      typeof loadHistory ===
+      "function"
+    ){
+
+      loadHistory();
+
+    }
+
+
+    /*
+      身体数据
+    */
+
+    if(
+      typeof loadBodyMetrics ===
+      "function"
+    ){
+
+      loadBodyMetrics();
+
+    }
+
+  }
+);

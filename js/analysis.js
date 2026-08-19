@@ -578,26 +578,25 @@ function updateTrainingBodyAnalysis(){
     :
     [];
 
-
-  if(!data.length){
+    if(!data.length){
 
     box.textContent =
-      "开始记录身体数据后，
-      这里会分析训练与身体变化的关系。";
+      "开始记录身体数据后，" +
+      "这里会分析训练与身体变化的关系。";
 
     return;
 
   }
 
 
+
   if(data.length < 2){
 
     box.textContent =
-      "目前只有1条身体数据记录。
-      再记录一次后，就可以开始分析变化趋势。";
+      "目前只有1条身体数据记录。" + 
+      "再记录一次后，就可以开始分析变化趋势。";
 
     return;
-
   }
 
 
