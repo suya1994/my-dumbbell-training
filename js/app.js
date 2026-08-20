@@ -160,6 +160,7 @@ function cancelWeeklyGoalEdit() {
 /* ================================
    Tab 切换
 ================================ */
+
 function showTab(id, button) {
   console.log("正在切换 Tab：", id);
 
@@ -167,12 +168,13 @@ function showTab(id, button) {
      隐藏所有页面
      
      注意：
-     现在已经包含 AI Tab
+     包含其它运动 Tab
+     也包含 AI Tab
   ======================================== */
 
   document
     .querySelectorAll(
-      "#todayTab,#dailyTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab,#metricsTab,#aiTab",
+      "#todayTab,#otherActivitiesTab,#dailyTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab,#metricsTab,#aiTab",
     )
     .forEach((section) => {
       section.classList.add("hidden");
@@ -218,6 +220,20 @@ function showTab(id, button) {
   }
 
   /* ========================================
+     其它运动
+  ======================================== */
+
+  if (id === "otherActivitiesTab") {
+    if (typeof setOtherActivityToday === "function") {
+      setOtherActivityToday();
+    }
+
+    if (typeof loadOtherActivities === "function") {
+      loadOtherActivities();
+    }
+  }
+
+  /* ========================================
      每周
   ======================================== */
 
@@ -253,9 +269,6 @@ function showTab(id, button) {
 
   /* ========================================
      AI教练
-     
-     目前不需要额外执行任何函数。
-     AI功能由 ai-plan.js 中的按钮控制。
   ======================================== */
 
   if (id === "aiTab") {

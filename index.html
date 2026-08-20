@@ -62,6 +62,10 @@
                     今日
                </button>
 
+               <button class="tab" onclick="showTab('otherActivitiesTab',this)">
+                    🏃 其它运动
+               </button>
+
 
                <button class="tab" onclick="showTab('dailyTab',this)">
                     每日
@@ -249,6 +253,192 @@
 
 
                </div>
+
+          </section>
+
+
+          <!-- ================================
+     其它运动
+================================ -->
+
+          <section id="otherActivitiesTab" class="hidden">
+
+
+               <!-- ================================
+     记录其它运动
+================================ -->
+
+               <div class="card">
+
+
+                    <h2>
+                         🏃 记录其它运动
+                    </h2>
+
+
+                    <div class="muted">
+
+                         八部金刚功、跑步以及以后增加的其它运动，
+                         单独记录，不计入哑铃力量训练次数。
+
+                    </div>
+
+
+                    <br>
+
+
+                    <label>
+                         运动日期
+                    </label>
+
+
+                    <input id="otherActivityDate" class="note" type="date">
+
+
+                    <label>
+                         运动类型
+                    </label>
+
+
+                    <select id="otherActivityType" class="note">
+
+                         <option value="八部金刚功">
+                              八部金刚功
+                         </option>
+
+
+                         <option value="跑步">
+                              跑步
+                         </option>
+
+
+                         <option value="其它">
+                              其它
+                         </option>
+
+                    </select>
+
+
+                    <label>
+                         运动时间（分钟）
+                    </label>
+
+
+                    <input id="otherActivityDuration" class="note" type="number" min="1" max="1440" step="1"
+                         placeholder="例如 30">
+
+
+                    <br><br>
+
+
+                    <button type="button" class="primary-btn" onclick="saveOtherActivity()">
+
+                         💾 保存运动
+
+                    </button>
+
+
+               </div>
+
+
+
+               <!-- ================================
+     本周 / 累计统计
+================================ -->
+
+               <div class="card">
+
+
+                    <h2>
+                         📊 其它运动统计
+                    </h2>
+
+
+                    <div class="stats">
+
+
+                         <div class="stat">
+
+                              <div class="stat-number" id="otherWeekCount">
+                                   0
+                              </div>
+
+                              <div class="stat-label">
+                                   本周次数
+                              </div>
+
+                         </div>
+
+
+                         <div class="stat">
+
+                              <div class="stat-number" id="otherWeekMinutes">
+                                   0
+                              </div>
+
+                              <div class="stat-label">
+                                   本周分钟
+                              </div>
+
+                         </div>
+
+
+                         <div class="stat">
+
+                              <div class="stat-number" id="otherTotalCount">
+                                   0
+                              </div>
+
+                              <div class="stat-label">
+                                   累计次数
+                              </div>
+
+                         </div>
+
+
+                    </div>
+
+
+                    <div class="analysis">
+
+                         累计运动时间：
+                         <strong id="otherTotalMinutes">
+                              0
+                         </strong>
+                         分钟
+
+                    </div>
+
+
+               </div>
+
+
+
+               <!-- ================================
+     运动历史
+================================ -->
+
+               <div class="card">
+
+
+                    <h2>
+                         📚 其它运动历史
+                    </h2>
+
+
+                    <div id="otherActivityList">
+
+                         <div class="muted">
+
+                              正在读取其它运动……
+
+                         </div>
+
+                    </div>
+
+
+               </div>
+
 
           </section>
 
@@ -1022,9 +1212,13 @@
 
      <script src="js/analysis.js"></script>
 
-     <script src="js/app.js"></script>
+     <script src="js/other-activities.js"></script>
 
      <script src="js/ai-plan.js"></script>
+
+     <script src="js/app.js"></script>
+
+
 
 
 </body>
