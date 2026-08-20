@@ -2,86 +2,145 @@
    plan.js
    AI训练计划读取与显示
 
-   逻辑：
-   1. 找到最近一次已经完成的训练
-   2. 下一次 = 最近一次 + 1
-   3. 尝试读取AI已经生成并导入的训练计划
-   4. 如果没有：
-      → 不报错
-      → 提示等待AI生成下一次计划
-   ================================ */
+   核心逻辑：
+
+   1. 首页当前应该训练哪一次？
+      = 最近一次已经完成的训练 + 1
+
+   2. training_plans 可以提前存在很多次：
+      第6次、第7次、第8次……
+
+      但首页只显示：
+      最近完成次数 + 1
+
+   3. 例如：
+
+      已完成：第1～5次
+      已有计划：第6、第7次
+
+      首页：
+      → 第6次
+
+      完成第6次后：
+
+      已完成：第1～6次
+      已有计划：第6、第7次
+
+      首页：
+      → 第7次
+
+   4. “复制上次训练计划”：
+      当前训练计划 → 复制成下一次计划
+
+      例如：
+      当前第6次
+      ↓
+      复制
+      ↓
+      第7次
+
+      首页仍然显示第6次，
+      直到第6次真正完成。
+================================ */
 
 /* ================================
-   读取当前/下一次训练计划
+   获取最近一次已经完成的训练编号
+================================ */
+
+async function getLatestCompletedWorkoutNumber() {
+  try {
+    const workouts = await supabaseRequest(
+      "workouts" +
+        "?select=workout_number,workout_date,completion_percent" +
+        "&order=workout_number.desc" +
+        "&limit=1",
+    );
+
+    if (!workouts || !workouts.length) {
+      return 0;
+    }
+
+    const number = Number(workouts[0].workout_number);
+
+    if (!Number.isFinite(number)) {
+      return 0;
+    }
+
+    return number;
+  } catch (error) {
+    console.error("读取最近完成训练失败：", error);
+
+    throw error;
+  }
+}
+
+/* ================================
+   获取当前应该训练的编号
+
+   例如：
+
+   没有完成过训练
+   → 第1次
+
+   已完成第5次
+   → 第6次
+
+   即使数据库已经存在第7、第8次计划，
+   这里仍然只返回第6次。
+================================ */
+
+async function getCurrentWorkoutNumber() {
+  const latestCompleted = await getLatestCompletedWorkoutNumber();
+
+  return latestCompleted + 1;
+}
+
+/* ================================
+   读取当前训练计划
 ================================ */
 
 async function loadCurrentPlan() {
   try {
     /* ================================
-       读取训练历史
+       1. 找到当前应该训练的编号
     ================================ */
 
-    const workouts = await supabaseRequest(
-      "workouts" +
-        "?select=workout_number,workout_date,title,completion_percent" +
-        "&order=workout_number.desc" +
-        "&limit=1",
-    );
+    const currentWorkoutNumber = await getCurrentWorkoutNumber();
+
+    console.log("当前应该训练：", currentWorkoutNumber);
 
     /* ================================
-       计算下一次训练编号
-
-       没有训练记录：
-       → 第1次
-
-       有训练记录：
-       → 最近一次 + 1
-    ================================ */
-
-    let nextWorkoutNumber = 1;
-
-    if (workouts.length) {
-      nextWorkoutNumber = Number(workouts[0].workout_number || 0) + 1;
-    }
-
-    console.log(
-      "最近一次训练：",
-      workouts.length ? workouts[0].workout_number : "暂无",
-    );
-
-    console.log("下一次训练：", nextWorkoutNumber);
-
-    /* ================================
-       读取AI已经导入的下一次训练计划
+       2. 查找这个编号对应的训练计划
     ================================ */
 
     const plans = await supabaseRequest(
       "training_plans" +
         "?select=*" +
         "&workout_number=eq." +
-        nextWorkoutNumber +
+        currentWorkoutNumber +
         "&limit=1",
     );
 
     /* ================================
-       没有下一次计划
+       3. 没有当前训练计划
 
-       这是正常情况！
+       这是正常情况。
 
-       因为下一次训练应该由ChatGPT生成，
-       而不是网站自己生成。
+       例如：
+       第5次已经完成
+       第6次还没有让AI生成
 
-       所以这里不能 throw Error。
+       → 等待AI生成第6次
     ================================ */
 
-    if (!plans.length) {
+    if (!plans || !plans.length) {
       currentPlan = null;
 
       currentExercises = [];
 
       completed = [];
 
-      showWaitingForAIPlan(nextWorkoutNumber);
+      showWaitingForAIPlan(currentWorkoutNumber);
 
       setStatus("☁️ 数据库已连接，等待AI生成下一次训练计划", "ok");
 
@@ -89,13 +148,13 @@ async function loadCurrentPlan() {
     }
 
     /* ================================
-       找到了AI生成的训练计划
+       4. 找到了当前训练计划
     ================================ */
 
     currentPlan = plans[0];
 
     /* ================================
-       读取动作
+       5. 读取训练动作
     ================================ */
 
     const exercises = await supabaseRequest(
@@ -106,18 +165,22 @@ async function loadCurrentPlan() {
         "&order=exercise_order.asc",
     );
 
-    currentExercises = exercises;
+    currentExercises = exercises || [];
+
+    /* ================================
+       6. 初始化动作完成状态
+    ================================ */
 
     completed = new Array(currentExercises.length).fill(false);
 
     /* ================================
-       渲染训练计划
+       7. 显示训练计划
     ================================ */
 
     renderCurrentPlan();
 
     /* ================================
-       更新状态
+       8. 更新状态
     ================================ */
 
     setStatus("☁️ 已连接训练数据库", "ok");
@@ -276,7 +339,9 @@ function renderCurrentPlan() {
           </div>
 
 
-          <!-- 实际训练记录 -->
+          <!-- ================================
+               实际训练记录
+          ================================ -->
 
           <div
             id="actualBox${index}"
@@ -409,4 +474,221 @@ function renderCurrentPlan() {
   `;
 
   updateProgress();
+}
+
+/* ============================================================
+   复制当前 / 上一次训练计划
+   ============================================================
+
+   这里的“上次训练计划”定义为：
+
+   当前首页正在显示的训练计划。
+
+   例如：
+
+   最近完成：第5次
+   当前首页：第6次
+
+   点击复制：
+
+   第6次 → 第7次
+
+   但首页仍然显示：
+
+   第6次
+
+   因为第6次还没有完成。
+
+   ============================================================ */
+
+async function copyLastTrainingPlan() {
+  try {
+    /* ================================
+       1. 找到当前应该训练的编号
+    ================================ */
+
+    const currentNumber = await getCurrentWorkoutNumber();
+
+    /* ================================
+       2. 找当前训练计划
+
+       例如：
+       当前应该训练第6次
+
+       就找第6次计划。
+
+       而不是直接找数据库最大的计划编号。
+    ================================ */
+
+    const plans = await supabaseRequest(
+      "training_plans" +
+        "?select=*" +
+        "&workout_number=eq." +
+        currentNumber +
+        "&limit=1",
+    );
+
+    if (!plans || !plans.length) {
+      alert(
+        `目前没有第${currentNumber}次训练计划，\n\n` +
+          `请先生成第${currentNumber}次训练计划。`,
+      );
+
+      return;
+    }
+
+    const sourcePlan = plans[0];
+
+    /* ================================
+       3. 目标编号
+
+       当前第6次
+       → 复制为第7次
+    ================================ */
+
+    const newWorkoutNumber = currentNumber + 1;
+
+    /* ================================
+       4. 检查第7次是否已经存在
+
+       防止重复点击复制按钮，
+       导致同一个编号出现多个计划。
+    ================================ */
+
+    const existingPlans = await supabaseRequest(
+      "training_plans" +
+        "?select=id,workout_number,title" +
+        "&workout_number=eq." +
+        newWorkoutNumber +
+        "&limit=1",
+    );
+
+    if (existingPlans && existingPlans.length) {
+      alert(`第${newWorkoutNumber}次训练计划已经存在。\n\n` + `不会重复创建。`);
+
+      return;
+    }
+
+    /* ================================
+       5. 创建新的训练计划
+    ================================ */
+
+    const created = await supabaseRequest("training_plans", {
+      method: "POST",
+
+      body: {
+        workout_number: newWorkoutNumber,
+
+        plan_date: todayString(),
+
+        title: `第${newWorkoutNumber}次训练`,
+
+        focus: sourcePlan.focus || "",
+
+        duration_minutes: sourcePlan.duration_minutes || 25,
+
+        notes: sourcePlan.notes || "",
+      },
+    });
+
+    if (!created || !created.length || !created[0].id) {
+      throw new Error("复制训练计划后没有返回新的 plan_id。");
+    }
+
+    const newPlanId = created[0].id;
+
+    /* ================================
+       6. 读取原训练动作
+    ================================ */
+
+    const sourceExercises = await supabaseRequest(
+      "training_plan_exercises" +
+        "?select=*" +
+        "&plan_id=eq." +
+        sourcePlan.id +
+        "&order=exercise_order.asc",
+    );
+
+    /* ================================
+       7. 复制所有动作
+    ================================ */
+
+    for (let i = 0; i < sourceExercises.length; i++) {
+      const exercise = sourceExercises[i];
+
+      await supabaseRequest("training_plan_exercises", {
+        method: "POST",
+
+        body: {
+          plan_id: newPlanId,
+
+          exercise_order: Number(exercise.exercise_order) || i + 1,
+
+          exercise_name: exercise.exercise_name,
+
+          equipment: exercise.equipment || "自重",
+
+          weight_kg:
+            exercise.weight_kg === null || exercise.weight_kg === undefined
+              ? null
+              : Number(exercise.weight_kg),
+
+          reps: exercise.reps || "",
+
+          sets: Number(exercise.sets) || 1,
+
+          notes: exercise.notes || "",
+        },
+      });
+    }
+
+    /* ================================
+       8. 成功
+
+       注意：
+
+       这里不要重新让首页显示第7次。
+
+       loadCurrentPlan() 会重新计算：
+
+       最近完成 = 第5次
+       → 当前 = 第6次
+
+       所以首页仍然是第6次。
+    ================================ */
+
+    alert(
+      `已经成功复制！💪\n\n` +
+        `第${currentNumber}次训练计划` +
+        ` → 第${newWorkoutNumber}次训练计划\n\n` +
+        `当前首页仍然显示第${currentNumber}次训练，` +
+        `完成后才会进入第${newWorkoutNumber}次。`,
+    );
+
+    /* ================================
+       9. 刷新当前训练
+
+       仍然显示第6次。
+    ================================ */
+
+    await loadCurrentPlan();
+
+    if (typeof setStatus === "function") {
+      setStatus("☁️ 已复制下一次训练计划", "ok");
+    }
+
+    console.log("训练计划复制成功：", {
+      from: currentNumber,
+
+      to: newWorkoutNumber,
+
+      source_plan_id: sourcePlan.id,
+
+      new_plan_id: newPlanId,
+    });
+  } catch (error) {
+    console.error("复制训练计划失败：", error);
+
+    alert("复制训练计划失败：\n\n" + (error.message || String(error)));
+  }
 }
