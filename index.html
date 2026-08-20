@@ -39,9 +39,10 @@
 
           </div>
 
+
           <!-- ================================
-     复制训练计划
-================================ -->
+         复制训练计划
+    ================================= -->
 
           <div id="copyPlanStatus" class="status" onclick="copyLastTrainingPlan()" style="cursor:pointer;">
 
@@ -50,60 +51,75 @@
           </div>
 
 
-
           <!-- ================================
-     标签
-================================ -->
+         标签
+    ================================= -->
 
           <div class="tabs">
 
 
                <button class="tab active" onclick="showTab('todayTab',this)">
+
                     今日
+
                </button>
 
+
                <button class="tab" onclick="showTab('otherActivitiesTab',this)">
+
                     🏃 其它运动
+
                </button>
 
 
                <button class="tab" onclick="showTab('weeklyTab',this)">
+
                     每周
+
                </button>
 
 
                <button class="tab" onclick="showTab('monthlyTab',this)">
+
                     每月
+
                </button>
 
 
                <button class="tab" onclick="showTab('trendTab',this)">
+
                     总趋势
+
                </button>
 
 
                <button class="tab" onclick="showTab('historyTab',this)">
+
                     历史
+
                </button>
 
 
                <button class="tab" onclick="showTab('metricsTab',this)">
+
                     身体数据
+
                </button>
 
 
                <button class="tab" onclick="showTab('aiTab',this)">
+
                     🤖 AI教练
+
                </button>
 
 
           </div>
 
 
-
           <!-- ================================
-     今日
-================================ -->
+         今日
+    ================================= -->
 
           <section id="todayTab">
 
@@ -119,46 +135,28 @@
                </div>
 
 
+               <!-- ================================
+             训练感受
+        ================================= -->
 
                <div class="card">
 
 
                     <h2>
-                         训练感受
+                         📝 训练感受
                     </h2>
 
 
-                    <select id="difficulty" class="note">
+                    <div class="muted">
 
-                         <option value="">
-                              选择今天的难度
-                         </option>
+                         每个动作已经单独记录了训练难度。
+                         如果今天有具体情况，可以写在这里。
 
-
-                         <option value="easy">
-                              轻松
-                         </option>
+                    </div>
 
 
-                         <option value="normal">
-                              正常
-                         </option>
-
-
-                         <option value="hard">
-                              比较吃力
-                         </option>
-
-
-                         <option value="veryhard">
-                              非常吃力
-                         </option>
-
-                    </select>
-
-
-
-                    <textarea id="bodyNote" class="note" rows="4" placeholder="例如：左手还是比较弱、腰没不舒服、臀部发力明显……"></textarea>
+                    <textarea id="bodyNote" class="note" rows="4"
+                         placeholder="例如：左手还是比较弱、肩推左侧明显更吃力、腰没有不舒服、臀部发力明显……"></textarea>
 
 
                     <br><br>
@@ -173,21 +171,16 @@
 
                </div>
 
+
           </section>
 
 
-
-
           <!-- ================================
-     其它运动
-================================ -->
+         其它运动
+    ================================= -->
 
           <section id="otherActivitiesTab" class="hidden">
 
-
-               <!-- ================================
-     记录其它运动
-================================ -->
 
                <div class="card">
 
@@ -227,11 +220,9 @@
                               八部金刚功
                          </option>
 
-
                          <option value="跑步">
                               跑步
                          </option>
-
 
                          <option value="其它">
                               其它
@@ -262,10 +253,9 @@
                </div>
 
 
-
                <!-- ================================
-     本周 / 累计统计
-================================ -->
+             其它运动统计
+        ================================= -->
 
                <div class="card">
 
@@ -281,7 +271,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="otherWeekCount">
+
                                    0
+
                               </div>
 
                               <div class="stat-label">
@@ -294,7 +286,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="otherWeekMinutes">
+
                                    0
+
                               </div>
 
                               <div class="stat-label">
@@ -307,7 +301,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="otherTotalCount">
+
                                    0
+
                               </div>
 
                               <div class="stat-label">
@@ -323,9 +319,11 @@
                     <div class="analysis">
 
                          累计运动时间：
+
                          <strong id="otherTotalMinutes">
                               0
                          </strong>
+
                          分钟
 
                     </div>
@@ -334,10 +332,9 @@
                </div>
 
 
-
                <!-- ================================
-     运动历史
-================================ -->
+             其它运动历史
+        ================================= -->
 
                <div class="card">
 
@@ -364,10 +361,9 @@
           </section>
 
 
-
           <!-- ================================
-     每周
-================================ -->
+         每周
+    ================================= -->
 
           <section id="weeklyTab" class="hidden">
 
@@ -386,7 +382,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="weekCount">
+
                                    0
+
                               </div>
 
                               <div class="stat-label">
@@ -399,7 +397,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="weeklyGoalDisplay">
+
                                    3–4
+
                               </div>
 
                               <div class="stat-label">
@@ -408,16 +408,23 @@
 
                               <button type="button" class="secondary-btn" onclick="toggleWeeklyGoalEditor()"
                                    style="margin-top:8px;">
+
                                    ✏️ 修改
+
                               </button>
+
 
                          </div>
 
+
                          <div id="weeklyGoalEditor" class="analysis" style="display:none; margin-top:20px;">
 
-                              <strong>修改本周训练目标</strong>
+                              <strong>
+                                   修改本周训练目标
+                              </strong>
 
                               <br><br>
+
 
                               <label>
                                    最低目标
@@ -425,21 +432,29 @@
 
                               <input id="weeklyMinGoal" class="note" type="number" step="1" placeholder="例如 3">
 
+
                               <label>
                                    理想目标
                               </label>
 
                               <input id="weeklyIdealGoal" class="note" type="number" step="1" placeholder="例如 4">
 
+
                               <br>
 
+
                               <button type="button" class="primary-btn" onclick="saveWeeklyGoal()">
+
                                    保存
+
                               </button>
+
 
                               <button type="button" class="secondary-btn" onclick="cancelWeeklyGoalEdit()"
                                    style="margin-left:8px;">
+
                                    取消
+
                               </button>
 
                          </div>
@@ -448,7 +463,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="weekRemaining">
+
                                    3
+
                               </div>
 
                               <div class="stat-label">
@@ -471,7 +488,6 @@
                </div>
 
 
-
                <div class="card">
 
 
@@ -486,7 +502,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="weekAverage">
+
                                    —
+
                               </div>
 
                               <div class="stat-label">
@@ -499,7 +517,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="weekMinutes">
+
                                    0
+
                               </div>
 
                               <div class="stat-label">
@@ -512,7 +532,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="weekBest">
+
                                    —
+
                               </div>
 
                               <div class="stat-label">
@@ -538,10 +560,9 @@
           </section>
 
 
-
           <!-- ================================
-     每月
-================================ -->
+         每月
+    ================================= -->
 
           <section id="monthlyTab" class="hidden">
 
@@ -560,7 +581,9 @@
                          <div class="stat">
 
                               <div class="stat-number" id="monthCount">
+
                                    0
+
                               </div>
 
                               <div class="stat-label">
@@ -570,11 +593,12 @@
                          </div>
 
 
-
                          <div class="stat">
 
                               <div class="stat-number" id="monthAverage">
+
                                    —
+
                               </div>
 
                               <div class="stat-label">
@@ -584,11 +608,12 @@
                          </div>
 
 
-
                          <div class="stat">
 
                               <div class="stat-number" id="monthMinutes">
+
                                    0
+
                               </div>
 
                               <div class="stat-label">
@@ -601,7 +626,6 @@
                     </div>
 
 
-
                     <div class="analysis" id="monthlyAnalysis">
 
                          本月完成训练后，这里会自动生成月度分析。
@@ -610,7 +634,6 @@
 
 
                </div>
-
 
 
                <div class="card">
@@ -630,13 +653,13 @@
 
                </div>
 
+
           </section>
 
 
-
           <!-- ================================
-     总趋势
-================================ -->
+         总趋势
+    ================================= -->
 
           <section id="trendTab" class="hidden">
 
@@ -662,7 +685,6 @@
                     </div>
 
 
-
                     <div class="trend-row">
 
                          <span>
@@ -676,7 +698,6 @@
                     </div>
 
 
-
                     <div class="trend-row">
 
                          <span>
@@ -688,7 +709,6 @@
                          </strong>
 
                     </div>
-
 
 
                     <div class="trend-row">
@@ -707,11 +727,6 @@
                </div>
 
 
-
-               <!-- ================================
-     动作进步
-================================ -->
-
                <div class="card">
 
 
@@ -729,11 +744,6 @@
 
                </div>
 
-
-
-               <!-- ================================
-     训练 × 身体变化
-================================ -->
 
                <div class="card">
 
@@ -757,10 +767,9 @@
           </section>
 
 
-
           <!-- ================================
-     历史
-================================ -->
+         历史
+    ================================= -->
 
           <section id="historyTab" class="hidden">
 
@@ -784,13 +793,13 @@
 
                </div>
 
+
           </section>
 
 
-
           <!-- ================================
-     身体数据
-================================ -->
+         身体数据
+    ================================= -->
 
           <section id="metricsTab" class="hidden">
 
@@ -814,42 +823,32 @@
                     <br>
 
 
-
                     <label>
                          体重 kg
                     </label>
 
-
                     <input id="metricWeight" class="note" type="number" step="0.1" min="0" placeholder="例如 52.0">
-
 
 
                     <label>
                          腰围 cm
                     </label>
 
-
                     <input id="metricWaist" class="note" type="number" step="0.1" min="0" placeholder="例如 68.0">
-
 
 
                     <label>
                          臀围 cm
                     </label>
 
-
                     <input id="metricHip" class="note" type="number" step="0.1" min="0" placeholder="例如 90.0">
-
 
 
                     <label>
                          身体备注
                     </label>
 
-
-                    <textarea id="metricNote" class="note" placeholder="例如：腰腹感觉更紧实，臀部训练后有酸胀感……">
-                    </textarea>
-
+                    <textarea id="metricNote" class="note" placeholder="例如：腰腹感觉更紧实，臀部训练后有酸胀感……"></textarea>
 
 
                     <br><br>
@@ -864,11 +863,6 @@
 
                </div>
 
-
-
-               <!-- ================================
-     最近变化
-================================ -->
 
                <div class="card">
 
@@ -889,11 +883,6 @@
                </div>
 
 
-
-               <!-- ================================
-     本月变化
-================================ -->
-
                <div class="card">
 
 
@@ -912,11 +901,6 @@
 
                </div>
 
-
-
-               <!-- ================================
-     长期变化
-================================ -->
 
                <div class="card">
 
@@ -937,11 +921,6 @@
                </div>
 
 
-
-               <!-- ================================
-     身体数据历史
-================================ -->
-
                <div class="card">
 
 
@@ -953,9 +932,7 @@
                     <div id="metricsHistory">
 
                          <div class="muted">
-
                               正在读取身体数据……
-
                          </div>
 
                     </div>
@@ -967,37 +944,40 @@
           </section>
 
 
-
           <!-- ================================
-     AI私人教练
-================================ -->
+         AI私人教练
+    ================================= -->
 
           <section id="aiTab" class="hidden">
 
 
                <div class="card">
 
+
                     <h2>
                          🤖 AI私人教练
                     </h2>
 
+
                     <div class="muted">
 
                          完成一次训练后，让 ChatGPT 根据你的历史训练、
-                         动作表现、训练难度、身体感受和身体数据，
+                         每个动作的难度、完成情况、训练感受和身体数据，
                          制定下一次训练。
 
                     </div>
 
-               </div>
 
+               </div>
 
 
                <div class="card">
 
+
                     <h2>
                          🧠 第一步：生成训练分析
                     </h2>
+
 
                     <div class="muted">
 
@@ -1006,7 +986,9 @@
 
                     </div>
 
+
                     <br>
+
 
                     <button class="primary-btn" onclick="generateAITrainingPrompt()">
 
@@ -1014,12 +996,15 @@
 
                     </button>
 
+
                     <br><br>
 
-                    <textarea id="aiPrompt" class="note" rows="14" placeholder="点击上面的按钮后，这里会生成训练历史分析提示词……">
-                    </textarea>
+
+                    <textarea id="aiPrompt" class="note" rows="14" placeholder="点击上面的按钮后，这里会生成训练历史分析提示词……"></textarea>
+
 
                     <br>
+
 
                     <button class="primary-btn" onclick="copyAIPrompt()">
 
@@ -1027,15 +1012,17 @@
 
                     </button>
 
-               </div>
 
+               </div>
 
 
                <div class="card">
 
+
                     <h2>
                          📥 第二步：导入 ChatGPT 生成的训练
                     </h2>
+
 
                     <div class="muted">
 
@@ -1044,12 +1031,15 @@
 
                     </div>
 
-                    <br>
-
-                    <textarea id="aiPlanInput" class="note" rows="14" placeholder="把 ChatGPT 生成的训练计划粘贴到这里……">
-                    </textarea>
 
                     <br>
+
+
+                    <textarea id="aiPlanInput" class="note" rows="14" placeholder="把 ChatGPT 生成的训练计划粘贴到这里……"></textarea>
+
+
+                    <br>
+
 
                     <button class="primary-btn" onclick="importAITrainingPlan()">
 
@@ -1057,43 +1047,65 @@
 
                     </button>
 
+
                </div>
 
 
-
                <div class="card">
+
 
                     <h2>
                          🔄 AI训练流程
                     </h2>
 
+
                     <div class="analysis">
 
                          <strong>① 完成训练</strong>
+
                          <br>
-                         记录训练完成度、难度和身体感受。
+
+                         记录每个动作的完成情况和训练难度，
+                         并填写训练感受。
+
                          <br><br>
+
 
                          <strong>② 生成训练分析</strong>
+
                          <br>
+
                          网站自动整理你的历史训练数据。
+
                          <br><br>
+
 
                          <strong>③ 交给 ChatGPT</strong>
+
                          <br>
+
                          ChatGPT 根据真实历史决定下一次训练。
+
                          <br><br>
+
 
                          <strong>④ 导入训练计划</strong>
+
                          <br>
+
                          网站自动写入 Supabase。
+
                          <br><br>
 
+
                          <strong>⑤ 开始下一次训练</strong>
+
                          <br>
+
                          首页自动显示新的训练计划。
 
                     </div>
+
 
                </div>
 
@@ -1101,10 +1113,9 @@
           </section>
 
 
-
           <!-- ================================
-     底部
-================================ -->
+         底部
+    ================================= -->
 
           <div class="footer">
 
@@ -1116,10 +1127,9 @@
      </div>
 
 
-
      <!-- ================================
      JavaScript
-================================ -->
+================================= -->
 
      <script src="js/config.js"></script>
 
@@ -1138,8 +1148,6 @@
      <script src="js/ai-plan.js"></script>
 
      <script src="js/app.js"></script>
-
-
 
 
 </body>

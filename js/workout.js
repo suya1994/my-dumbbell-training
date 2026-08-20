@@ -4,27 +4,70 @@
 ================================ */
 
 /* ================================
-   完成动作
+   设置动作难度
+
+   由 plan.js 调用
+
+   easy
+   normal
+   hard
+   incomplete
 ================================ */
 
-function toggleExercise(index) {
-  completed[index] = !completed[index];
+function setExerciseDifficulty(index, difficulty) {
+  /* ================================
+     检查动作编号
+  ================================= */
 
-  const button = document.getElementById("exerciseBtn" + index);
-
-  const actualBox = document.getElementById("actualBox" + index);
-
-  if (button) {
-    button.classList.toggle("done", completed[index]);
+  if (index < 0 || index >= currentExercises.length) {
+    return;
   }
 
-  if (actualBox) {
-    actualBox.classList.toggle("hidden", !completed[index]);
+  /* ================================
+     只允许这4种状态
+  ================================= */
+
+  const allowed = ["easy", "normal", "hard", "incomplete"];
+
+  if (!allowed.includes(difficulty)) {
+    return;
   }
+
+  /* ================================
+     保存动作难度
+  ================================= */
+
+  exerciseDifficulty[index] = difficulty;
+
+  /* ================================
+     更新完成状态
+
+     轻松 / 正常 / 吃力
+     = 动作完成
+
+     未完成
+     = 动作没有完成
+  ================================= */
+
+  if (difficulty === "incomplete") {
+    completed[index] = false;
+  } else {
+    completed[index] = true;
+  }
+
+  /* ================================
+     重新渲染
+
+     让按钮立即显示选中状态
+  ================================= */
+
+  renderCurrentPlan();
+
+  /* ================================
+     更新训练进度
+  ================================= */
 
   updateProgress();
-
-  updateDailyAnalysis();
 }
 
 /* ================================
@@ -38,11 +81,19 @@ function updateProgress() {
 
   const percent = total ? Math.round((count / total) * 100) : 0;
 
+  /* ================================
+     更新进度条
+  ================================= */
+
   const bar = document.getElementById("progressBar");
 
   if (bar) {
     bar.style.width = percent + "%";
   }
+
+  /* ================================
+     更新进度文字
+  ================================= */
 
   const text = document.getElementById("progressText");
 
@@ -52,74 +103,148 @@ function updateProgress() {
 }
 
 /* ================================
-   保存训练
+   检查是否还有动作没有记录
 ================================ */
+
+function getUnrecordedExercises() {
+  const result = [];
+
+  for (let i = 0; i < currentExercises.length; i++) {
+    if (!exerciseDifficulty[i]) {
+      result.push(i);
+    }
+  }
+
+  return result;
+}
+
 /* ================================
    保存训练
 ================================ */
 
 async function finishWorkout() {
+  /* ================================
+     检查训练计划
+  ================================= */
+
   if (!currentPlan) {
     alert("训练计划还没有加载完成。");
 
     return;
   }
 
+  /* ================================
+     检查动作是否全部有记录
+  ================================= */
+
+  const unrecorded = getUnrecordedExercises();
+
+  if (unrecorded.length > 0) {
+    const names = unrecorded
+      .map((index) => `${index + 1}. ${currentExercises[index].exercise_name}`)
+      .join("\n");
+
+    const confirmed = confirm(
+      `还有 ${unrecorded.length} 个动作没有记录：\n\n` +
+        names +
+        `\n\n` +
+        `点击“确定”将这些动作记为「未完成」。\n` +
+        `点击“取消”返回继续记录。`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    /* ================================
+       未选择的动作
+       自动记为未完成
+    ================================= */
+
+    for (let i = 0; i < currentExercises.length; i++) {
+      if (!exerciseDifficulty[i]) {
+        exerciseDifficulty[i] = "incomplete";
+
+        completed[i] = false;
+      }
+    }
+
+    renderCurrentPlan();
+
+    updateProgress();
+  }
+
+  /* ================================
+     至少完成一个动作
+
+     如果所有动作都是
+     「未完成」，
+     不保存本次训练。
+  ================================= */
+
   const count = completed.filter(Boolean).length;
 
   if (count === 0) {
-    alert("至少完成一个动作后再保存训练。");
+    alert("今天没有完成任何动作，暂时不保存这次训练。");
 
     return;
   }
 
+  /* ================================
+     计算完成度
+  ================================= */
+
   const percent = Math.round((count / currentExercises.length) * 100);
 
-  const difficulty = document.getElementById("difficulty").value;
+  /* ================================
+     读取训练感受
+  ================================= */
 
-  const note = document.getElementById("bodyNote").value;
+  const note = document.getElementById("bodyNote")?.value.trim() || null;
+
+  /* ================================
+     保存按钮
+  ================================= */
 
   const button = document.getElementById("saveButton");
 
-  button.disabled = true;
+  if (button) {
+    button.disabled = true;
 
-  button.textContent = "正在同步……";
+    button.textContent = "正在同步……";
+  }
 
   try {
     /* ================================
        保存本次训练
-       
-       当前首页是什么训练编号，
-       就保存什么训练编号。
-       
-       不再覆盖今天已有的训练。
-    ================================ */
+    ================================= */
 
-    const workout = await supabaseRequest(
-      "workouts",
+    const workout = await supabaseRequest("workouts", {
+      method: "POST",
 
-      {
-        method: "POST",
+      body: {
+        workout_number: currentPlan.workout_number,
 
-        body: {
-          workout_number: currentPlan.workout_number,
+        workout_date: todayString(),
 
-          workout_date: todayString(),
+        title: currentPlan.title,
 
-          title: currentPlan.title,
+        focus: currentPlan.focus,
 
-          focus: currentPlan.focus,
+        duration_minutes: currentPlan.duration_minutes,
 
-          duration_minutes: currentPlan.duration_minutes,
+        completion_percent: percent,
 
-          completion_percent: percent,
+        /*
+              不再保存整体 difficulty。
 
-          difficulty: difficulty || null,
+              难度现在按动作记录，
+              保存在 exercises.difficulty。
+            */
 
-          body_note: note || null,
-        },
+        body_note: note,
       },
-    );
+    });
 
     if (!workout || !workout.length) {
       throw new Error("训练保存成功，但没有返回训练记录。");
@@ -129,53 +254,23 @@ async function finishWorkout() {
 
     /* ================================
        保存每个动作
-    ================================ */
+    ================================= */
 
     for (let i = 0; i < currentExercises.length; i++) {
       const exercise = currentExercises[i];
 
-      const actualSetsInput = document.getElementById("actualSets" + i);
-
-      const actualRepsInput = document.getElementById("actualReps" + i);
-
-      const actualWeightInput = document.getElementById("actualWeight" + i);
-
-      const leftRepsInput = document.getElementById("leftReps" + i);
-
-      const rightRepsInput = document.getElementById("rightReps" + i);
-
-      /* ================================
-         实际数据
-      ================================ */
-
-      const actualSets =
-        actualSetsInput && actualSetsInput.value !== ""
-          ? Number(actualSetsInput.value)
-          : exercise.sets;
-
-      const actualReps =
-        actualRepsInput && actualRepsInput.value.trim() !== ""
-          ? actualRepsInput.value.trim()
-          : exercise.reps;
-
-      const actualWeight =
-        actualWeightInput && actualWeightInput.value !== ""
-          ? Number(actualWeightInput.value)
-          : exercise.weight_kg;
-
-      const leftReps =
-        leftRepsInput && leftRepsInput.value.trim() !== ""
-          ? leftRepsInput.value.trim()
-          : null;
-
-      const rightReps =
-        rightRepsInput && rightRepsInput.value.trim() !== ""
-          ? rightRepsInput.value.trim()
-          : null;
+      const selectedDifficulty = exerciseDifficulty[i];
 
       /* ================================
          动作数据
-      ================================ */
+
+         difficulty：
+
+         easy
+         normal
+         hard
+         incomplete
+      ================================= */
 
       const exerciseData = {
         workout_id: workoutId,
@@ -198,96 +293,27 @@ async function finishWorkout() {
 
         completed: completed[i],
 
-        actual_sets: actualSets,
-
-        actual_reps: actualReps,
-
-        actual_weight_kg: actualWeight,
-
-        left_reps: leftReps,
-
-        right_reps: rightReps,
+        difficulty: selectedDifficulty,
       };
 
-      await supabaseRequest(
-        "exercises",
+      await supabaseRequest("exercises", {
+        method: "POST",
 
-        {
-          method: "POST",
-
-          body: exerciseData,
-        },
-      );
-    }
-
-    /* ================================
-       每日分析
-       
-       这里保留每日分析记录，
-       但统计页面会直接根据 workouts
-       重新计算。
-    ================================ */
-
-    const summary = generateDailySummary(percent);
-
-    const existingAnalysis = await supabaseRequest(
-      "daily_analysis" +
-        "?select=*" +
-        "&analysis_date=eq." +
-        todayString() +
-        "&limit=1",
-    );
-
-    if (existingAnalysis.length) {
-      await supabaseRequest(
-        "daily_analysis?id=eq." + existingAnalysis[0].id,
-
-        {
-          method: "PATCH",
-
-          body: {
-            completion_percent: percent,
-
-            summary: summary,
-          },
-        },
-      );
-    } else {
-      await supabaseRequest(
-        "daily_analysis",
-
-        {
-          method: "POST",
-
-          body: {
-            analysis_date: todayString(),
-
-            completion_percent: percent,
-
-            summary: summary,
-          },
-        },
-      );
+        body: exerciseData,
+      });
     }
 
     /* ================================
        保存成功
-    ================================ */
+    ================================= */
 
     alert("今天的训练已经保存。💪");
 
     setStatus("☁️ 已同步到云端", "ok");
 
     /* ================================
-       重新读取历史
-       
-       这一步会刷新：
-       每日
-       每周
-       每月
-       总趋势
-       历史
-    ================================ */
+       重新读取训练历史
+    ================================= */
 
     if (typeof loadHistory === "function") {
       await loadHistory();
@@ -295,7 +321,7 @@ async function finishWorkout() {
 
     /* ================================
        重新读取动作历史
-    ================================ */
+    ================================= */
 
     if (typeof loadExerciseRecords === "function") {
       await loadExerciseRecords();
@@ -303,10 +329,13 @@ async function finishWorkout() {
 
     /* ================================
        加载下一次训练
-       
-       第7次保存成功
-       → 首页变第8次
-    ================================ */
+
+       例如：
+
+       第6次完成
+       ↓
+       首页进入第7次
+    ================================= */
 
     if (typeof loadCurrentPlan === "function") {
       await loadCurrentPlan();
@@ -319,47 +348,13 @@ async function finishWorkout() {
     alert("保存失败：\n" + error.message);
   }
 
-  button.disabled = false;
+  /* ================================
+     恢复保存按钮
+  ================================= */
 
-  button.textContent = "保存今天训练";
-}
+  if (button) {
+    button.disabled = false;
 
-/* ================================
-   每日总结
-================================ */
-
-function generateDailySummary(percent) {
-  if (percent === 100) {
-    return "今日训练全部完成，完成度很好。";
+    button.textContent = "保存今天训练";
   }
-
-  if (percent >= 75) {
-    return "今日大部分训练完成，继续优先保证动作质量。";
-  }
-
-  if (percent >= 50) {
-    return "今日完成了一半以上训练，可以逐步提高完成度。";
-  }
-
-  return "今日训练完成度较低，暂时不要增加训练量。";
-}
-
-/* ================================
-   每日总结
-================================ */
-
-function generateDailySummary(percent) {
-  if (percent === 100) {
-    return "今日训练全部完成，完成度很好。";
-  }
-
-  if (percent >= 75) {
-    return "今日大部分训练完成，继续优先保证动作质量。";
-  }
-
-  if (percent >= 50) {
-    return "今日完成了一半以上训练，可以逐步提高完成度。";
-  }
-
-  return "今日训练完成度较低，暂时不要增加训练量。";
 }

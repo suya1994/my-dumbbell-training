@@ -7,40 +7,17 @@
    1. 首页当前应该训练哪一次？
       = 最近一次已经完成的训练 + 1
 
-   2. training_plans 可以提前存在很多次：
-      第6次、第7次、第8次……
+   2. training_plans 可以提前存在很多次，
+      但首页只显示当前应该训练的编号。
 
-      但首页只显示：
-      最近完成次数 + 1
+   3. 当前训练未完成：
+      首页始终显示当前训练。
 
-   3. 例如：
+   4. 当前训练完成：
+      首页进入下一次训练。
 
-      已完成：第1～5次
-      已有计划：第6、第7次
-
-      首页：
-      → 第6次
-
-      完成第6次后：
-
-      已完成：第1～6次
-      已有计划：第6、第7次
-
-      首页：
-      → 第7次
-
-   4. “复制上次训练计划”：
-      当前训练计划 → 复制成下一次计划
-
-      例如：
-      当前第6次
-      ↓
-      复制
-      ↓
-      第7次
-
-      首页仍然显示第6次，
-      直到第6次真正完成。
+   5. 每个动作只记录：
+      轻松 / 正常 / 吃力 / 未完成
 ================================ */
 
 /* ================================
@@ -76,17 +53,6 @@ async function getLatestCompletedWorkoutNumber() {
 
 /* ================================
    获取当前应该训练的编号
-
-   例如：
-
-   没有完成过训练
-   → 第1次
-
-   已完成第5次
-   → 第6次
-
-   即使数据库已经存在第7、第8次计划，
-   这里仍然只返回第6次。
 ================================ */
 
 async function getCurrentWorkoutNumber() {
@@ -101,17 +67,13 @@ async function getCurrentWorkoutNumber() {
 
 async function loadCurrentPlan() {
   try {
-    /* ================================
-       1. 找到当前应该训练的编号
-    ================================ */
-
     const currentWorkoutNumber = await getCurrentWorkoutNumber();
 
     console.log("当前应该训练：", currentWorkoutNumber);
 
     /* ================================
-       2. 查找这个编号对应的训练计划
-    ================================ */
+       查找当前训练计划
+    ================================= */
 
     const plans = await supabaseRequest(
       "training_plans" +
@@ -122,16 +84,8 @@ async function loadCurrentPlan() {
     );
 
     /* ================================
-       3. 没有当前训练计划
-
-       这是正常情况。
-
-       例如：
-       第5次已经完成
-       第6次还没有让AI生成
-
-       → 等待AI生成第6次
-    ================================ */
+       没有当前训练计划
+    ================================= */
 
     if (!plans || !plans.length) {
       currentPlan = null;
@@ -139,6 +93,8 @@ async function loadCurrentPlan() {
       currentExercises = [];
 
       completed = [];
+
+      exerciseDifficulty = [];
 
       showWaitingForAIPlan(currentWorkoutNumber);
 
@@ -148,14 +104,14 @@ async function loadCurrentPlan() {
     }
 
     /* ================================
-       4. 找到了当前训练计划
-    ================================ */
+       当前训练计划
+    ================================= */
 
     currentPlan = plans[0];
 
     /* ================================
-       5. 读取训练动作
-    ================================ */
+       读取训练动作
+    ================================= */
 
     const exercises = await supabaseRequest(
       "training_plan_exercises" +
@@ -168,20 +124,22 @@ async function loadCurrentPlan() {
     currentExercises = exercises || [];
 
     /* ================================
-       6. 初始化动作完成状态
-    ================================ */
+       初始化动作状态
+    ================================= */
 
     completed = new Array(currentExercises.length).fill(false);
 
+    exerciseDifficulty = new Array(currentExercises.length).fill(null);
+
     /* ================================
-       7. 显示训练计划
-    ================================ */
+       显示训练计划
+    ================================= */
 
     renderCurrentPlan();
 
     /* ================================
-       8. 更新状态
-    ================================ */
+       更新连接状态
+    ================================= */
 
     setStatus("☁️ 已连接训练数据库", "ok");
 
@@ -222,7 +180,6 @@ function showWaitingForAIPlan(workoutNumber) {
       🤖 等待下一次训练计划
     </h2>
 
-
     <div class="muted">
 
       第 ${workoutNumber} 次训练
@@ -230,9 +187,7 @@ function showWaitingForAIPlan(workoutNumber) {
 
     </div>
 
-
     <br>
-
 
     <div class="analysis">
 
@@ -241,8 +196,9 @@ function showWaitingForAIPlan(workoutNumber) {
       <br><br>
 
       我会根据你之前的训练记录、
-      动作完成情况、重量、次数、
-      左右手差异、训练频率、
+      每个动作的完成情况、
+      每个动作的训练难度、
+      训练频率、
       身体感受以及身体数据，
 
       <br><br>
@@ -251,9 +207,7 @@ function showWaitingForAIPlan(workoutNumber) {
 
     </div>
 
-
     <br>
-
 
     <div class="muted">
 
@@ -274,6 +228,65 @@ function showWaitingForAIPlan(workoutNumber) {
 }
 
 /* ================================
+   难度按钮
+================================ */
+
+function renderDifficultyButtons(index) {
+  const difficulty = exerciseDifficulty[index];
+
+  const options = [
+    {
+      value: "easy",
+      label: "轻松",
+    },
+    {
+      value: "normal",
+      label: "正常",
+    },
+    {
+      value: "hard",
+      label: "吃力",
+    },
+    {
+      value: "incomplete",
+      label: "未完成",
+    },
+  ];
+
+  return `
+    <div
+      class="difficulty-buttons"
+      id="difficultyBox${index}">
+
+      ${options
+        .map((option) => {
+          const selected = difficulty === option.value;
+
+          return `
+            <button
+              type="button"
+              class="
+                difficulty-btn
+                difficulty-${option.value}
+                ${selected ? "selected" : ""}
+              "
+              onclick="setExerciseDifficulty(
+                ${index},
+                '${option.value}'
+              )">
+
+              ${option.label}
+
+            </button>
+          `;
+        })
+        .join("")}
+
+    </div>
+  `;
+}
+
+/* ================================
    显示训练计划
 ================================ */
 
@@ -288,125 +301,66 @@ function renderCurrentPlan() {
     .map(
       (exercise, index) => `
 
-        <div class="exercise">
-
-          <div class="exercise-row">
-
-            <div class="exercise-info">
-
-              <div class="exercise-name">
-
-                ${index + 1}️⃣
-                ${escapeHtml(exercise.exercise_name)}
-
-              </div>
-
-
-              <div class="exercise-detail">
-
-                ${
-                  exercise.weight_kg !== null
-                    ? exercise.weight_kg + "kg × "
-                    : ""
-                }
-
-                ${escapeHtml(exercise.reps || "")}
-
-                次 ×
-
-                ${exercise.sets || 0}
-
-                组
-
-                <br>
-
-                ${escapeHtml(exercise.notes || "")}
-
-              </div>
-
-            </div>
-
-
-            <button
-              class="complete-btn"
-              onclick="toggleExercise(${index})"
-              id="exerciseBtn${index}">
-
-              ✓
-
-            </button>
-
-          </div>
-
-
-          <!-- ================================
-               实际训练记录
-          ================================ -->
-
           <div
-            id="actualBox${index}"
-            class="hidden"
-            style="margin-top:12px;">
+            class="exercise"
+            id="exercise${index}">
 
-            <div class="muted">
+            <div class="exercise-row">
 
-              实际完成情况
+              <div class="exercise-info">
+
+                <div class="exercise-name">
+
+                  ${index + 1}️⃣
+                  ${escapeHtml(exercise.exercise_name)}
+
+                </div>
+
+
+                <div class="exercise-detail">
+
+                  ${
+                    exercise.weight_kg !== null
+                      ? exercise.weight_kg + "kg × "
+                      : ""
+                  }
+
+                  ${escapeHtml(exercise.reps || "")}
+
+                  次 ×
+
+                  ${exercise.sets || 0}
+
+                  组
+
+                  ${
+                    exercise.notes
+                      ? `
+                        <br>
+                        ${escapeHtml(exercise.notes)}
+                      `
+                      : ""
+                  }
+
+                </div>
+
+              </div>
 
             </div>
 
 
-            <input
-              id="actualSets${index}"
-              class="note"
-              type="number"
-              min="0"
-              max="20"
-              placeholder="实际完成几组，例如 3">
+            <div class="difficulty-label">
+
+              完成情况
+
+            </div>
 
 
-            <input
-              id="actualReps${index}"
-              class="note"
-              type="text"
-              placeholder="实际次数，例如 7/7/6">
-
-
-            <input
-              id="actualWeight${index}"
-              class="note"
-              type="number"
-              min="0"
-              step="0.5"
-              placeholder="实际重量 kg，例如 5">
-
-
-            ${
-              exercise.exercise_name.includes("单臂") ||
-              exercise.exercise_name.includes("单手")
-                ? `
-
-              <input
-                id="leftReps${index}"
-                class="note"
-                type="text"
-                placeholder="左手次数，例如 7/7/6">
-
-
-              <input
-                id="rightReps${index}"
-                class="note"
-                type="text"
-                placeholder="右手次数，例如 7/7/7">
-
-              `
-                : ""
-            }
+            ${renderDifficultyButtons(index)}
 
           </div>
 
-        </div>
-
-      `,
+        `,
     )
     .join("");
 
@@ -477,48 +431,16 @@ function renderCurrentPlan() {
 }
 
 /* ============================================================
-   复制当前 / 上一次训练计划
-   ============================================================
-
-   这里的“上次训练计划”定义为：
-
-   当前首页正在显示的训练计划。
-
-   例如：
-
-   最近完成：第5次
-   当前首页：第6次
-
-   点击复制：
-
-   第6次 → 第7次
-
-   但首页仍然显示：
-
-   第6次
-
-   因为第6次还没有完成。
-
-   ============================================================ */
+   复制当前训练计划
+============================================================ */
 
 async function copyLastTrainingPlan() {
   try {
-    /* ================================
-       1. 找到当前应该训练的编号
-    ================================ */
-
     const currentNumber = await getCurrentWorkoutNumber();
 
     /* ================================
-       2. 找当前训练计划
-
-       例如：
-       当前应该训练第6次
-
-       就找第6次计划。
-
-       而不是直接找数据库最大的计划编号。
-    ================================ */
+       查找当前训练计划
+    ================================= */
 
     const plans = await supabaseRequest(
       "training_plans" +
@@ -540,20 +462,14 @@ async function copyLastTrainingPlan() {
     const sourcePlan = plans[0];
 
     /* ================================
-       3. 目标编号
-
-       当前第6次
-       → 复制为第7次
-    ================================ */
+       新训练编号
+    ================================= */
 
     const newWorkoutNumber = currentNumber + 1;
 
     /* ================================
-       4. 检查第7次是否已经存在
-
-       防止重复点击复制按钮，
-       导致同一个编号出现多个计划。
-    ================================ */
+       检查是否已经存在
+    ================================= */
 
     const existingPlans = await supabaseRequest(
       "training_plans" +
@@ -570,8 +486,8 @@ async function copyLastTrainingPlan() {
     }
 
     /* ================================
-       5. 创建新的训练计划
-    ================================ */
+       创建新的训练计划
+    ================================= */
 
     const created = await supabaseRequest("training_plans", {
       method: "POST",
@@ -598,8 +514,8 @@ async function copyLastTrainingPlan() {
     const newPlanId = created[0].id;
 
     /* ================================
-       6. 读取原训练动作
-    ================================ */
+       读取原训练动作
+    ================================= */
 
     const sourceExercises = await supabaseRequest(
       "training_plan_exercises" +
@@ -610,8 +526,8 @@ async function copyLastTrainingPlan() {
     );
 
     /* ================================
-       7. 复制所有动作
-    ================================ */
+       复制动作
+    ================================= */
 
     for (let i = 0; i < sourceExercises.length; i++) {
       const exercise = sourceExercises[i];
@@ -643,19 +559,8 @@ async function copyLastTrainingPlan() {
     }
 
     /* ================================
-       8. 成功
-
-       注意：
-
-       这里不要重新让首页显示第7次。
-
-       loadCurrentPlan() 会重新计算：
-
-       最近完成 = 第5次
-       → 当前 = 第6次
-
-       所以首页仍然是第6次。
-    ================================ */
+       成功提示
+    ================================= */
 
     alert(
       `已经成功复制！💪\n\n` +
@@ -666,26 +571,14 @@ async function copyLastTrainingPlan() {
     );
 
     /* ================================
-       9. 刷新当前训练
-
-       仍然显示第6次。
-    ================================ */
+       刷新当前训练
+    ================================= */
 
     await loadCurrentPlan();
 
     if (typeof setStatus === "function") {
       setStatus("☁️ 已复制下一次训练计划", "ok");
     }
-
-    console.log("训练计划复制成功：", {
-      from: currentNumber,
-
-      to: newWorkoutNumber,
-
-      source_plan_id: sourcePlan.id,
-
-      new_plan_id: newPlanId,
-    });
   } catch (error) {
     console.error("复制训练计划失败：", error);
 

@@ -1,270 +1,804 @@
-/* v1.1
+/* v1.3
    私人哑铃训练系统
    全局样式
 */
-<style>
 
-*{
-box-sizing:border-box;
+
+/* ================================
+   全局
+================================ */
+
+* {
+  box-sizing: border-box;
 }
 
-body{
-margin:0;
-background:#f5f5f5;
-color:#222;
-font-family:
--apple-system,
-BlinkMacSystemFont,
-"SF Pro Text",
-"PingFang SC",
-"Microsoft YaHei",
-sans-serif;
+
+body {
+  margin: 0;
+
+  background: #f5f5f5;
+  color: #222;
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
 }
 
-.container{
-max-width:680px;
-margin:auto;
-padding:18px 16px 45px;
+
+.container {
+  max-width: 680px;
+  margin: auto;
+  padding: 18px 16px 45px;
 }
 
-.header{
-padding:10px 4px 18px;
+
+/* ================================
+   顶部
+================================ */
+
+.header {
+  padding: 10px 4px 18px;
 }
 
-.header h1{
-margin:0 0 6px;
-font-size:26px;
+
+.header h1 {
+  margin: 0 0 6px;
+
+  font-size: 26px;
 }
 
-.header p{
-margin:0;
-color:#777;
-font-size:14px;
+
+.header p {
+  margin: 0;
+
+  color: #777;
+
+  font-size: 14px;
 }
 
-.status{
-background:white;
-border-radius:12px;
-padding:10px 13px;
-margin-bottom:14px;
-font-size:13px;
-color:#777;
+
+/* ================================
+   状态
+================================ */
+
+.status {
+  background: white;
+
+  border-radius: 12px;
+
+  padding: 10px 13px;
+
+  margin-bottom: 14px;
+
+  font-size: 13px;
+
+  color: #777;
 }
 
-.status.ok{
-color:#222;
+
+.status.ok {
+  color: #222;
 }
 
-.status.error{
-color:#a00;
+
+.status.error {
+  color: #a00;
 }
 
-.tabs{
-display:flex;
-gap:8px;
-overflow-x:auto;
-margin-bottom:16px;
+
+/* ================================
+   Tab
+================================ */
+
+.tabs {
+  display: flex;
+
+  gap: 8px;
+
+  overflow-x: auto;
+
+  margin-bottom: 16px;
 }
 
-.tab{
-border:0;
-background:white;
-border-radius:12px;
-padding:10px 15px;
-font-size:14px;
-white-space:nowrap;
+
+.tab {
+  border: 0;
+
+  background: white;
+
+  border-radius: 12px;
+
+  padding: 10px 15px;
+
+  font-size: 14px;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  font-family: inherit;
 }
 
-.tab.active{
-background:#222;
-color:white;
+
+.tab.active {
+  background: #222;
+
+  color: white;
 }
 
-.card{
-background:white;
-border-radius:18px;
-padding:18px;
-margin-bottom:14px;
-box-shadow:0 2px 10px rgba(0,0,0,.04);
+
+/* ================================
+   卡片
+================================ */
+
+.card {
+  background: white;
+
+  border-radius: 18px;
+
+  padding: 18px;
+
+  margin-bottom: 14px;
+
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, .04);
 }
 
-.card h2{
-margin:0 0 8px;
-font-size:19px;
+
+.card h2 {
+  margin: 0 0 8px;
+
+  font-size: 19px;
 }
 
-.muted{
-color:#888;
-font-size:13px;
-line-height:1.6;
+
+/* ================================
+   辅助文字
+================================ */
+
+.muted {
+  color: #888;
+
+  font-size: 13px;
+
+  line-height: 1.6;
 }
 
-.progress{
-height:8px;
-background:#eee;
-border-radius:20px;
-overflow:hidden;
-margin:12px 0;
+
+/* ================================
+   训练进度
+================================ */
+
+.progress {
+  height: 8px;
+
+  background: #eee;
+
+  border-radius: 20px;
+
+  overflow: hidden;
+
+  margin: 12px 0;
 }
 
-.progress-bar{
-height:100%;
-width:0%;
-background:#222;
-transition:width .25s ease;
+
+.progress-bar {
+  height: 100%;
+
+  width: 0%;
+
+  background: #222;
+
+  transition: width .25s ease;
 }
 
-.exercise{
-border-top:1px solid #eee;
-padding:15px 0;
+
+/* ================================
+   动作
+================================ */
+
+.exercise {
+  border-top: 1px solid #eee;
+
+  padding: 16px 0;
 }
 
-.exercise:first-child{
-border-top:0;
+
+.exercise:first-child {
+  border-top: 0;
 }
 
-.exercise-row{
-display:flex;
-justify-content:space-between;
-gap:12px;
-align-items:center;
+
+.exercise-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+  align-items: center;
 }
 
-.exercise-info{
-flex:1;
+
+.exercise-info {
+  flex: 1;
+
+  min-width: 0;
 }
 
-.exercise-name{
-font-weight:600;
-margin-bottom:5px;
+
+.exercise-name {
+  font-weight: 600;
+
+  margin-bottom: 5px;
+
+  line-height: 1.5;
 }
 
-.exercise-detail{
-color:#777;
-font-size:13px;
-line-height:1.55;
+
+.exercise-detail {
+  color: #777;
+
+  font-size: 13px;
+
+  line-height: 1.55;
 }
 
-.complete-btn{
-border:1px solid #ddd;
-background:#fafafa;
-border-radius:12px;
-width:48px;
-height:42px;
-font-size:20px;
+
+/* ================================
+   完成情况标题
+================================ */
+
+.difficulty-label {
+  margin-top: 14px;
+
+  margin-bottom: 8px;
+
+  color: #888;
+
+  font-size: 12px;
+
+  font-weight: 500;
 }
 
-.complete-btn.done{
-background:#222;
-color:white;
-border-color:#222;
+
+/* =========================================================
+   完成情况按钮
+   轻松 / 正常 / 吃力 / 未完成
+========================================================= */
+
+
+/* ================================
+   四个按钮容器
+
+   强制一行四个
+================================ */
+
+.difficulty-buttons {
+  display: grid;
+
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  gap: 8px;
+
+  width: 100%;
+
+  margin-top: 0;
 }
 
-.primary-btn{
-width:100%;
-border:0;
-background:#222;
-color:white;
-padding:13px;
-border-radius:13px;
-font-size:15px;
+
+/* ================================
+   按钮基础样式
+================================ */
+
+.difficulty-btn {
+  appearance: none;
+
+  -webkit-appearance: none;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 100%;
+
+  min-width: 0;
+
+  min-height: 44px;
+
+  padding: 8px 4px;
+
+  border: 1.5px solid transparent;
+
+  border-radius: 12px;
+
+  background: #f5f5f5;
+
+  color: #555;
+
+  font-family: inherit;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  line-height: 1.2;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background-color .18s ease,
+    border-color .18s ease,
+    color .18s ease,
+    transform .12s ease,
+    box-shadow .18s ease;
 }
 
-.primary-btn:disabled{
-background:#aaa;
+
+.difficulty-btn:active {
+  transform: scale(.96);
 }
 
-.note{
-width:100%;
-border:1px solid #ddd;
-border-radius:12px;
-padding:11px;
-margin-top:10px;
-font-family:inherit;
-resize:vertical;
+
+/* ================================
+   轻松
+================================ */
+
+.difficulty-easy {
+  background: #f1f8f3;
+
+  border-color: #d7eadc;
+
+  color: #4f7d5c;
 }
 
-.stats{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:8px;
-margin-top:14px;
+
+.difficulty-easy:hover {
+  background: #e8f4eb;
 }
 
-.stat{
-background:#f7f7f7;
-border-radius:13px;
-padding:12px 7px;
-text-align:center;
+
+/* ================================
+   正常
+================================ */
+
+.difficulty-normal {
+  background: #f1f5fa;
+
+  border-color: #d9e2ee;
+
+  color: #536b85;
 }
 
-.stat-number{
-font-size:20px;
-font-weight:700;
+
+.difficulty-normal:hover {
+  background: #e9f0f8;
 }
 
-.stat-label{
-margin-top:4px;
-color:#888;
-font-size:11px;
+
+/* ================================
+   吃力
+================================ */
+
+.difficulty-hard {
+  background: #fff7ed;
+
+  border-color: #f3dfc5;
+
+  color: #9a6a35;
 }
 
-.analysis{
-line-height:1.75;
-font-size:14px;
-margin-top:15px;
+
+.difficulty-hard:hover {
+  background: #fff0dc;
 }
 
-.history-item{
-border-bottom:1px solid #eee;
-padding:14px 0;
+
+/* ================================
+   未完成
+================================ */
+
+.difficulty-incomplete {
+  background: #f5f5f5;
+
+  border-color: #e1e1e1;
+
+  color: #777;
 }
 
-.history-item:last-child{
-border-bottom:0;
+
+.difficulty-incomplete:hover {
+  background: #eeeeee;
 }
 
-.history-title{
-font-weight:600;
-margin-bottom:4px;
+
+/* ================================
+   选中状态
+================================ */
+
+.difficulty-btn.selected {
+  font-weight: 700;
+
+  box-shadow:
+    0 2px 7px rgba(0, 0, 0, .10);
+
+  transform: translateY(-1px);
 }
 
-.badge{
-display:inline-block;
-padding:3px 8px;
-border-radius:8px;
-background:#eee;
-font-size:11px;
-margin-left:5px;
+
+/* ================================
+   轻松 - 选中
+================================ */
+
+.difficulty-easy.selected {
+  background: #dff0e3;
+
+  border-color: #79b887;
+
+  color: #356443;
 }
 
-.hidden{
-display:none;
+
+/* ================================
+   正常 - 选中
+================================ */
+
+.difficulty-normal.selected {
+  background: #dfeaf6;
+
+  border-color: #7c9fc4;
+
+  color: #3e5d7d;
 }
 
-.trend-row{
-display:flex;
-justify-content:space-between;
-padding:10px 0;
-border-bottom:1px solid #eee;
-font-size:14px;
+
+/* ================================
+   吃力 - 选中
+================================ */
+
+.difficulty-hard.selected {
+  background: #ffead0;
+
+  border-color: #dfa15d;
+
+  color: #85551f;
 }
 
-.trend-row:last-child{
-border-bottom:0;
+
+/* ================================
+   未完成 - 选中
+================================ */
+
+.difficulty-incomplete.selected {
+  background: #e5e5e5;
+
+  border-color: #999;
+
+  color: #555;
 }
 
-.footer{
-text-align:center;
-color:#aaa;
-font-size:11px;
-margin-top:25px;
+
+/* ================================
+   选中状态的 ✓
+   
+   注意：
+   plan.js 不需要自己输出 ✓
+   CSS 自动添加
+================================ */
+
+.difficulty-btn.selected::before {
+  content: "✓ ";
+
+  font-weight: 700;
 }
 
-.loading{
-text-align:center;
-padding:25px 0;
-color:#888;
+
+/* ================================
+   兼容旧 class
+================================ */
+
+.exercise-difficulty {
+  width: 100%;
+
+  margin-top: 0;
 }
 
-</style>
+
+/* ================================
+   主要按钮
+================================ */
+
+.primary-btn {
+  width: 100%;
+
+  border: 0;
+
+  background: #222;
+
+  color: white;
+
+  padding: 13px;
+
+  border-radius: 13px;
+
+  font-size: 15px;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+  transition:
+    background .18s ease,
+    transform .12s ease;
+}
+
+
+.primary-btn:active {
+  transform: scale(.98);
+}
+
+
+.primary-btn:disabled {
+  background: #aaa;
+
+  cursor: default;
+}
+
+
+/* ================================
+   输入框
+================================ */
+
+.note {
+  width: 100%;
+
+  border: 1px solid #ddd;
+
+  border-radius: 12px;
+
+  padding: 11px;
+
+  margin-top: 10px;
+
+  font-family: inherit;
+
+  resize: vertical;
+
+  background: white;
+}
+
+
+.note:focus {
+  outline: none;
+
+  border-color: #999;
+}
+
+
+/* ================================
+   统计
+================================ */
+
+.stats {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 8px;
+
+  margin-top: 14px;
+}
+
+
+.stat {
+  background: #f7f7f7;
+
+  border-radius: 13px;
+
+  padding: 12px 7px;
+
+  text-align: center;
+}
+
+
+.stat-number {
+  font-size: 20px;
+
+  font-weight: 700;
+}
+
+
+.stat-label {
+  margin-top: 4px;
+
+  color: #888;
+
+  font-size: 11px;
+}
+
+
+/* ================================
+   分析
+================================ */
+
+.analysis {
+  line-height: 1.75;
+
+  font-size: 14px;
+
+  margin-top: 15px;
+}
+
+
+/* ================================
+   历史
+================================ */
+
+.history-item {
+  border-bottom: 1px solid #eee;
+
+  padding: 14px 0;
+}
+
+
+.history-item:last-child {
+  border-bottom: 0;
+}
+
+
+.history-title {
+  font-weight: 600;
+
+  margin-bottom: 4px;
+}
+
+
+.badge {
+  display: inline-block;
+
+  padding: 3px 8px;
+
+  border-radius: 8px;
+
+  background: #eee;
+
+  font-size: 11px;
+
+  margin-left: 5px;
+}
+
+
+/* ================================
+   隐藏
+================================ */
+
+.hidden {
+  display: none !important;
+}
+
+
+/* ================================
+   趋势
+================================ */
+
+.trend-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  padding: 10px 0;
+
+  border-bottom: 1px solid #eee;
+
+  font-size: 14px;
+}
+
+
+.trend-row:last-child {
+  border-bottom: 0;
+}
+
+
+/* ================================
+   底部
+================================ */
+
+.footer {
+  text-align: center;
+
+  color: #aaa;
+
+  font-size: 11px;
+
+  margin-top: 25px;
+}
+
+
+/* ================================
+   Loading
+================================ */
+
+.loading {
+  text-align: center;
+
+  padding: 25px 0;
+
+  color: #888;
+}
+
+
+/* =========================================================
+   手机端
+========================================================= */
+
+@media (max-width: 420px) {
+
+  .container {
+    padding-left: 14px;
+
+    padding-right: 14px;
+  }
+
+
+  .card {
+    padding: 16px;
+  }
+
+
+  .difficulty-buttons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 5px;
+  }
+
+
+  .difficulty-btn {
+    min-height: 42px;
+
+    padding: 7px 2px;
+
+    font-size: 12px;
+
+    border-radius: 10px;
+  }
+
+}
+
+
+/* =========================================================
+   很小的手机
+
+   仍然保持四个按钮一行
+   因为你的要求就是：
+   轻松 / 正常 / 吃力 / 未完成
+   必须在同一行
+========================================================= */
+
+@media (max-width: 350px) {
+
+  .difficulty-buttons {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 3px;
+  }
+
+
+  .difficulty-btn {
+    min-height: 40px;
+
+    padding: 6px 1px;
+
+    font-size: 11px;
+
+    border-radius: 9px;
+  }
+
+}
