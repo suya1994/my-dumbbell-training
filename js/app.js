@@ -174,7 +174,7 @@ function showTab(id, button) {
 
   document
     .querySelectorAll(
-      "#todayTab,#otherActivitiesTab,#dailyTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab,#metricsTab,#aiTab",
+      "#todayTab,#otherActivitiesTab,#weeklyTab,#monthlyTab,#trendTab,#historyTab,#metricsTab,#aiTab",
     )
     .forEach((section) => {
       section.classList.add("hidden");
@@ -203,20 +203,6 @@ function showTab(id, button) {
 
   if (button) {
     button.classList.add("active");
-  }
-
-  /* ========================================
-     每日
-  ======================================== */
-
-  if (id === "dailyTab") {
-    if (typeof updateTodayStats === "function") {
-      updateTodayStats();
-    }
-
-    if (typeof updateDailyAnalysis === "function") {
-      updateDailyAnalysis();
-    }
   }
 
   /* ========================================
@@ -464,14 +450,6 @@ async function loadHistory() {
           })
           .join("");
       }
-    }
-
-    /* ================================
-       刷新每日分析
-    ================================ */
-
-    if (typeof updateDailyAnalysis === "function") {
-      updateDailyAnalysis();
     }
 
     /* ================================

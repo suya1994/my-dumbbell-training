@@ -1,86 +1,9 @@
 /* ================================
    analysis.js
-   每日 / 每周 / 每月 / 长期分析
+   每周 / 每月 / 长期分析
    + 训练 × 身体数据
    + 动作进步分析
 ================================ */
-
-/* ================================
-   每日分析
-================================ */
-
-function updateDailyAnalysis() {
-  const box = document.getElementById("dailyAnalysis");
-
-  if (!box) {
-    return;
-  }
-
-  /*
-    每日分析以数据库中的 records 为准，
-    不再使用当前训练页面的 completed 状态。
-  */
-
-  const today = todayString();
-
-  const todayRecords =
-    typeof records !== "undefined"
-      ? records.filter((record) => record.workout_date === today)
-      : [];
-
-  /* ================================
-     今天没有保存训练
-  ================================ */
-
-  if (!todayRecords.length) {
-    box.textContent = "今天还没有完成训练。";
-
-    return;
-  }
-
-  /* ================================
-     今天训练次数
-  ================================ */
-
-  const count = todayRecords.length;
-
-  /* ================================
-     平均完成度
-  ================================ */
-
-  const average = Math.round(
-    todayRecords.reduce(
-      (sum, record) => sum + Number(record.completion_percent || 0),
-      0,
-    ) / count,
-  );
-
-  /* ================================
-     根据完成度生成分析
-  ================================ */
-
-  if (average === 100) {
-    box.textContent =
-      `今天完成 ${count} 次训练，` +
-      `平均完成度 ${average}%。` +
-      "全部完成，今天训练执行得非常好，继续保持。";
-  } else if (average >= 75) {
-    box.textContent =
-      `今天完成 ${count} 次训练，` +
-      `平均完成度 ${average}%。` +
-      "整体完成得很好，继续保持。";
-  } else if (average >= 50) {
-    box.textContent =
-      `今天完成 ${count} 次训练，` +
-      `平均完成度 ${average}%。` +
-      "已经完成一半以上，先保证动作质量。";
-  } else {
-    box.textContent =
-      `今天完成 ${count} 次训练，` +
-      `平均完成度 ${average}%。` +
-      "今天完成度偏低，不需要急着增加训练量。";
-  }
-}
 
 /* ================================
    每周记录
