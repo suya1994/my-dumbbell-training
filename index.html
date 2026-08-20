@@ -179,8 +179,14 @@
          其它运动
     ================================= -->
 
+
+
           <section id="otherActivitiesTab" class="hidden">
 
+
+               <!-- ================================
+        其它运动记录
+     ================================= -->
 
                <div class="card">
 
@@ -220,9 +226,11 @@
                               八部金刚功
                          </option>
 
+
                          <option value="跑步">
                               跑步
                          </option>
+
 
                          <option value="其它">
                               其它
@@ -254,8 +262,61 @@
 
 
                <!-- ================================
-             其它运动统计
-        ================================= -->
+        每日步数
+     ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         👟 每日步数
+                    </h2>
+
+
+                    <div class="muted">
+
+                         每天记录一次步数。
+                         如果当天已经记录，再次保存会自动更新当天数据。
+
+                    </div>
+
+
+                    <br>
+
+
+                    <label>
+                         日期
+                    </label>
+
+
+                    <input id="dailyStepsDate" class="note" type="date">
+
+
+                    <label>
+                         今日步数
+                    </label>
+
+
+                    <input id="dailyStepsInput" class="note" type="number" min="0" max="200000" step="1"
+                         placeholder="例如 8000">
+
+
+                    <br><br>
+
+
+                    <button type="button" class="primary-btn" onclick="saveDailySteps()">
+
+                         👟 保存步数
+
+                    </button>
+
+
+               </div>
+
+
+               <!-- ================================
+        其它运动统计
+     ================================= -->
 
                <div class="card">
 
@@ -271,9 +332,7 @@
                          <div class="stat">
 
                               <div class="stat-number" id="otherWeekCount">
-
                                    0
-
                               </div>
 
                               <div class="stat-label">
@@ -286,9 +345,7 @@
                          <div class="stat">
 
                               <div class="stat-number" id="otherWeekMinutes">
-
                                    0
-
                               </div>
 
                               <div class="stat-label">
@@ -301,9 +358,7 @@
                          <div class="stat">
 
                               <div class="stat-number" id="otherTotalCount">
-
                                    0
-
                               </div>
 
                               <div class="stat-label">
@@ -333,8 +388,68 @@
 
 
                <!-- ================================
-             其它运动历史
-        ================================= -->
+        步数统计
+     ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         👟 步数统计
+                    </h2>
+
+
+                    <div class="stats">
+
+
+                         <div class="stat">
+
+                              <div class="stat-number" id="weekSteps">
+                                   0
+                              </div>
+
+                              <div class="stat-label">
+                                   本周总步数
+                              </div>
+
+                         </div>
+
+
+                         <div class="stat">
+
+                              <div class="stat-number" id="weekAverageSteps">
+                                   —
+                              </div>
+
+                              <div class="stat-label">
+                                   本周平均
+                              </div>
+
+                         </div>
+
+
+                         <div class="stat">
+
+                              <div class="stat-number" id="recent7DaySteps">
+                                   —
+                              </div>
+
+                              <div class="stat-label">
+                                   近7天平均
+                              </div>
+
+                         </div>
+
+
+                    </div>
+
+
+               </div>
+
+
+               <!-- ================================
+        其它运动历史
+     ================================= -->
 
                <div class="card">
 
@@ -349,6 +464,32 @@
                          <div class="muted">
 
                               正在读取其它运动……
+
+                         </div>
+
+                    </div>
+
+
+               </div>
+
+
+               <!-- ================================
+        步数历史
+     ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         👟 步数历史
+                    </h2>
+
+
+                    <div id="dailyStepsHistory">
+
+                         <div class="muted">
+
+                              正在读取步数……
 
                          </div>
 

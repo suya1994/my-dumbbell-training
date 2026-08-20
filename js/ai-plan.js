@@ -1,59 +1,166 @@
 /* ================================
    ai-plan.js
    ChatGPT AI训练计划中转模块
+
+   最终版
+
+   核心逻辑：
+
+   1. 下一次训练编号
+      = workouts 中最近一次已保存训练 + 1
+
+   2. 不依赖 records 是否已经加载。
+
+   3. AI 只负责：
+      分析历史
+      → 制定下一次训练计划
+
+   4. 网站负责：
+      确定正确 workout_number
+      → 写入 training_plans
+      → 写入 training_plan_exercises
+
+   5. 每个动作实际训练难度：
+      easy
+      normal
+      hard
+      incomplete
+
+   6. 未完成：
+      completed = false
+      difficulty = null
 ================================ */
 
-/* ================================
-   获取下一次训练编号
-================================ */
+/* ============================================================
+   获取最近一次已经保存的训练编号
+============================================================ */
 
-function getNextWorkoutNumber() {
-  if (typeof records === "undefined" || !Array.isArray(records)) {
-    return 1;
+async function getLatestWorkoutNumberForAI() {
+  try {
+    const workouts = await supabaseRequest(
+      "workouts" +
+        "?select=workout_number,workout_date,completion_percent" +
+        "&order=workout_number.desc" +
+        "&limit=1",
+    );
+
+    if (!workouts || !workouts.length) {
+      return 0;
+    }
+
+    const number = Number(workouts[0].workout_number);
+
+    if (!Number.isFinite(number)) {
+      return 0;
+    }
+
+    return number;
+  } catch (error) {
+    console.error("读取最近训练编号失败：", error);
+
+    throw error;
   }
-
-  const numbers = records
-    .map((record) => Number(record.workout_number))
-    .filter((number) => Number.isFinite(number));
-
-  if (!numbers.length) {
-    return 1;
-  }
-
-  return Math.max(...numbers) + 1;
 }
 
-/* ================================
+/* ============================================================
+   获取下一次训练编号
+
+   与 plan.js 保持完全一致：
+
+   最近一次训练 + 1
+
+   例如：
+
+   没有训练
+   → 第1次
+
+   已完成第5次
+   → 第6次
+
+   即使 training_plans 已经有第6、第7、第8次，
+   下一次仍然是第6次。
+============================================================ */
+
+async function getNextWorkoutNumber() {
+  const latestWorkoutNumber = await getLatestWorkoutNumberForAI();
+
+  return latestWorkoutNumber + 1;
+}
+
+/* ============================================================
    生成给 ChatGPT 的训练分析
-================================ */
+============================================================ */
 
-function generateAITrainingPrompt() {
-  const nextNumber = getNextWorkoutNumber();
+async function generateAITrainingPrompt() {
+  try {
+    /* ========================================================
+       1. 网站直接从数据库确定下一次训练编号
+    ======================================================== */
 
-  const history = typeof records !== "undefined" ? records : [];
+    const nextNumber = await getNextWorkoutNumber();
 
-  const exercises =
-    typeof exerciseRecords !== "undefined" ? exerciseRecords : [];
+    console.log("AI计划下一次训练编号：", nextNumber);
 
-  const bodyData =
-    typeof bodyMetricsRecords !== "undefined" ? bodyMetricsRecords : [];
+    /* ========================================================
+       2. 获取已经加载好的历史数据
 
-  const recentWorkouts = history.slice(0, 10);
+       records：
+       整次训练历史
 
-  const recentExercises = exercises.slice(0, 40);
+       exerciseRecords：
+       每个动作历史
 
-  const recentBodyData = bodyData.slice(0, 10);
+       bodyMetricsRecords：
+       身体数据历史
+    ======================================================== */
 
-  const prompt = `
+    const history =
+      typeof records !== "undefined" && Array.isArray(records) ? records : [];
+
+    const exercises =
+      typeof exerciseRecords !== "undefined" && Array.isArray(exerciseRecords)
+        ? exerciseRecords
+        : [];
+
+    const bodyData =
+      typeof bodyMetricsRecords !== "undefined" &&
+      Array.isArray(bodyMetricsRecords)
+        ? bodyMetricsRecords
+        : [];
+
+    /* ========================================================
+       3. 只把最近的数据给 AI
+
+       避免提示词无限增长。
+    ======================================================== */
+
+    const recentWorkouts = history.slice(0, 10);
+
+    const recentExercises = exercises.slice(0, 40);
+
+    const recentBodyData = bodyData.slice(0, 10);
+
+    /* ========================================================
+       4. 生成 Prompt
+    ======================================================== */
+
+    const prompt = `
 
 你现在是我的私人哑铃增肌/塑形教练。
 
-请根据我过去的训练历史、动作完成情况、重量、次数、左右手差异、训练难度、身体感受以及身体数据，为我制定下一次训练计划。
+请根据我过去的训练历史、每个动作的完成情况、训练难度、重量、次数、训练频率、身体感受以及身体数据，为我制定下一次训练计划。
 
-【我的基本情况】
+不要按照死板的固定规则安排。
 
-身高：162 cm
-当前体重：52 kg
+请真正分析历史之后，再决定下一次训练。
+
+
+========================
+我的基本情况
+========================
+
+初始身高：162 cm
+初始体重：52 kg
 
 训练目标优先级：
 
@@ -62,26 +169,35 @@ function generateAITrainingPrompt() {
 3. 手臂塑形
 4. 背部训练
 
-训练条件：
 
-- 每周力量训练 3–4 次
-- 每次约 20–25 分钟
+========================
+训练条件
+========================
+
 - 两个 5 kg 哑铃
 - 瑜伽垫
 - 椅子
 - 桌子
 
-训练限制：
 
-- 不安排深蹲
-- 不安排半蹲
-- 不安排罗马尼亚硬拉
-- 目前不安排俯身哑铃划船
+========================
+训练限制
+========================
+
+- 深蹲-我暂时不会
+- 罗马尼亚硬拉-暂时不会
+- 俯身哑铃划船-暂时不会
 - 腰部容易疲劳，需要保护腰部
 - 左手力量比右手弱
 - 不要为了追求进步而强行增加训练量
+- 如果当前动作已经适合继续训练，不要为了“变化”而强行更换
 
-我的下一次训练编号是：
+
+========================
+下一次训练
+========================
+
+网站根据实际训练数据库判断：
 
 第 ${nextNumber} 次训练
 
@@ -108,43 +224,103 @@ ${JSON.stringify(recentBodyData, null, 2)}
 
 
 ========================
-你的任务
+动作历史数据说明
 ========================
 
-请不要按照死板的固定规则安排训练。
+动作历史中可能包含：
 
-请真正分析我的历史训练情况，包括：
+completed：
+true = 动作完成
+false = 动作未完成
+
+difficulty：
+easy = 轻松
+normal = 正常
+hard = 吃力
+null = 未完成
+
+请特别关注：
+
+- 哪些动作连续训练
+- 哪些动作经常未完成
+- 哪些动作长期感觉吃力
+- 哪些动作已经比较轻松
+- 是否存在左手明显弱于右手的情况
+- 最近训练量是否过高
+- 是否需要恢复
+- 是否应该增加、减少或维持训练量
+
+
+========================
+你的分析任务
+========================
+
+请分析：
 
 1. 最近哪些动作已经连续训练
 2. 哪些肌群最近训练量较高
 3. 哪些肌群需要恢复
 4. 哪些动作出现进步
-5. 哪些动作停滞
+5. 哪些动作出现停滞
 6. 左右手是否存在差异
-7. 最近训练完成度
-8. 最近训练难度和身体感受
-9. 是否应该增加、减少或者更换某些动作
-10. 是否应该安排恢复性训练
-11. 如何继续实现腰腹、臀部、手臂塑形目标
-
-然后自主决定下一次训练。
+7. 最近整体训练完成度
+8. 最近各动作训练难度
+9. 是否应该增加重量
+10. 是否应该增加次数
+11. 是否应该增加组数
+12. 是否应该降低训练量
+13. 是否应该更换某个动作
+14. 是否应该安排恢复性训练
+15. 如何继续实现：
+   - 腰腹收紧
+   - 核心稳定
+   - 臀部塑形
+   - 手臂塑形
+   - 背部训练
 
 不要为了“变化”而变化。
 
 如果某个动作继续使用是合理的，可以继续使用。
 
-如果某个动作需要调整重量、次数、组数，也请明确说明。
+如果某个动作需要调整重量、次数或组数，请明确调整。
 
-如果需要更换动作，请说明原因。
+如果需要更换动作，请根据历史表现说明原因。
 
-训练时间控制在 20–25 分钟左右。
+
+========================
+训练计划要求
+========================
+
+- 必须使用现有训练条件
+- 注意保护腰部
+- 不要一次增加过多训练量
+- 对左手较弱的问题进行合理处理
+- 如果使用单侧动作，可以根据左右手差异安排不同次数
+- 训练计划必须具有实际可执行性
+- 每个动作都必须有明确的重量、次数、组数
+- 自重动作 weight_kg 必须为 null
+- reps 可以使用：
+  "10"
+  "10/侧"
+  "12/侧"
+  "30秒"
+  "60秒"
+  等形式
 
 
 ========================
 输出格式
 ========================
 
-请严格只输出下面这种 JSON：
+请严格只输出 JSON。
+
+不要输出 Markdown。
+
+不要输出 \`\`\`json。
+
+不要输出任何解释文字。
+
+JSON 格式必须严格如下：
 
 {
   "workout_number": ${nextNumber},
@@ -156,34 +332,43 @@ ${JSON.stringify(recentBodyData, null, 2)}
     {
       "exercise_order": 1,
       "exercise_name": "动作名称",
-      "equipment": "哑铃/自重",
+      "equipment": "哑铃",
       "weight_kg": 5,
-      "reps": "15",
+      "reps": "10",
       "sets": 3,
       "notes": "动作注意事项"
     }
   ]
 }
 
-注意：
+再次强调：
 
-- exercises 数量控制在 3–5 个
-- 不要输出 JSON 以外的文字
-- weight_kg 如果是自重动作，请填写 null
-- reps 可以是 "10/侧"、"60秒" 等
-- 必须根据我的实际历史训练情况决定，而不是随机生成
+只能输出 JSON。
 `;
 
-  const box = document.getElementById("aiPrompt");
+    /* ========================================================
+       5. 写入页面
+    ======================================================== */
 
-  if (box) {
-    box.value = prompt.trim();
+    const box = document.getElementById("aiPrompt");
+
+    if (box) {
+      box.value = prompt.trim();
+    }
+
+    return prompt.trim();
+  } catch (error) {
+    console.error("生成 AI 训练提示词失败：", error);
+
+    alert("生成 AI 训练提示词失败：\n\n" + (error.message || String(error)));
+
+    return null;
   }
 }
 
-/* ================================
+/* ============================================================
    复制提示词
-================================ */
+============================================================ */
 
 async function copyAIPrompt() {
   const box = document.getElementById("aiPrompt");
@@ -201,248 +386,286 @@ async function copyAIPrompt() {
   } catch (error) {
     console.error(error);
 
-    box.select();
+    try {
+      box.select();
 
-    document.execCommand("copy");
+      document.execCommand("copy");
 
-    alert("已经复制好了。现在把它发给 ChatGPT。");
+      alert("已经复制好了。现在把它发给 ChatGPT。");
+    } catch (copyError) {
+      console.error(copyError);
+
+      alert("复制失败，请手动复制提示词。");
+    }
   }
 }
 
-/* ================================
+/* ============================================================
    清理 ChatGPT 返回内容
-================================ */
+============================================================ */
 
 function cleanAIPlanText(text) {
   let result = String(text || "").trim();
+
+  if (!result) {
+    return "";
+  }
 
   /*
     去掉 Markdown JSON 代码块
   */
 
-  if (result.startsWith("```")) {
-    result = result.replace(/^```(?:json)?/i, "");
+  result = result.replace(/^```(?:json)?\s*/i, "");
 
-    result = result.replace(/```$/, "");
-  }
+  result = result.replace(/\s*```$/i, "");
 
   return result.trim();
 }
 
-/* ================================
-   导入 ChatGPT 训练计划
-================================ */
+/* ============================================================
+   从 ChatGPT 返回内容中提取 JSON
 
-/* ================================
+   支持：
+
+   ① 纯 JSON
+   ② ```json ... ```
+   ③ ``` ... ```
+   ④ JSON 前后带普通文字
+   ⑤ 中文全角标点
+============================================================ */
+
+function extractAIPlanJSON(text) {
+  let source = String(text || "").trim();
+
+  if (!source) {
+    throw new Error("没有检测到任何内容。");
+  }
+
+  /* ========================================================
+     1. 修正常见中文全角标点
+  ======================================================== */
+
+  source = source
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/：/g, ":")
+    .replace(/，/g, ",")
+    .trim();
+
+  /* ========================================================
+     2. 直接解析
+  ======================================================== */
+
+  try {
+    return JSON.parse(source);
+  } catch (error) {
+    // 继续处理
+  }
+
+  /* ========================================================
+     3. 去掉 Markdown 代码块
+  ======================================================== */
+
+  source = cleanAIPlanText(source);
+
+  try {
+    return JSON.parse(source);
+  } catch (error) {
+    // 继续提取 JSON
+  }
+
+  /* ========================================================
+     4. 寻找 JSON 对象开头
+  ======================================================== */
+
+  const firstBrace = source.indexOf("{");
+
+  if (firstBrace === -1) {
+    throw new Error("没有找到 JSON 对象。");
+  }
+
+  /* ========================================================
+     5. 使用括号深度寻找完整 JSON
+
+     同时处理：
+
+     {
+     }
+
+     出现在字符串内部的情况。
+  ======================================================== */
+
+  let depth = 0;
+
+  let inString = false;
+
+  let escaped = false;
+
+  let endIndex = -1;
+
+  for (let i = firstBrace; i < source.length; i++) {
+    const char = source[i];
+
+    /*
+      转义字符
+    */
+
+    if (char === "\\" && !escaped) {
+      escaped = true;
+
+      continue;
+    }
+
+    /*
+      双引号
+
+      只有不在转义状态时才切换字符串状态。
+    */
+
+    if (char === '"' && !escaped) {
+      inString = !inString;
+    }
+
+    escaped = false;
+
+    /*
+      字符串内部的括号不参与计算
+    */
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === "{") {
+      depth++;
+    }
+
+    if (char === "}") {
+      depth--;
+
+      if (depth === 0) {
+        endIndex = i;
+
+        break;
+      }
+    }
+  }
+
+  if (endIndex === -1) {
+    throw new Error("找到了 JSON 开头，但没有找到完整的 JSON 结尾。");
+  }
+
+  /* ========================================================
+     6. 提取 JSON
+  ======================================================== */
+
+  const jsonText = source.slice(firstBrace, endIndex + 1);
+
+  /* ========================================================
+     7. 最后解析
+  ======================================================== */
+
+  try {
+    return JSON.parse(jsonText);
+  } catch (error) {
+    console.error("提取出的 JSON：", jsonText);
+
+    throw new Error("找到了一段 JSON，但 JSON 格式仍然无法解析。");
+  }
+}
+
+/* ============================================================
+   验证 AI 训练计划
+============================================================ */
+
+function validateAITrainingPlan(plan) {
+  if (!plan || typeof plan !== "object") {
+    throw new Error("训练计划格式不正确。");
+  }
+
+  if (!Array.isArray(plan.exercises)) {
+    throw new Error("训练计划中没有找到 exercises 动作列表。");
+  }
+
+  if (!plan.exercises.length) {
+    throw new Error("训练计划中没有任何训练动作。");
+  }
+
+  if (plan.exercises.length > 5) {
+    throw new Error("AI生成的动作超过5个，请重新生成。");
+  }
+
+  if (plan.exercises.length < 3) {
+    throw new Error("AI生成的动作少于3个，请重新生成。");
+  }
+
+  for (let i = 0; i < plan.exercises.length; i++) {
+    const exercise = plan.exercises[i];
+
+    if (!exercise || typeof exercise !== "object") {
+      throw new Error(`第 ${i + 1} 个动作格式不正确。`);
+    }
+
+    if (!exercise.exercise_name) {
+      throw new Error(`第 ${i + 1} 个动作缺少 exercise_name。`);
+    }
+
+    if (
+      exercise.sets !== undefined &&
+      exercise.sets !== null &&
+      exercise.sets !== ""
+    ) {
+      const sets = Number(exercise.sets);
+
+      if (!Number.isFinite(sets) || sets <= 0) {
+        throw new Error(`第 ${i + 1} 个动作的 sets 不正确。`);
+      }
+    }
+
+    if (
+      exercise.weight_kg !== undefined &&
+      exercise.weight_kg !== null &&
+      exercise.weight_kg !== ""
+    ) {
+      const weight = Number(exercise.weight_kg);
+
+      if (!Number.isFinite(weight) || weight < 0) {
+        throw new Error(`第 ${i + 1} 个动作的 weight_kg 不正确。`);
+      }
+    }
+  }
+
+  return true;
+}
+
+/* ============================================================
    导入 ChatGPT 训练计划
-================================ */
+============================================================ */
 
 async function importAITrainingPlan() {
   const box = document.getElementById("aiPlanInput");
 
   if (!box || !box.value.trim()) {
     alert("请先把 ChatGPT 生成的训练计划粘贴进来。");
+
     return;
   }
 
-  /*
-    ========================================
-    1. 从 ChatGPT 返回内容中提取 JSON
-    支持：
-
-    ① 纯 JSON
-    ② ```json ... ```
-    ③ ``` ... ```
-    ④ JSON 前后有普通说明文字
-    ========================================
-  */
-
-  /*
-  ========================================
-  从 ChatGPT 返回内容中提取 JSON
-  ========================================
-*/
-
-  function extractJSON(text) {
-    let source = String(text || "").trim();
-
-    if (!source) {
-      throw new Error("没有检测到任何内容。");
-    }
-
-    /*
-    ========================================
-    1. 修正常见的中文/全角标点
-
-    JSON 必须使用英文半角双引号：
-    "key": "value"
-
-    ChatGPT 有时会输出：
-    “key”: “value”
-
-    这里自动修正。
-    ========================================
-  */
-
-    source = source
-      .replace(/[“”]/g, '"')
-      .replace(/[‘’]/g, "'")
-      .replace(/：/g, ":")
-      .replace(/，/g, ",")
-      .trim();
-
-    /*
-    ========================================
-    2. 直接尝试解析
-    ========================================
-  */
-
-    try {
-      return JSON.parse(source);
-    } catch (e) {
-      // 继续尝试
-    }
-
-    /*
-    ========================================
-    3. 去掉 Markdown JSON 代码块
-    ========================================
-  */
-
-    source = source
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim();
-
-    /*
-    ========================================
-    4. 再次尝试解析
-    ========================================
-  */
-
-    try {
-      return JSON.parse(source);
-    } catch (e) {
-      // 继续提取 JSON
-    }
-
-    /*
-    ========================================
-    5. 从普通文字中寻找 JSON 对象
-    ========================================
-  */
-
-    const firstBrace = source.indexOf("{");
-
-    if (firstBrace === -1) {
-      throw new Error("没有找到 JSON 对象。");
-    }
-
-    /*
-    使用括号深度寻找完整 JSON。
-
-    同时考虑字符串内部的：
-    {
-    }
-
-    这些不能参与 JSON 括号计算。
-  */
-
-    let depth = 0;
-
-    let inString = false;
-
-    let escaped = false;
-
-    let endIndex = -1;
-
-    for (let i = firstBrace; i < source.length; i++) {
-      const char = source[i];
-
-      /*
-      处理转义字符
-    */
-
-      if (char === "\\" && !escaped) {
-        escaped = true;
-        continue;
-      }
-
-      /*
-      处理字符串中的双引号
-    */
-
-      if (char === '"' && !escaped) {
-        inString = !inString;
-      }
-
-      escaped = false;
-
-      /*
-      JSON 字符串内部的括号不计算
-    */
-
-      if (inString) {
-        continue;
-      }
-
-      if (char === "{") {
-        depth++;
-      }
-
-      if (char === "}") {
-        depth--;
-
-        if (depth === 0) {
-          endIndex = i;
-          break;
-        }
-      }
-    }
-
-    if (endIndex === -1) {
-      throw new Error("找到了 JSON 开头，但没有找到完整的 JSON 结尾。");
-    }
-
-    /*
-    ========================================
-    6. 提取真正的 JSON
-    ========================================
-  */
-
-    const jsonText = source.slice(firstBrace, endIndex + 1);
-
-    /*
-    ========================================
-    7. 最后一次解析
-    ========================================
-  */
-
-    try {
-      return JSON.parse(jsonText);
-    } catch (error) {
-      console.error("提取出的 JSON：", jsonText);
-
-      throw new Error("找到了一段 JSON，但 JSON 格式仍然无法解析。");
-    }
-  }
+  /* ========================================================
+     1. 解析 ChatGPT 返回内容
+  ======================================================== */
 
   let plan;
 
-  /*
-    ========================================
-    2. 解析 ChatGPT 返回内容
-    ========================================
-  */
-
   try {
-    plan = extractJSON(box.value);
+    plan = extractAIPlanJSON(box.value);
   } catch (error) {
     console.error("AI训练计划 JSON 解析失败：", error);
 
     alert(
       "无法识别 ChatGPT 返回的训练计划。\n\n" +
-        "请把 ChatGPT 的完整回答直接复制过来，不需要自己修改。\n\n" +
+        "请把 ChatGPT 的完整回答直接复制过来，" +
+        "不需要自己修改。\n\n" +
         "支持：\n" +
         "• 纯 JSON\n" +
         "• ```json 代码块\n" +
@@ -452,86 +675,90 @@ async function importAITrainingPlan() {
     return;
   }
 
-  /*
-    ========================================
-    3. 基础格式检查
-    ========================================
-  */
+  /* ========================================================
+     2. 验证训练计划
+  ======================================================== */
 
-  if (!plan || typeof plan !== "object") {
-    alert("训练计划格式不正确。");
+  try {
+    validateAITrainingPlan(plan);
+  } catch (error) {
+    console.error("AI训练计划格式验证失败：", error);
+
+    alert("训练计划格式不正确：\n\n" + error.message);
+
     return;
   }
 
-  if (!Array.isArray(plan.exercises) || !plan.exercises.length) {
-    alert("训练计划中没有找到 exercises 动作列表。");
+  /* ========================================================
+     3. 网站自己确定正确的下一次训练编号
+
+     不相信 ChatGPT 返回的 workout_number。
+
+     例如：
+
+     workouts 最大编号 = 5
+
+     那么：
+
+     本次导入 = 第6次
+  ======================================================== */
+
+  let nextNumber;
+
+  try {
+    nextNumber = await getNextWorkoutNumber();
+  } catch (error) {
+    alert("无法确定下一次训练编号。\n\n" + (error.message || String(error)));
+
     return;
   }
 
-  /*
-    ========================================
-    4. 网站自己决定正确的下一次训练编号
+  /* ========================================================
+     4. 检查 AI 返回的编号
 
-    不再相信 ChatGPT 返回的 workout_number。
+     如果不同：
 
-    例如：
-    records 里最大编号 = 8
-    那么本次一定导入 = 9
-    ========================================
-  */
+     只警告
 
-  const nextNumber = getNextWorkoutNumber();
-
-  /*
-    ChatGPT 如果返回了其他编号，只做提示，
-    不影响最终导入。
-  */
+     最终仍然使用数据库计算出的编号。
+  ======================================================== */
 
   const aiNumber = Number(plan.workout_number);
 
   if (Number.isFinite(aiNumber) && aiNumber !== nextNumber) {
     console.warn(
       `ChatGPT 返回的训练编号为 ${aiNumber}，` +
-        `但网站当前下一次训练应为 ${nextNumber}。` +
+        `但数据库判断下一次训练应为 ${nextNumber}。` +
         `已自动使用 ${nextNumber}。`,
     );
   }
 
-  /*
-    ========================================
-    5. 统一整理训练计划数据
-    ========================================
-  */
+  /* ========================================================
+     5. 整理最终训练计划
+  ======================================================== */
 
   const finalPlan = {
     workout_number: nextNumber,
 
-    title: plan.title || `第${nextNumber}次训练`,
+    title: String(plan.title || `第${nextNumber}次训练`).trim(),
 
-    focus: plan.focus || "",
+    focus: String(plan.focus || "").trim(),
 
     duration_minutes: Number(plan.duration_minutes) || 23,
 
-    notes: plan.notes || "",
+    notes: String(plan.notes || "").trim(),
 
     exercises: plan.exercises,
   };
 
-  /*
-    ========================================
-    6. 写入 Supabase
-    ========================================
-  */
+  /* ========================================================
+     6. 写入 Supabase
+  ======================================================== */
 
   try {
-    /*
-      查询这个训练编号是否已经存在。
-
-      正常情况下不会存在。
-
-      但如果重复导入，
-      我们保留你原来的“更新已有计划”能力。
-    */
+    /* ======================================================
+       查询这个训练编号是否已经存在
+    ====================================================== */
 
     const existing = await supabaseRequest(
       "training_plans" +
@@ -543,14 +770,15 @@ async function importAITrainingPlan() {
 
     let planId;
 
-    /*
-      ========================================
-      已存在
-      → 更新训练计划
-      → 删除旧动作
-      → 重新写入动作
-      ========================================
-    */
+    /* ======================================================
+       情况 A：
+
+       已经存在训练计划
+
+       → 更新训练计划
+       → 删除旧动作
+       → 重新写入动作
+    ====================================================== */
 
     if (existing && existing.length) {
       planId = existing[0].id;
@@ -573,9 +801,9 @@ async function importAITrainingPlan() {
         },
       });
 
-      /*
-        删除旧动作
-      */
+      /* ====================================================
+         删除旧动作
+      ==================================================== */
 
       await supabaseRequest(
         "training_plan_exercises" + "?plan_id=eq." + planId,
@@ -586,12 +814,13 @@ async function importAITrainingPlan() {
         },
       );
     } else {
-      /*
-      ========================================
-      不存在
-      → 创建新的 training_plans
-      ========================================
-    */
+      /* ======================================================
+       情况 B：
+
+       不存在
+
+       → 创建新的训练计划
+    ====================================================== */
       const created = await supabaseRequest("training_plans", {
         method: "POST",
 
@@ -617,11 +846,11 @@ async function importAITrainingPlan() {
       planId = created[0].id;
     }
 
-    /*
-      ========================================
-      7. 写入 training_plan_exercises
-      ========================================
-    */
+    /* ========================================================
+       7. 写入 training_plan_exercises
+    ======================================================== */
+
+    let insertedExerciseCount = 0;
 
     for (let i = 0; i < finalPlan.exercises.length; i++) {
       const exercise = finalPlan.exercises[i];
@@ -635,14 +864,59 @@ async function importAITrainingPlan() {
         continue;
       }
 
-      const weight =
-        exercise.weight_kg === null ||
-        exercise.weight_kg === undefined ||
-        exercise.weight_kg === ""
-          ? null
-          : Number(exercise.weight_kg);
+      /* ====================================================
+         重量
 
-      const sets = Number(exercise.sets) || 1;
+         null / 空字符串
+         → null
+
+         数字
+         → Number
+      ==================================================== */
+
+      let weight = null;
+
+      if (
+        exercise.weight_kg !== null &&
+        exercise.weight_kg !== undefined &&
+        exercise.weight_kg !== ""
+      ) {
+        const parsedWeight = Number(exercise.weight_kg);
+
+        if (Number.isFinite(parsedWeight) && parsedWeight >= 0) {
+          weight = parsedWeight;
+        }
+      }
+
+      /* ====================================================
+         组数
+      ==================================================== */
+
+      let sets = Number(exercise.sets);
+
+      if (!Number.isFinite(sets) || sets <= 0) {
+        sets = 1;
+      }
+
+      /* ====================================================
+         次数
+
+         允许：
+
+         10
+         10/侧
+         30秒
+         60秒
+      ==================================================== */
+
+      const reps =
+        exercise.reps === null || exercise.reps === undefined
+          ? ""
+          : String(exercise.reps).trim();
+
+      /* ====================================================
+         写入动作
+      ==================================================== */
 
       await supabaseRequest("training_plan_exercises", {
         method: "POST",
@@ -654,50 +928,67 @@ async function importAITrainingPlan() {
 
           exercise_name: String(exercise.exercise_name).trim(),
 
-          equipment: exercise.equipment || "自重",
+          equipment: String(exercise.equipment || "自重").trim(),
 
-          weight_kg: Number.isFinite(weight) ? weight : null,
+          weight_kg: weight,
 
-          reps: String(exercise.reps || ""),
+          reps: reps,
 
           sets: sets,
 
-          notes: exercise.notes || "",
+          notes: String(exercise.notes || "").trim(),
         },
       });
+
+      insertedExerciseCount++;
     }
 
-    /*
-      ========================================
-      8. 导入成功
-      ========================================
-    */
+    /* ========================================================
+       8. 检查最终有没有真正写入动作
+    ======================================================== */
 
-    alert(`第${finalPlan.workout_number}次训练计划已经成功导入！💪`);
+    if (insertedExerciseCount === 0) {
+      throw new Error("训练计划创建成功，但没有成功写入任何训练动作。");
+    }
 
-    /*
-      清空 ChatGPT 输出输入框
-    */
+    /* ========================================================
+       9. 导入成功
+    ======================================================== */
+
+    alert(
+      `第${finalPlan.workout_number}次训练计划已经成功导入！💪\n\n` +
+        `共 ${insertedExerciseCount} 个动作。`,
+    );
+
+    /* ========================================================
+       清空 AI 输出输入框
+    ======================================================== */
 
     box.value = "";
 
-    /*
-      ========================================
-      9. 刷新当前训练计划
-      ========================================
-    */
+    /* ========================================================
+       10. 刷新当前训练计划
+
+       如果当前应该训练第6次：
+
+       导入第6次
+       → 首页显示第6次
+
+       如果第6次已经完成：
+
+       getCurrentWorkoutNumber()
+       → 第7次
+    ======================================================== */
 
     if (typeof loadCurrentPlan === "function") {
       await loadCurrentPlan();
     }
 
-    /*
-      如果网站存在常用的数据刷新函数，
-      尝试同步刷新。
+    /* ========================================================
+       11. 刷新其他页面数据
 
-      不强制调用不存在的函数，
-      所以不会因为某个函数不存在而报错。
-    */
+       函数不存在也不会报错。
+    ======================================================== */
 
     if (typeof loadPlans === "function") {
       await loadPlans();
@@ -707,20 +998,24 @@ async function importAITrainingPlan() {
       await loadTrainingPlans();
     }
 
-    /*
-      更新状态提示
-    */
+    /* ========================================================
+       12. 更新状态
+    ======================================================== */
 
     if (typeof setStatus === "function") {
       setStatus("☁️ AI训练计划已同步", "ok");
     }
+
+    /* ========================================================
+       13. 控制台记录
+    ======================================================== */
 
     console.log("AI训练计划导入成功：", {
       workout_number: finalPlan.workout_number,
 
       plan_id: planId,
 
-      exercise_count: finalPlan.exercises.length,
+      exercise_count: insertedExerciseCount,
     });
   } catch (error) {
     console.error("AI训练计划导入失败：", error);
