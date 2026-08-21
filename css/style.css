@@ -802,3 +802,89 @@ body {
   }
 
 }
+
+
+/* =========================================================
+   趋势图
+========================================================= */
+
+.chart-block {
+  margin-top: 24px;
+}
+
+
+.chart-block:first-of-type {
+  margin-top: 20px;
+}
+
+
+.chart-block h3 {
+  margin: 0 0 10px;
+
+  font-size: 15px;
+
+  font-weight: 600;
+}
+
+
+.chart-container {
+  position: relative;
+
+  width: 100%;
+
+  height: 220px;
+
+  margin-top: 8px;
+}
+
+
+/* ================================
+   年度图表稍微高一点
+================================ */
+
+#trendTab .chart-container {
+  height: 240px;
+}
+
+
+/* ================================
+   图表之间的分隔
+================================ */
+
+.chart-block + .chart-block {
+  padding-top: 20px;
+
+  border-top: 1px solid #eee;
+}
+
+
+/* =========================================================
+   手机端
+========================================================= */
+
+@media (max-width: 420px) {
+
+  .chart-container {
+    height: 210px;
+  }
+
+
+  #trendTab .chart-container {
+    height: 220px;
+  }
+
+}
+
+
+@media (max-width: 350px) {
+
+  .chart-container {
+    height: 195px;
+  }
+
+
+  #trendTab .chart-container {
+    height: 205px;
+  }
+
+}

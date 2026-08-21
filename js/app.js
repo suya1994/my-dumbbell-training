@@ -247,10 +247,6 @@ function showTab(id, button) {
     if (typeof updateTrendAnalysis === "function") {
       updateTrendAnalysis();
     }
-
-    if (typeof updateExerciseProgressAnalysis === "function") {
-      updateExerciseProgressAnalysis();
-    }
   }
 
   /* ========================================

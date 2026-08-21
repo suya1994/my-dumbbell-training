@@ -37,6 +37,19 @@ async function loadOtherActivities() {
     renderOtherActivities();
 
     updateOtherActivityStats();
+
+    /* 刷新趋势图 */
+    if (typeof updateWeeklyCharts === "function") {
+      updateWeeklyCharts();
+    }
+
+    if (typeof updateMonthlyCharts === "function") {
+      updateMonthlyCharts();
+    }
+
+    if (typeof updateYearlyCharts === "function") {
+      updateYearlyCharts();
+    }
   } catch (error) {
     console.error("其它运动读取失败：", error);
 
@@ -318,6 +331,19 @@ async function loadDailySteps() {
     renderDailySteps();
 
     updateDailyStepStats();
+
+    /* 刷新趋势图 */
+    if (typeof updateWeeklyCharts === "function") {
+      updateWeeklyCharts();
+    }
+
+    if (typeof updateMonthlyCharts === "function") {
+      updateMonthlyCharts();
+    }
+
+    if (typeof updateYearlyCharts === "function") {
+      updateYearlyCharts();
+    }
   } catch (error) {
     console.error("每日步数读取失败：", error);
 

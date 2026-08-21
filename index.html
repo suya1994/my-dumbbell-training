@@ -22,6 +22,10 @@
      <div class="container">
 
 
+          <!-- ================================
+          页面标题
+          ================================= -->
+
           <div class="header">
 
                <h1>
@@ -33,6 +37,10 @@
           </div>
 
 
+          <!-- ================================
+          数据库连接状态
+          ================================= -->
+
           <div id="connectionStatus" class="status">
 
                正在连接训练数据库……
@@ -41,8 +49,8 @@
 
 
           <!-- ================================
-         复制训练计划
-    ================================= -->
+          复制训练计划
+          ================================= -->
 
           <div id="copyPlanStatus" class="status" onclick="copyLastTrainingPlan()" style="cursor:pointer;">
 
@@ -52,8 +60,8 @@
 
 
           <!-- ================================
-         标签
-    ================================= -->
+          标签
+          ================================= -->
 
           <div class="tabs">
 
@@ -88,7 +96,7 @@
 
                <button class="tab" onclick="showTab('trendTab',this)">
 
-                    总趋势
+                    每年
 
                </button>
 
@@ -117,12 +125,16 @@
           </div>
 
 
-          <!-- ================================
-         今日
-    ================================= -->
+          <!-- =====================================================
+          今日
+          ====================================================== -->
 
           <section id="todayTab">
 
+
+               <!-- ================================
+               今日训练计划
+               ================================= -->
 
                <div id="todayPlan" class="card">
 
@@ -136,8 +148,8 @@
 
 
                <!-- ================================
-             训练感受
-        ================================= -->
+               训练感受
+               ================================= -->
 
                <div class="card">
 
@@ -175,18 +187,18 @@
           </section>
 
 
-          <!-- ================================
-         其它运动
-    ================================= -->
 
-
+          <!-- =====================================================
+          其它运动
+          这里只负责录入其它运动和每日步数
+          ====================================================== -->
 
           <section id="otherActivitiesTab" class="hidden">
 
 
                <!-- ================================
-        其它运动记录
-     ================================= -->
+               记录其它运动
+               ================================= -->
 
                <div class="card">
 
@@ -261,9 +273,10 @@
                </div>
 
 
+
                <!-- ================================
-        每日步数
-     ================================= -->
+               每日步数
+               ================================= -->
 
                <div class="card">
 
@@ -314,509 +327,440 @@
                </div>
 
 
-               <!-- ================================
-        其它运动统计
-     ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         📊 其它运动统计
-                    </h2>
-
-
-                    <div class="stats">
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="otherWeekCount">
-                                   0
-                              </div>
-
-                              <div class="stat-label">
-                                   本周次数
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="otherWeekMinutes">
-                                   0
-                              </div>
-
-                              <div class="stat-label">
-                                   本周分钟
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="otherTotalCount">
-                                   0
-                              </div>
-
-                              <div class="stat-label">
-                                   累计次数
-                              </div>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <div class="analysis">
-
-                         累计运动时间：
-
-                         <strong id="otherTotalMinutes">
-                              0
-                         </strong>
-
-                         分钟
-
-                    </div>
-
-
-               </div>
-
-
-               <!-- ================================
-        步数统计
-     ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         👟 步数统计
-                    </h2>
-
-
-                    <div class="stats">
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weekSteps">
-                                   0
-                              </div>
-
-                              <div class="stat-label">
-                                   本周总步数
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weekAverageSteps">
-                                   —
-                              </div>
-
-                              <div class="stat-label">
-                                   本周平均
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="recent7DaySteps">
-                                   —
-                              </div>
-
-                              <div class="stat-label">
-                                   近7天平均
-                              </div>
-
-                         </div>
-
-
-                    </div>
-
-
-               </div>
-
-
-               <!-- ================================
-        其它运动历史
-     ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         📚 其它运动历史
-                    </h2>
-
-
-                    <div id="otherActivityList">
-
-                         <div class="muted">
-
-                              正在读取其它运动……
-
-                         </div>
-
-                    </div>
-
-
-               </div>
-
-
-               <!-- ================================
-        步数历史
-     ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         👟 步数历史
-                    </h2>
-
-
-                    <div id="dailyStepsHistory">
-
-                         <div class="muted">
-
-                              正在读取步数……
-
-                         </div>
-
-                    </div>
-
-
-               </div>
-
-
           </section>
 
 
-          <!-- ================================
-         每周
-    ================================= -->
+
+          <!-- =====================================================
+          每周
+          ====================================================== -->
 
           <section id="weeklyTab" class="hidden">
 
 
-               <div class="card">
-
-
-                    <h2>
-                         🎯 本周训练目标
-                    </h2>
-
-
-                    <div class="stats">
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weekCount">
-
-                                   0
-
-                              </div>
-
-                              <div class="stat-label">
-                                   已完成
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weeklyGoalDisplay">
-
-                                   3–4
-
-                              </div>
-
-                              <div class="stat-label">
-                                   目标次数
-                              </div>
-
-                              <button type="button" class="secondary-btn" onclick="toggleWeeklyGoalEditor()"
-                                   style="margin-top:8px;">
-
-                                   ✏️ 修改
-
-                              </button>
-
-
-                         </div>
-
-
-                         <div id="weeklyGoalEditor" class="analysis" style="display:none; margin-top:20px;">
-
-                              <strong>
-                                   修改本周训练目标
-                              </strong>
-
-                              <br><br>
-
-
-                              <label>
-                                   最低目标
-                              </label>
-
-                              <input id="weeklyMinGoal" class="note" type="number" step="1" placeholder="例如 3">
-
-
-                              <label>
-                                   理想目标
-                              </label>
-
-                              <input id="weeklyIdealGoal" class="note" type="number" step="1" placeholder="例如 4">
-
-
-                              <br>
-
-
-                              <button type="button" class="primary-btn" onclick="saveWeeklyGoal()">
-
-                                   保存
-
-                              </button>
-
-
-                              <button type="button" class="secondary-btn" onclick="cancelWeeklyGoalEdit()"
-                                   style="margin-left:8px;">
-
-                                   取消
-
-                              </button>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weekRemaining">
-
-                                   3
-
-                              </div>
-
-                              <div class="stat-label">
-                                   还需训练
-                              </div>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <div class="analysis" id="weeklyGoal">
-
-                         本周训练后，这里会显示你的进度。
-
-                    </div>
-
-
-               </div>
-
+               <!-- ================================
+               本周概况
+               ================================= -->
 
                <div class="card">
 
-
                     <h2>
-                         📈 本周分析
-                    </h2>
-
-
-                    <div class="stats">
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weekAverage">
-
-                                   —
-
-                              </div>
-
-                              <div class="stat-label">
-                                   平均完成度
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weekMinutes">
-
-                                   0
-
-                              </div>
-
-                              <div class="stat-label">
-                                   累计分钟
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="weekBest">
-
-                                   —
-
-                              </div>
-
-                              <div class="stat-label">
-                                   最高完成度
-                              </div>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <div class="analysis" id="weeklyAnalysis">
-
-                         本周完成训练后，这里会自动生成分析。
-
-                    </div>
-
-
-               </div>
-
-
-          </section>
-
-
-          <!-- ================================
-         每月
-    ================================= -->
-
-          <section id="monthlyTab" class="hidden">
-
-
-               <div class="card">
-
-
-                    <h2>
-                         📅 本月分析
-                    </h2>
-
-
-                    <div class="stats">
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="monthCount">
-
-                                   0
-
-                              </div>
-
-                              <div class="stat-label">
-                                   训练次数
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="monthAverage">
-
-                                   —
-
-                              </div>
-
-                              <div class="stat-label">
-                                   平均完成度
-                              </div>
-
-                         </div>
-
-
-                         <div class="stat">
-
-                              <div class="stat-number" id="monthMinutes">
-
-                                   0
-
-                              </div>
-
-                              <div class="stat-label">
-                                   累计分钟
-                              </div>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <div class="analysis" id="monthlyAnalysis">
-
-                         本月完成训练后，这里会自动生成月度分析。
-
-                    </div>
-
-
-               </div>
-
-
-               <div class="card">
-
-
-                    <h2>
-                         📌 本月重点
-                    </h2>
-
-
-                    <div id="monthlyHighlights" class="analysis">
-
-                         等待更多训练数据……
-
-                    </div>
-
-
-               </div>
-
-
-          </section>
-
-
-          <!-- ================================
-         总趋势
-    ================================= -->
-
-          <section id="trendTab" class="hidden">
-
-
-               <div class="card">
-
-
-                    <h2>
-                         📊 长期趋势
+                         📊 本周概况
                     </h2>
 
 
                     <div class="trend-row">
 
                          <span>
-                              累计训练
+                              力量训练
+                         </span>
+
+                         <strong id="weeklyOverviewWorkouts">
+                              0 次
+                         </strong>
+
+                    </div>
+
+                    <!-- 本周还需力量训练 -->
+
+                    <div class="trend-row">
+
+                         <span>
+
+                              本周还需力量训练
+
+                         </span>
+
+                         <strong id="weeklyOverviewRemainingStrength">
+
+                              —
+
+                         </strong>
+
+                    </div>
+
+                    <div class="trend-row">
+
+                         <span>
+                              力量训练时间
+                         </span>
+
+                         <strong id="weeklyOverviewStrengthMinutes">
+                              0 分钟
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              其它运动
+                         </span>
+
+                         <strong id="weeklyOverviewOtherMinutes">
+                              0 分钟
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              平均每日步数
+                         </span>
+
+                         <strong id="weeklyOverviewAverageSteps">
+                              —
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              平均完成度
+                         </span>
+
+                         <strong id="weeklyOverviewAverageCompletion">
+                              —
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              最高完成度
+                         </span>
+
+                         <strong id="weeklyOverviewBestCompletion">
+                              —
+                         </strong>
+
+                    </div>
+
+               </div>
+
+
+
+               <!-- ================================
+               本周趋势图
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         📊 本周运动趋势
+                    </h2>
+
+
+                    <div class="muted">
+
+                         按周一至周日查看本周的力量训练、其它运动和每日步数。
+
+                    </div>
+
+
+                    <!-- 力量训练 -->
+
+                    <div class="chart-block">
+
+
+                         <h3>
+                              🏋️ 力量训练
+                         </h3>
+
+
+                         <div class="chart-container">
+
+                              <canvas id="weeklyStrengthChart"></canvas>
+
+                         </div>
+
+
+                    </div>
+
+
+                    <!-- 其它运动 -->
+
+                    <div class="chart-block">
+
+
+                         <h3>
+                              🏃 其它运动
+                         </h3>
+
+
+                         <div class="chart-container">
+
+                              <canvas id="weeklyOtherChart"></canvas>
+
+                         </div>
+
+
+                    </div>
+
+
+                    <!-- 步数 -->
+
+                    <div class="chart-block">
+
+
+                         <h3>
+                              👟 每日步数
+                         </h3>
+
+
+                         <div class="chart-container">
+
+                              <canvas id="weeklyStepsChart"></canvas>
+
+                         </div>
+
+
+                    </div>
+
+
+               </div>
+
+
+          </section>
+
+
+
+          <!-- =====================================================
+          每月
+          ====================================================== -->
+
+          <section id="monthlyTab" class="hidden">
+
+
+               <!-- ================================
+               本月概况
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         📊 本月概况
+                    </h2>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              力量训练
+                         </span>
+
+                         <strong id="monthlyOverviewWorkouts">
+                              0 次
+                         </strong>
+
+                    </div>
+
+                    <div class="trend-row">
+
+                         <span>
+                              力量训练时间
+                         </span>
+
+                         <strong id="monthlyOverviewStrengthMinutes">
+                              0 分钟
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              其它运动
+                         </span>
+
+                         <strong id="monthlyOverviewOtherMinutes">
+                              0 分钟
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              平均每日步数
+                         </span>
+
+                         <strong id="monthlyOverviewAverageSteps">
+                              —
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              平均完成度
+                         </span>
+
+                         <strong id="monthlyOverviewAverageCompletion">
+                              —
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              最高完成度
+                         </span>
+
+                         <strong id="monthlyOverviewBestCompletion">
+                              —
+                         </strong>
+
+                    </div>
+
+
+               </div>
+
+
+
+               <!-- ================================
+               本月趋势图
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         📊 本月运动趋势
+                    </h2>
+
+
+                    <div class="muted">
+
+                         按每天查看本月的力量训练、其它运动和每日步数。
+
+                    </div>
+
+
+                    <div class="chart-block">
+
+
+                         <h3>
+                              🏋️ 力量训练
+                         </h3>
+
+
+                         <div class="chart-container">
+
+                              <canvas id="monthlyStrengthChart"></canvas>
+
+                         </div>
+
+
+                    </div>
+
+
+                    <div class="chart-block">
+
+
+                         <h3>
+                              🏃 其它运动
+                         </h3>
+
+
+                         <div class="chart-container">
+
+                              <canvas id="monthlyOtherChart"></canvas>
+
+                         </div>
+
+
+                    </div>
+
+
+                    <div class="chart-block">
+
+
+                         <h3>
+                              👟 每日步数
+                         </h3>
+
+
+                         <div class="chart-container">
+
+                              <canvas id="monthlyStepsChart"></canvas>
+
+                         </div>
+
+
+                    </div>
+
+
+               </div>
+
+
+          </section>
+
+
+
+          <!-- =====================================================
+          每年
+          ====================================================== -->
+
+          <section id="trendTab" class="hidden">
+
+
+               <!-- ================================
+               年份选择
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         📅 年度趋势
+                    </h2>
+
+
+                    <label>
+                         查看年份
+                    </label>
+
+
+                    <select id="trendYearSelect" class="note" onchange="updateYearlyCharts()">
+                    </select>
+
+
+               </div>
+
+
+
+               <!-- ================================
+               年度概况
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         📊 年度概况
+                    </h2>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              力量训练
                          </span>
 
                          <strong id="totalWorkouts">
@@ -825,11 +769,10 @@
 
                     </div>
 
-
                     <div class="trend-row">
 
                          <span>
-                              累计训练时间
+                              力量训练时间
                          </span>
 
                          <strong id="totalMinutes">
@@ -837,6 +780,33 @@
                          </strong>
 
                     </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              其它运动
+                         </span>
+
+                         <strong id="yearOtherMinutes">
+                              0 分钟
+                         </strong>
+
+                    </div>
+
+
+                    <div class="trend-row">
+
+                         <span>
+                              平均每日步数
+                         </span>
+
+                         <strong id="yearAverageSteps">
+                              —
+                         </strong>
+
+                    </div>
+
 
 
                     <div class="trend-row">
@@ -868,17 +838,22 @@
                </div>
 
 
+
+               <!-- ================================
+               年度力量训练
+               ================================= -->
+
                <div class="card">
 
 
                     <h2>
-                         💪 动作进步
+                         🏋️ 年度力量训练
                     </h2>
 
 
-                    <div id="exerciseTrend" class="analysis">
+                    <div class="chart-container">
 
-                         训练数据积累后，这里会显示动作进步。
+                         <canvas id="yearlyStrengthChart"></canvas>
 
                     </div>
 
@@ -886,18 +861,45 @@
                </div>
 
 
+
+               <!-- ================================
+               年度其它运动
+               ================================= -->
+
                <div class="card">
 
 
                     <h2>
-                         🏋️‍♀️ 训练 × 身体变化
+                         🏃 年度其它运动
                     </h2>
 
 
-                    <div id="trainingBodyAnalysis" class="analysis">
+                    <div class="chart-container">
 
-                         开始记录身体数据后，
-                         这里会分析训练与身体变化的关系。
+                         <canvas id="yearlyOtherChart"></canvas>
+
+                    </div>
+
+
+               </div>
+
+
+
+               <!-- ================================
+               年度步数
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         👟 年度平均每日步数
+                    </h2>
+
+
+                    <div class="chart-container">
+
+                         <canvas id="yearlyStepsChart"></canvas>
 
                     </div>
 
@@ -908,26 +910,94 @@
           </section>
 
 
-          <!-- ================================
-         历史
-    ================================= -->
+
+          <!-- =====================================================
+          历史
+          现在统一包含三种历史记录
+          ====================================================== -->
 
           <section id="historyTab" class="hidden">
 
+
+               <!-- ================================
+               ① 力量训练历史
+               ================================= -->
 
                <div class="card">
 
 
                     <h2>
-                         📚 训练历史
+                         🏋️ 力量训练历史
                     </h2>
 
 
                     <div id="historyList">
 
+
                          <div class="muted">
-                              正在读取训练历史……
+
+                              正在读取力量训练历史……
+
                          </div>
+
+
+                    </div>
+
+
+               </div>
+
+
+
+               <!-- ================================
+               ② 其它运动历史
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         🏃 其它运动历史
+                    </h2>
+
+
+                    <div id="otherActivityList">
+
+
+                         <div class="muted">
+
+                              正在读取其它运动……
+
+                         </div>
+
+
+                    </div>
+
+
+               </div>
+
+
+
+               <!-- ================================
+               ③ 步数历史
+               ================================= -->
+
+               <div class="card">
+
+
+                    <h2>
+                         👟 步数历史
+                    </h2>
+
+
+                    <div id="dailyStepsHistory">
+
+
+                         <div class="muted">
+
+                              正在读取步数……
+
+                         </div>
+
 
                     </div>
 
@@ -938,12 +1008,17 @@
           </section>
 
 
-          <!-- ================================
-         身体数据
-    ================================= -->
+
+          <!-- =====================================================
+          身体数据
+          ====================================================== -->
 
           <section id="metricsTab" class="hidden">
 
+
+               <!-- ================================
+               身体数据录入
+               ================================= -->
 
                <div class="card">
 
@@ -968,12 +1043,14 @@
                          体重 kg
                     </label>
 
+
                     <input id="metricWeight" class="note" type="number" step="0.1" min="0" placeholder="例如 52.0">
 
 
                     <label>
                          腰围 cm
                     </label>
+
 
                     <input id="metricWaist" class="note" type="number" step="0.1" min="0" placeholder="例如 68.0">
 
@@ -982,12 +1059,14 @@
                          臀围 cm
                     </label>
 
+
                     <input id="metricHip" class="note" type="number" step="0.1" min="0" placeholder="例如 90.0">
 
 
                     <label>
                          身体备注
                     </label>
+
 
                     <textarea id="metricNote" class="note" placeholder="例如：腰腹感觉更紧实，臀部训练后有酸胀感……"></textarea>
 
@@ -1004,6 +1083,11 @@
 
                </div>
 
+
+
+               <!-- ================================
+               最近变化
+               ================================= -->
 
                <div class="card">
 
@@ -1024,6 +1108,11 @@
                </div>
 
 
+
+               <!-- ================================
+               本月变化
+               ================================= -->
+
                <div class="card">
 
 
@@ -1042,6 +1131,11 @@
 
                </div>
 
+
+
+               <!-- ================================
+               长期变化
+               ================================= -->
 
                <div class="card">
 
@@ -1062,6 +1156,11 @@
                </div>
 
 
+
+               <!-- ================================
+               身体数据历史
+               ================================= -->
+
                <div class="card">
 
 
@@ -1072,9 +1171,13 @@
 
                     <div id="metricsHistory">
 
+
                          <div class="muted">
+
                               正在读取身体数据……
+
                          </div>
+
 
                     </div>
 
@@ -1085,12 +1188,17 @@
           </section>
 
 
-          <!-- ================================
-         AI私人教练
-    ================================= -->
+
+          <!-- =====================================================
+          AI私人教练
+          ====================================================== -->
 
           <section id="aiTab" class="hidden">
 
+
+               <!-- ================================
+               AI私人教练
+               ================================= -->
 
                <div class="card">
 
@@ -1111,6 +1219,11 @@
 
                </div>
 
+
+
+               <!-- ================================
+               第一步
+               ================================= -->
 
                <div class="card">
 
@@ -1157,6 +1270,11 @@
                </div>
 
 
+
+               <!-- ================================
+               第二步
+               ================================= -->
+
                <div class="card">
 
 
@@ -1192,6 +1310,11 @@
                </div>
 
 
+
+               <!-- ================================
+               AI训练流程
+               ================================= -->
+
                <div class="card">
 
 
@@ -1202,48 +1325,74 @@
 
                     <div class="analysis">
 
-                         <strong>① 完成训练</strong>
+
+                         <strong>
+                              ① 完成训练
+                         </strong>
+
 
                          <br>
+
 
                          记录每个动作的完成情况和训练难度，
                          并填写训练感受。
 
+
                          <br><br>
 
 
-                         <strong>② 生成训练分析</strong>
+                         <strong>
+                              ② 生成训练分析
+                         </strong>
+
 
                          <br>
+
 
                          网站自动整理你的历史训练数据。
 
+
                          <br><br>
 
 
-                         <strong>③ 交给 ChatGPT</strong>
+                         <strong>
+                              ③ 交给 ChatGPT
+                         </strong>
+
 
                          <br>
+
 
                          ChatGPT 根据真实历史决定下一次训练。
 
+
                          <br><br>
 
 
-                         <strong>④ 导入训练计划</strong>
+                         <strong>
+                              ④ 导入训练计划
+                         </strong>
+
 
                          <br>
+
 
                          网站自动写入 Supabase。
 
+
                          <br><br>
 
 
-                         <strong>⑤ 开始下一次训练</strong>
+                         <strong>
+                              ⑤ 开始下一次训练
+                         </strong>
+
 
                          <br>
 
+
                          首页自动显示新的训练计划。
+
 
                     </div>
 
@@ -1254,9 +1403,10 @@
           </section>
 
 
-          <!-- ================================
-         底部
-    ================================= -->
+
+          <!-- =====================================================
+          底部
+          ====================================================== -->
 
           <div class="footer">
 
@@ -1268,9 +1418,10 @@
      </div>
 
 
-     <!-- ================================
+
+     <!-- =====================================================
      JavaScript
-================================= -->
+     ====================================================== -->
 
      <script src="js/config.js"></script>
 
@@ -1281,6 +1432,10 @@
      <script src="js/workout.js"></script>
 
      <script src="js/metrics.js"></script>
+
+     <!-- 图表 -->
+
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
      <script src="js/analysis.js"></script>
 

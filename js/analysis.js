@@ -1,15 +1,96 @@
 /* ================================
    analysis.js
    每周 / 每月 / 长期分析
-   + 训练 × 身体数据
-   + 动作进步分析
+   运动趋势图
+   + 周 / 月 / 年概况
 ================================ */
 
-/* ================================
-   每周记录
-================================ */
+/* =========================================================
+   数据安全工具
+========================================================= */
 
-function getWeekRecords() {
+function getRecords() {
+  return Array.isArray(records) ? records : [];
+}
+
+function getOtherActivities() {
+  return typeof otherActivities !== "undefined" &&
+    Array.isArray(otherActivities)
+    ? otherActivities
+    : [];
+}
+
+function getDailySteps() {
+  return typeof dailySteps !== "undefined" && Array.isArray(dailySteps)
+    ? dailySteps
+    : [];
+}
+
+/* =========================================================
+   DOM 工具
+========================================================= */
+
+function setText(id, text) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.textContent = text;
+  }
+}
+
+/* =========================================================
+   日期工具
+========================================================= */
+
+/**
+ * 将 Date 转成 YYYY-MM-DD
+ */
+function getLocalDateString(date) {
+  const year = date.getFullYear();
+
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * 将 YYYY-MM-DD 转成本地当天 00:00
+ *
+ * 不直接使用 new Date("YYYY-MM-DD")
+ * 避免浏览器按 UTC 解析造成时区偏移。
+ */
+function parseLocalDate(dateString) {
+  if (!dateString) {
+    return null;
+  }
+
+  const parts = String(dateString).split("-");
+
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * 获取本周一
+ */
+function getCurrentMonday() {
   const now = new Date();
 
   const day = now.getDay();
@@ -22,16 +103,56 @@ function getWeekRecords() {
 
   monday.setHours(0, 0, 0, 0);
 
-  return records.filter((record) => {
-    const date = new Date(record.workout_date);
+  return monday;
+}
 
-    return date >= monday;
+/**
+ * 获取本月第一天
+ */
+function getCurrentMonthStart() {
+  const now = new Date();
+
+  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+}
+
+/**
+ * 获取本月最后一天
+ */
+function getCurrentMonthEnd() {
+  const now = new Date();
+
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+/* =========================================================
+   每周记录
+========================================================= */
+
+function getWeekRecords() {
+  const monday = getCurrentMonday();
+
+  const now = new Date();
+
+  return getRecords().filter((record) => {
+    const date = parseLocalDate(record.workout_date);
+
+    if (!date) {
+      return false;
+    }
+
+    /*
+       只统计：
+       本周一 00:00
+       →
+       当前时间
+    */
+    return date >= monday && date <= now;
   });
 }
 
-/* ================================
-   读取每周训练目标
-================================ */
+/* =========================================================
+   每周训练目标
+========================================================= */
 
 function getWeeklyGoalSettings() {
   const savedMin = localStorage.getItem("weekly_min_goal");
@@ -39,673 +160,922 @@ function getWeeklyGoalSettings() {
   const savedIdeal = localStorage.getItem("weekly_ideal_goal");
 
   return {
-    min: savedMin !== null ? Number(savedMin) : 3,
+    min:
+      savedMin !== null && Number.isFinite(Number(savedMin))
+        ? Number(savedMin)
+        : 3,
 
-    ideal: savedIdeal !== null ? Number(savedIdeal) : 4,
+    ideal:
+      savedIdeal !== null && Number.isFinite(Number(savedIdeal))
+        ? Number(savedIdeal)
+        : 4,
   };
 }
 
-/* ================================
-   每周分析
-================================ */
-
-function updateWeeklyAnalysis() {
-  const list = getWeekRecords();
-
-  const count = list.length;
-
-  const goals = getWeeklyGoalSettings();
-
-  const minimumGoal = goals.min;
-
-  const idealGoal = goals.ideal;
-
-  /* ================================
-     基础元素
-  ================================ */
-
-  const countBox = document.getElementById("weekCount");
-
-  const remainingBox = document.getElementById("weekRemaining");
-
-  const goalDisplayBox = document.getElementById("weeklyGoalDisplay");
-
-  const goalBox = document.getElementById("weeklyGoal");
-
-  const averageBox = document.getElementById("weekAverage");
-
-  const minutesBox = document.getElementById("weekMinutes");
-
-  const bestBox = document.getElementById("weekBest");
-
-  const analysisBox = document.getElementById("weeklyAnalysis");
-
-  /* ================================
-     显示目标次数
-  ================================ */
-
-  if (goalDisplayBox) {
-    goalDisplayBox.textContent = `${minimumGoal}–${idealGoal}`;
-  }
-
-  /* ================================
-     已完成次数
-  ================================ */
-
-  if (countBox) {
-    countBox.textContent = count;
-  }
-
-  /* ================================
-     距离最低目标还差几次
-  ================================ */
-
-  const remaining = Math.max(minimumGoal - count, 0);
-
-  if (remainingBox) {
-    remainingBox.textContent = remaining;
-  }
-
-  /* ================================
-     还没有训练
-  ================================ */
-
-  if (!count) {
-    if (remainingBox) {
-      remainingBox.textContent = minimumGoal;
-    }
-
-    if (averageBox) {
-      averageBox.textContent = "—";
-    }
-
-    if (minutesBox) {
-      minutesBox.textContent = "0";
-    }
-
-    if (bestBox) {
-      bestBox.textContent = "—";
-    }
-
-    if (goalBox) {
-      goalBox.innerHTML = `本周还没有训练。<br><br>
-         🎯 最低目标：
-         <strong>${minimumGoal} 次</strong><br>
-         💪 理想目标：
-         <strong>${idealGoal} 次</strong>`;
-    }
-
-    if (analysisBox) {
-      analysisBox.textContent = "完成第一次训练后，这里会开始统计本周表现。";
-    }
-
-    return;
-  }
-
-  /* ================================
-     平均完成度
-  ================================ */
-
-  const average = Math.round(
-    list.reduce((sum, r) => sum + Number(r.completion_percent || 0), 0) / count,
-  );
-
-  /* ================================
-     累计训练时间
-  ================================ */
-
-  const minutes = list.reduce(
-    (sum, r) => sum + Number(r.duration_minutes || 0),
-    0,
-  );
-
-  /* ================================
-     最高完成度
-  ================================ */
-
-  const best = Math.max(...list.map((r) => Number(r.completion_percent || 0)));
-
-  if (averageBox) {
-    averageBox.textContent = average + "%";
-  }
-
-  if (minutesBox) {
-    minutesBox.textContent = minutes;
-  }
-
-  if (bestBox) {
-    bestBox.textContent = best + "%";
-  }
-
-  /* ================================
-     本周目标状态
-  ================================ */
-
-  if (goalBox) {
-    if (count < minimumGoal) {
-      const left = minimumGoal - count;
-
-      goalBox.innerHTML = `本周已经完成
-         <strong>${count} 次</strong>训练。<br><br>
-         再完成
-         <strong>${left} 次</strong>，
-         就达到本周最低目标。<br><br>
-         🎯 理想目标：
-         <strong>${idealGoal} 次</strong>`;
-    } else if (count < idealGoal) {
-      const left = idealGoal - count;
-
-      goalBox.innerHTML = `🎉 本周已经完成
-         <strong>${count} 次</strong>训练，
-         已达到最低目标！<br><br>
-         如果状态良好，再完成
-         <strong>${left} 次</strong>，
-         就达到理想目标。`;
-    } else {
-      goalBox.innerHTML = `🔥 本周已经完成
-         <strong>${count} 次</strong>训练，
-         已达到理想目标！<br><br>
-         当前训练频率很好，
-         注意给身体足够恢复时间。`;
-    }
-  }
-
-  /* ================================
-     每周分析
-  ================================ */
-
-  if (analysisBox) {
-    if (average >= 90) {
-      analysisBox.textContent = `本周完成 ${count} 次训练，
-         平均完成度 ${average}%。
-         训练执行得很好，继续保持。`;
-    } else if (average >= 70) {
-      analysisBox.textContent = `本周完成 ${count} 次训练，
-         平均完成度 ${average}%。
-         整体不错，继续优先保证动作质量。`;
-    } else {
-      analysisBox.textContent = `本周完成 ${count} 次训练，
-         平均完成度 ${average}%。
-         不需要急着增加训练量，
-         先把动作完成质量做好。`;
-    }
-  }
-}
-
-/* ================================
-   每月
-================================ */
+/* =========================================================
+   每月记录
+========================================================= */
 
 function getMonthRecords() {
   const now = new Date();
 
-  return records.filter((record) => {
-    const date = new Date(record.workout_date);
+  const year = now.getFullYear();
 
-    return (
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth()
-    );
+  const month = now.getMonth();
+
+  return getRecords().filter((record) => {
+    const date = parseLocalDate(record.workout_date);
+
+    if (!date) {
+      return false;
+    }
+
+    return date.getFullYear() === year && date.getMonth() === month;
   });
 }
 
-function updateMonthlyAnalysis() {
+/* =========================================================
+   每周概况
+========================================================= */
+
+function updateWeeklyOverview() {
+  const list = getWeekRecords();
+
+  const monday = getCurrentMonday();
+
+  const now = new Date();
+
+  /*
+     其它运动
+  */
+  const otherList = getOtherActivities().filter((activity) => {
+    const date = parseLocalDate(activity.activity_date);
+
+    if (!date) {
+      return false;
+    }
+
+    return date >= monday && date <= now;
+  });
+
+  /*
+     步数
+  */
+  const stepList = getDailySteps().filter((record) => {
+    const date = parseLocalDate(record.record_date);
+
+    if (!date) {
+      return false;
+    }
+
+    return date >= monday && date <= now;
+  });
+
+  const workoutCount = list.length;
+  const weeklyGoal = getWeeklyGoalSettings();
+
+  const remainingStrength = Math.max(0, weeklyGoal.min - workoutCount);
+
+  const otherMinutes = otherList.reduce((sum, activity) => {
+    return sum + (Number(activity.duration_minutes) || 0);
+  }, 0);
+
+  const strengthMinutes = list.reduce((sum, record) => {
+    return sum + (Number(record.duration_minutes) || 0);
+  }, 0);
+
+  const averageSteps = stepList.length
+    ? Math.round(
+        stepList.reduce((sum, record) => {
+          return sum + (Number(record.steps) || 0);
+        }, 0) / stepList.length,
+      )
+    : 0;
+
+  const averageCompletion = list.length
+    ? Math.round(
+        list.reduce((sum, record) => {
+          return sum + Number(record.completion_percent || 0);
+        }, 0) / list.length,
+      )
+    : 0;
+
+  const bestCompletion = list.length
+    ? Math.max(
+        ...list.map((record) => {
+          return Number(record.completion_percent || 0);
+        }),
+      )
+    : 0;
+
+  setText("weeklyOverviewWorkouts", `${workoutCount} 次`);
+  setText("weeklyOverviewRemainingStrength", `${remainingStrength} 次`);
+
+  setText("weeklyOverviewOtherMinutes", `${otherMinutes} 分钟`);
+
+  setText(
+    "weeklyOverviewAverageSteps",
+    averageSteps ? averageSteps.toLocaleString() : "—",
+  );
+
+  setText("weeklyOverviewStrengthMinutes", `${strengthMinutes} 分钟`);
+
+  setText(
+    "weeklyOverviewAverageCompletion",
+    list.length ? `${averageCompletion}%` : "—",
+  );
+
+  setText(
+    "weeklyOverviewBestCompletion",
+    list.length ? `${bestCompletion}%` : "—",
+  );
+}
+
+/* =========================================================
+   每月概况
+========================================================= */
+
+function updateMonthlyOverview() {
   const list = getMonthRecords();
 
-  const count = list.length;
+  const now = new Date();
 
-  const average = count
-    ? Math.round(
-        list.reduce((sum, r) => sum + Number(r.completion_percent || 0), 0) /
-          count,
-      )
-    : 0;
+  const year = now.getFullYear();
 
-  const minutes = list.reduce(
-    (sum, r) => sum + Number(r.duration_minutes || 0),
-    0,
-  );
+  const month = now.getMonth();
 
-  const countBox = document.getElementById("monthCount");
-
-  const averageBox = document.getElementById("monthAverage");
-
-  const minutesBox = document.getElementById("monthMinutes");
-
-  const analysisBox = document.getElementById("monthlyAnalysis");
-
-  const highlightBox = document.getElementById("monthlyHighlights");
-
-  if (countBox) {
-    countBox.textContent = count;
-  }
-
-  if (averageBox) {
-    averageBox.textContent = count ? average + "%" : "—";
-  }
-
-  if (minutesBox) {
-    minutesBox.textContent = minutes;
-  }
-
-  if (!count) {
-    if (analysisBox) {
-      analysisBox.textContent = "本月还没有训练记录。";
-    }
-
-    if (highlightBox) {
-      highlightBox.textContent = "等待更多训练数据……";
-    }
-
-    return;
-  }
-
-  if (analysisBox) {
-    analysisBox.textContent = `本月共完成 ${count} 次训练，累计约 ${minutes} 分钟，平均完成度 ${average}%。`;
-  }
-
-  const best = Math.max(...list.map((r) => Number(r.completion_percent || 0)));
-
-  if (highlightBox) {
-    highlightBox.innerHTML = `本月最高完成度：
-       <strong>${best}%</strong>`;
-  }
-}
-
-/* ================================
-   长期趋势
-================================ */
-
-function updateTrendAnalysis() {
-  const total = records.length;
-
-  const minutes = records.reduce(
-    (sum, r) => sum + Number(r.duration_minutes || 0),
-    0,
-  );
-
-  const average = total
-    ? Math.round(
-        records.reduce((sum, r) => sum + Number(r.completion_percent || 0), 0) /
-          total,
-      )
-    : 0;
-
-  const best = total
-    ? Math.max(...records.map((r) => Number(r.completion_percent || 0)))
-    : 0;
-
-  setText("totalWorkouts", total + " 次");
-
-  setText("totalMinutes", minutes + " 分钟");
-
-  setText("totalAverage", total ? average + "%" : "—");
-
-  setText("bestCompletion", total ? best + "%" : "—");
+  const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
 
   /*
-    动作进步
+     其它运动
   */
-
-  updateExerciseProgressAnalysis();
-
-  /*
-    训练 × 身体数据
-  */
-
-  updateTrainingBodyAnalysis();
-}
-
-/* ================================
-   动作进步分析
-================================ */
-
-function updateExerciseProgressAnalysis() {
-  const box = document.getElementById("exerciseTrend");
-
-  if (!box) {
-    return;
-  }
-
-  const data = typeof exerciseRecords !== "undefined" ? exerciseRecords : [];
-
-  if (!data.length) {
-    box.textContent = "完成几次训练并保存后，这里会开始显示动作进步。";
-
-    return;
-  }
-
-  /* ================================
-     按动作名称分组
-  ================================ */
-
-  const groups = {};
-
-  data.forEach((item) => {
-    if (!item.exercise_name) {
-      return;
-    }
-
-    if (item.completed === false) {
-      return;
-    }
-
-    const name = item.exercise_name;
-
-    if (!groups[name]) {
-      groups[name] = [];
-    }
-
-    groups[name].push(item);
+  const otherList = getOtherActivities().filter((activity) => {
+    return (
+      activity.activity_date &&
+      String(activity.activity_date).startsWith(prefix)
+    );
   });
 
-  const names = Object.keys(groups);
+  /*
+     步数
+  */
+  const stepList = getDailySteps().filter((record) => {
+    return record.record_date && String(record.record_date).startsWith(prefix);
+  });
 
-  if (!names.length) {
-    box.textContent = "目前还没有已完成动作的数据。";
+  const workoutCount = list.length;
 
+  const otherMinutes = otherList.reduce((sum, activity) => {
+    return sum + (Number(activity.duration_minutes) || 0);
+  }, 0);
+
+  const strengthMinutes = list.reduce((sum, record) => {
+    return sum + (Number(record.duration_minutes) || 0);
+  }, 0);
+
+  const averageSteps = stepList.length
+    ? Math.round(
+        stepList.reduce((sum, record) => {
+          return sum + (Number(record.steps) || 0);
+        }, 0) / stepList.length,
+      )
+    : 0;
+
+  const averageCompletion = list.length
+    ? Math.round(
+        list.reduce((sum, record) => {
+          return sum + Number(record.completion_percent || 0);
+        }, 0) / list.length,
+      )
+    : 0;
+
+  const bestCompletion = list.length
+    ? Math.max(
+        ...list.map((record) => {
+          return Number(record.completion_percent || 0);
+        }),
+      )
+    : 0;
+
+  setText("monthlyOverviewWorkouts", `${workoutCount} 次`);
+
+  setText("monthlyOverviewOtherMinutes", `${otherMinutes} 分钟`);
+
+  setText(
+    "monthlyOverviewAverageSteps",
+    averageSteps ? averageSteps.toLocaleString() : "—",
+  );
+
+  setText("monthlyOverviewStrengthMinutes", `${strengthMinutes} 分钟`);
+
+  setText(
+    "monthlyOverviewAverageCompletion",
+    list.length ? `${averageCompletion}%` : "—",
+  );
+
+  setText(
+    "monthlyOverviewBestCompletion",
+    list.length ? `${bestCompletion}%` : "—",
+  );
+}
+
+/* =========================================================
+   每月分析入口
+========================================================= */
+
+function updateMonthlyAnalysis() {
+  updateMonthlyOverview();
+
+  updateMonthlyCharts();
+}
+
+/* =========================================================
+   长期趋势入口
+========================================================= */
+
+function updateTrendAnalysis() {
+  updateYearlyCharts();
+}
+
+/* =========================================================
+   图表实例
+========================================================= */
+
+let weeklyStrengthChart = null;
+let weeklyOtherChart = null;
+let weeklyStepsChart = null;
+
+let monthlyStrengthChart = null;
+let monthlyOtherChart = null;
+let monthlyStepsChart = null;
+
+let yearlyStrengthChart = null;
+let yearlyOtherChart = null;
+let yearlyStepsChart = null;
+
+/* =========================================================
+   每周日期
+   周一 → 周日
+========================================================= */
+
+function getCurrentWeekDates() {
+  const monday = getCurrentMonday();
+
+  const dates = [];
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+
+    date.setDate(monday.getDate() + i);
+
+    dates.push(getLocalDateString(date));
+  }
+
+  return dates;
+}
+
+/* =========================================================
+   当前月份日期
+========================================================= */
+
+function getCurrentMonthDates() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+
+  const month = now.getMonth();
+
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  const dates = [];
+
+  for (let day = 1; day <= lastDay; day++) {
+    const date = new Date(year, month, day);
+
+    dates.push(getLocalDateString(date));
+  }
+
+  return dates;
+}
+
+/* =========================================================
+   某一天力量训练次数
+========================================================= */
+
+function getStrengthCountByDate(dateString) {
+  return getRecords().filter((record) => {
+    return record.workout_date === dateString;
+  }).length;
+}
+
+/* =========================================================
+   某一天其它运动分钟
+========================================================= */
+
+function getOtherMinutesByDate(dateString) {
+  return getOtherActivities()
+    .filter((activity) => {
+      return activity.activity_date === dateString;
+    })
+    .reduce((sum, activity) => {
+      return sum + (Number(activity.duration_minutes) || 0);
+    }, 0);
+}
+
+/* =========================================================
+   某一天步数
+========================================================= */
+
+function getStepsByDate(dateString) {
+  const record = getDailySteps().find((item) => {
+    return item.record_date === dateString;
+  });
+
+  return record ? Number(record.steps) || 0 : 0;
+}
+
+/* =========================================================
+   图表通用配置
+========================================================= */
+
+function getChartOptions(yTitle, tooltipLabel) {
+  return {
+    responsive: true,
+
+    maintainAspectRatio: false,
+
+    interaction: {
+      intersect: false,
+      mode: "index",
+    },
+
+    plugins: {
+      legend: {
+        display: false,
+      },
+
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const value = Number(context.parsed.y) || 0;
+
+            return `${tooltipLabel}：${value.toLocaleString()}`;
+          },
+        },
+      },
+    },
+
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+
+        ticks: {
+          maxRotation: 0,
+        },
+      },
+
+      y: {
+        beginAtZero: true,
+
+        title: {
+          display: true,
+          text: yTitle,
+        },
+
+        ticks: {
+          precision: 0,
+        },
+      },
+    },
+  };
+}
+
+/* =========================================================
+   创建 / 更新图表
+========================================================= */
+
+function createTrendChart(
+  canvasId,
+  oldChart,
+  type,
+  labels,
+  values,
+  yTitle,
+  tooltipLabel,
+) {
+  const canvas = document.getElementById(canvasId);
+
+  if (!canvas || typeof Chart === "undefined") {
+    return oldChart;
+  }
+
+  /*
+     销毁旧图表
+  */
+  if (oldChart) {
+    try {
+      oldChart.destroy();
+    } catch (error) {
+      console.warn(`图表 ${canvasId} 销毁失败：`, error);
+    }
+  }
+
+  /*
+     防止 canvas 上已经存在 Chart 实例
+  */
+  const existingChart =
+    typeof Chart.getChart === "function" ? Chart.getChart(canvas) : null;
+
+  if (existingChart) {
+    try {
+      existingChart.destroy();
+    } catch (error) {
+      console.warn(`图表 ${canvasId} 已存在实例销毁失败：`, error);
+    }
+  }
+
+  return new Chart(canvas, {
+    type,
+
+    data: {
+      labels,
+
+      datasets: [
+        {
+          data: values,
+
+          borderWidth: 2,
+
+          borderRadius: type === "bar" ? 5 : 0,
+
+          tension: type === "line" ? 0.3 : 0,
+
+          fill: false,
+
+          pointRadius: type === "line" ? 3 : 0,
+
+          pointHoverRadius: type === "line" ? 5 : 0,
+        },
+      ],
+    },
+
+    options: getChartOptions(yTitle, tooltipLabel),
+  });
+}
+
+/* =========================================================
+   每周图表
+========================================================= */
+
+function updateWeeklyCharts() {
+  /*
+     先更新顶部概况
+  */
+  updateWeeklyOverview();
+
+  const dates = getCurrentWeekDates();
+
+  const labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
+  const strengthData = dates.map((date) => {
+    return getStrengthCountByDate(date);
+  });
+
+  const otherData = dates.map((date) => {
+    return getOtherMinutesByDate(date);
+  });
+
+  const stepsData = dates.map((date) => {
+    return getStepsByDate(date);
+  });
+
+  weeklyStrengthChart = createTrendChart(
+    "weeklyStrengthChart",
+    weeklyStrengthChart,
+    "bar",
+    labels,
+    strengthData,
+    "次数",
+    "力量训练",
+  );
+
+  weeklyOtherChart = createTrendChart(
+    "weeklyOtherChart",
+    weeklyOtherChart,
+    "bar",
+    labels,
+    otherData,
+    "分钟",
+    "其它运动",
+  );
+
+  weeklyStepsChart = createTrendChart(
+    "weeklyStepsChart",
+    weeklyStepsChart,
+    "bar",
+    labels,
+    stepsData,
+    "步数",
+    "步数",
+  );
+}
+
+/* =========================================================
+   每月图表
+========================================================= */
+
+function updateMonthlyCharts() {
+  const dates = getCurrentMonthDates();
+
+  const labels = dates.map((date) => {
+    return Number(date.slice(-2));
+  });
+
+  const strengthData = dates.map((date) => {
+    return getStrengthCountByDate(date);
+  });
+
+  const otherData = dates.map((date) => {
+    return getOtherMinutesByDate(date);
+  });
+
+  const stepsData = dates.map((date) => {
+    return getStepsByDate(date);
+  });
+
+  monthlyStrengthChart = createTrendChart(
+    "monthlyStrengthChart",
+    monthlyStrengthChart,
+    "bar",
+    labels,
+    strengthData,
+    "次数",
+    "力量训练",
+  );
+
+  monthlyOtherChart = createTrendChart(
+    "monthlyOtherChart",
+    monthlyOtherChart,
+    "bar",
+    labels,
+    otherData,
+    "分钟",
+    "其它运动",
+  );
+
+  monthlyStepsChart = createTrendChart(
+    "monthlyStepsChart",
+    monthlyStepsChart,
+    "bar",
+    labels,
+    stepsData,
+    "步数",
+    "步数",
+  );
+}
+
+/* =========================================================
+   获取可用年份
+========================================================= */
+
+function getAvailableYears() {
+  const years = new Set();
+
+  /*
+     力量训练
+  */
+  getRecords().forEach((record) => {
+    if (record.workout_date) {
+      const year = Number(String(record.workout_date).slice(0, 4));
+
+      if (Number.isFinite(year)) {
+        years.add(year);
+      }
+    }
+  });
+
+  /*
+     其它运动
+  */
+  getOtherActivities().forEach((activity) => {
+    if (activity.activity_date) {
+      const year = Number(String(activity.activity_date).slice(0, 4));
+
+      if (Number.isFinite(year)) {
+        years.add(year);
+      }
+    }
+  });
+
+  /*
+     步数
+  */
+  getDailySteps().forEach((record) => {
+    if (record.record_date) {
+      const year = Number(String(record.record_date).slice(0, 4));
+
+      if (Number.isFinite(year)) {
+        years.add(year);
+      }
+    }
+  });
+
+  /*
+     始终加入当前年份
+  */
+  years.add(new Date().getFullYear());
+
+  return Array.from(years)
+    .filter((year) => {
+      return Number.isFinite(year);
+    })
+    .sort((a, b) => b - a);
+}
+
+/* =========================================================
+   年份选择器
+========================================================= */
+
+function updateYearSelector() {
+  const select = document.getElementById("trendYearSelect");
+
+  if (!select) {
     return;
   }
 
-  /* ================================
-     动作分析
-  ================================ */
+  const years = getAvailableYears();
 
-  const html = names
-    .slice(0, 8)
-    .map((name) => {
-      const list = groups[name];
+  if (!years.length) {
+    return;
+  }
 
-      const latest = list[list.length - 1];
+  const currentValue = Number(select.value) || new Date().getFullYear();
 
-      /*
-          第一次训练
-        */
-
-      const first = list[0];
-
-      /*
-          上一次训练
-        */
-
-      const previous = list.length >= 2 ? list[list.length - 2] : null;
-
-      /* ================================
-           当前数据
-        ================================ */
-
-      const latestWeight = Number(
-        latest.actual_weight_kg ?? latest.weight_kg ?? 0,
-      );
-
-      const latestReps = parseFirstNumber(latest.actual_reps ?? latest.reps);
-
-      /* ================================
-           只有一次记录
-        ================================ */
-
-      if (!previous) {
-        let detail = `已训练 1 次`;
-
-        if (latestWeight > 0) {
-          detail += ` · 当前 ${latestWeight} kg`;
-        }
-
-        if (latestReps > 0) {
-          detail += ` × ${latestReps}次`;
-        }
-
-        return `
-
-            <div class="history-item">
-
-              <div class="history-title">
-                ${escapeHtml(name)}
-              </div>
-
-              <div class="muted">
-                ${detail}
-              </div>
-
-              <div class="muted">
-                🆕 首次记录
-              </div>
-
-              <div class="muted">
-                暂无历史数据，下一次训练后开始比较。
-              </div>
-
-            </div>
-
-          `;
-      }
-
-      /* ================================
-           上一次数据
-        ================================ */
-
-      const previousWeight = Number(
-        previous.actual_weight_kg ?? previous.weight_kg ?? 0,
-      );
-
-      const previousReps = parseFirstNumber(
-        previous.actual_reps ?? previous.reps,
-      );
-
-      const weightChange = latestWeight - previousWeight;
-
-      const repsChange = latestReps - previousReps;
-
-      /* ================================
-           判断状态
-        ================================ */
-
-      let progressText = "➡️ 保持稳定";
-
-      let changeText = "本次训练与上次基本一致。";
-
-      if (weightChange > 0 || repsChange > 0) {
-        progressText = "📈 有进步";
-
-        const changes = [];
-
-        if (repsChange > 0) {
-          changes.push(`次数 +${repsChange}`);
-        }
-
-        if (weightChange > 0) {
-          changes.push(`重量 +${weightChange.toFixed(1)} kg`);
-        }
-
-        changeText = changes.join("，");
-      } else if (weightChange < 0 || repsChange < 0) {
-        progressText = "↔️ 本次略低";
-
-        const changes = [];
-
-        if (repsChange < 0) {
-          changes.push(`次数 ${repsChange}`);
-        }
-
-        if (weightChange < 0) {
-          changes.push(`重量 ${weightChange.toFixed(1)} kg`);
-        }
-
-        changeText =
-          changes.join("，") + "。先保证动作质量，不需要强行追赶上一次。";
-      }
-
-      /* ================================
-           左右手
-        ================================ */
-
-      const left = parseFirstNumber(latest.left_reps);
-
-      const right = parseFirstNumber(latest.right_reps);
-
-      let sideText = "";
-
-      if (left > 0 && right > 0) {
-        const difference = Math.abs(left - right);
-
-        if (difference === 0) {
-          sideText = `左右手：${left} / ${right} 次 · 很平衡`;
-        } else {
-          const weaker = left < right ? "左手" : "右手";
-
-          sideText = `左右手：${left} / ${right} 次 · ${weaker}少 ${difference} 次`;
-        }
-      }
-
-      /* ================================
-           当前状态
-        ================================ */
-
-      let detail = `已训练 ${list.length} 次`;
-
-      if (latestWeight > 0) {
-        detail += ` · 当前 ${latestWeight} kg`;
-      }
-
-      if (latestReps > 0) {
-        detail += ` × ${latestReps}次`;
-      }
-
+  select.innerHTML = years
+    .map((year) => {
       return `
-
-          <div class="history-item">
-
-            <div class="history-title">
-              ${escapeHtml(name)}
-            </div>
-
-            <div class="muted">
-              ${detail}
-            </div>
-
-            <div class="muted">
-              ${progressText}
-            </div>
-
-            <div class="muted">
-              ${escapeHtml(changeText)}
-            </div>
-
-            ${
-              sideText
-                ? `
-                  <div class="muted">
-                    ${escapeHtml(sideText)}
-                  </div>
-                `
-                : ""
-            }
-
-          </div>
-
-        `;
+        <option value="${year}">
+          ${year} 年
+        </option>
+      `;
     })
     .join("");
 
-  box.innerHTML = `
-
-    <div class="muted">
-
-      已记录 ${data.length} 条动作数据，
-      当前追踪 ${names.length} 个动作。
-
-    </div>
-
-    <br>
-
-    ${html}
-
-  `;
+  if (years.includes(currentValue)) {
+    select.value = String(currentValue);
+  } else {
+    select.value = String(years[0]);
+  }
 }
 
-/* ================================
-   提取次数中的第一个数字
-================================ */
+/* =========================================================
+   获取某一年每个月的数据
+========================================================= */
 
-function parseFirstNumber(value) {
-  if (value === null || value === undefined) {
-    return 0;
+function getYearlyData(year) {
+  const strength = [];
+
+  const other = [];
+
+  const steps = [];
+
+  const yearPrefix = String(year);
+
+  const yearRecords = getRecords().filter((record) => {
+    return (
+      record.workout_date && String(record.workout_date).startsWith(yearPrefix)
+    );
+  });
+
+  const yearOtherActivities = getOtherActivities().filter((activity) => {
+    return (
+      activity.activity_date &&
+      String(activity.activity_date).startsWith(yearPrefix)
+    );
+  });
+
+  const yearStepRecords = getDailySteps().filter((record) => {
+    return (
+      record.record_date && String(record.record_date).startsWith(yearPrefix)
+    );
+  });
+
+  for (let month = 0; month < 12; month++) {
+    const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+
+    /*
+       力量训练
+    */
+    const monthStrength = yearRecords.filter((record) => {
+      return String(record.workout_date).startsWith(prefix);
+    }).length;
+
+    /*
+       其它运动
+    */
+    const monthOther = yearOtherActivities
+      .filter((activity) => {
+        return String(activity.activity_date).startsWith(prefix);
+      })
+      .reduce((sum, activity) => {
+        return sum + (Number(activity.duration_minutes) || 0);
+      }, 0);
+
+    /*
+       步数
+
+       只统计有记录的日期。
+       没有记录的日期不算 0。
+    */
+    const monthStepRecords = yearStepRecords.filter((record) => {
+      return String(record.record_date).startsWith(prefix);
+    });
+
+    const stepTotal = monthStepRecords.reduce((sum, record) => {
+      return sum + (Number(record.steps) || 0);
+    }, 0);
+
+    const averageSteps = monthStepRecords.length
+      ? Math.round(stepTotal / monthStepRecords.length)
+      : 0;
+
+    strength.push(monthStrength);
+
+    other.push(monthOther);
+
+    steps.push(averageSteps);
   }
 
-  const match = String(value).match(/[\d.]+/);
-
-  if (!match) {
-    return 0;
-  }
-
-  return Number(match[0]) || 0;
+  return {
+    strength,
+    other,
+    steps,
+  };
 }
 
-/* ================================
-   训练 × 身体数据
-================================ */
+/* =========================================================
+   年度图表
+========================================================= */
 
-function updateTrainingBodyAnalysis() {
-  const box = document.getElementById("trainingBodyAnalysis");
+function updateYearlyCharts() {
+  updateYearSelector();
 
-  if (!box) {
-    return;
-  }
+  const select = document.getElementById("trendYearSelect");
 
-  const data =
-    typeof bodyMetricsRecords !== "undefined" ? bodyMetricsRecords : [];
+  const year = select ? Number(select.value) : new Date().getFullYear();
 
-  if (!data.length) {
-    box.textContent = "开始记录身体数据后，这里会分析训练与身体变化的关系。";
+  const data = getYearlyData(year);
 
-    return;
-  }
+  const labels = [
+    "1月",
+    "2月",
+    "3月",
+    "4月",
+    "5月",
+    "6月",
+    "7月",
+    "8月",
+    "9月",
+    "10月",
+    "11月",
+    "12月",
+  ];
 
-  if (data.length < 2) {
-    box.textContent =
-      "目前只有1条身体数据记录。再记录一次后，就可以开始分析变化趋势。";
+  yearlyStrengthChart = createTrendChart(
+    "yearlyStrengthChart",
+    yearlyStrengthChart,
+    "line",
+    labels,
+    data.strength,
+    "次数",
+    "力量训练",
+  );
 
-    return;
-  }
+  yearlyOtherChart = createTrendChart(
+    "yearlyOtherChart",
+    yearlyOtherChart,
+    "line",
+    labels,
+    data.other,
+    "分钟",
+    "其它运动",
+  );
 
-  const first = data[data.length - 1];
+  yearlyStepsChart = createTrendChart(
+    "yearlyStepsChart",
+    yearlyStepsChart,
+    "line",
+    labels,
+    data.steps,
+    "平均步数",
+    "平均每日步数",
+  );
 
-  const latest = data[0];
+  /* =========================================================
+     年度统计数字
+  ========================================================= */
 
-  const lines = [];
+  const yearPrefix = String(year);
 
-  if (first.weight_kg !== null && latest.weight_kg !== null) {
-    lines.push(`体重 ${formatChange(latest.weight_kg - first.weight_kg)} kg`);
-  }
+  /*
+     力量训练
+  */
+  const yearRecords = getRecords().filter((record) => {
+    return (
+      record.workout_date && String(record.workout_date).startsWith(yearPrefix)
+    );
+  });
 
-  if (first.waist_cm !== null && latest.waist_cm !== null) {
-    lines.push(`腰围 ${formatChange(latest.waist_cm - first.waist_cm)} cm`);
-  }
+  /*
+     其它运动
+  */
+  const yearOther = getOtherActivities().filter((activity) => {
+    return (
+      activity.activity_date &&
+      String(activity.activity_date).startsWith(yearPrefix)
+    );
+  });
 
-  if (first.hip_cm !== null && latest.hip_cm !== null) {
-    lines.push(`臀围 ${formatChange(latest.hip_cm - first.hip_cm)} cm`);
-  }
+  /*
+     步数
+  */
+  const yearSteps = getDailySteps().filter((record) => {
+    return (
+      record.record_date && String(record.record_date).startsWith(yearPrefix)
+    );
+  });
 
-  if (!lines.length) {
-    box.textContent = "目前没有足够的身体数据进行比较。";
+  /*
+     力量训练次数
+  */
+  const totalWorkouts = yearRecords.length;
 
-    return;
-  }
+  /*
+     力量训练分钟
+  */
+  const totalMinutes = yearRecords.reduce((sum, record) => {
+    return sum + (Number(record.duration_minutes) || 0);
+  }, 0);
 
-  box.innerHTML = `从第一次身体记录 ${first.record_date} 到最新记录 ${latest.record_date}：<br><br>
-    <strong>${lines.join("，")}</strong>
-    <br><br>
-    继续保持每周力量训练，后续数据积累后会更容易判断塑形效果。`;
-}
+  /*
+     其它运动分钟
+  */
+  const otherMinutes = yearOther.reduce((sum, activity) => {
+    return sum + (Number(activity.duration_minutes) || 0);
+  }, 0);
 
-/* ================================
-   工具
-================================ */
+  /*
+     年平均每日步数
 
-function setText(id, text) {
-  const element = document.getElementById(id);
+     只按照有步数记录的日期计算。
+  */
+  const averageSteps = yearSteps.length
+    ? Math.round(
+        yearSteps.reduce((sum, record) => {
+          return sum + (Number(record.steps) || 0);
+        }, 0) / yearSteps.length,
+      )
+    : 0;
 
-  if (element) {
-    element.textContent = text;
-  }
+  /*
+     平均完成度
+  */
+  const averageCompletion = yearRecords.length
+    ? Math.round(
+        yearRecords.reduce((sum, record) => {
+          return sum + Number(record.completion_percent || 0);
+        }, 0) / yearRecords.length,
+      )
+    : 0;
+
+  /*
+     最高完成度
+  */
+  const bestCompletion = yearRecords.length
+    ? Math.max(
+        ...yearRecords.map((record) => {
+          return Number(record.completion_percent || 0);
+        }),
+      )
+    : 0;
+
+  /*
+     更新 DOM
+  */
+  setText("totalWorkouts", `${totalWorkouts} 次`);
+
+  setText("totalMinutes", `${totalMinutes} 分钟`);
+
+  setText("yearOtherMinutes", `${otherMinutes} 分钟`);
+
+  setText(
+    "yearAverageSteps",
+    averageSteps ? averageSteps.toLocaleString() : "—",
+  );
+
+  setText("totalAverage", yearRecords.length ? `${averageCompletion}%` : "—");
+
+  setText("bestCompletion", yearRecords.length ? `${bestCompletion}%` : "—");
 }
