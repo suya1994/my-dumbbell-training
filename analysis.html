@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+    <meta name="theme-color" content="#f5f5f5">
+
+    <title>训练统计 - 我的私人哑铃训练</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        /* =====================================================
+             统计页面顶部
+          ===================================================== */
+
+        .page-header {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .back-btn {
+
+            flex-shrink: 0;
+
+            width: 42px;
+
+            height: 42px;
+
+            border: none;
+
+            border-radius: 12px;
+
+            background: #ffffff;
+
+            font-size: 20px;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.08);
+
+            transition:
+                transform 0.15s ease,
+                box-shadow 0.15s ease;
+
+        }
+
+
+        .back-btn:active {
+
+            transform: scale(0.94);
+
+        }
+
+
+        .page-title {
+
+            flex: 1;
+
+        }
+
+
+        .page-title h1 {
+
+            margin: 0;
+
+            font-size: 22px;
+
+        }
+
+
+        .page-title p {
+
+            margin: 5px 0 0;
+
+        }
+
+
+        /* =====================================================
+             页面内部导航
+          ===================================================== */
+
+        .analysis-nav {
+
+            display: grid;
+
+            grid-template-columns: repeat(3, 1fr);
+
+            gap: 8px;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .analysis-nav button {
+
+            border: none;
+
+            border-radius: 10px;
+
+            padding: 11px 6px;
+
+            background: #ffffff;
+
+            font-size: 14px;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.05);
+
+        }
+
+
+        .analysis-nav button.active {
+
+            font-weight: 600;
+
+        }
+
+
+        /* =====================================================
+             分析页面 section
+          ===================================================== */
+
+        .analysis-section {
+
+            display: block;
+
+        }
+
+
+        .analysis-section.hidden {
+
+            display: none;
+
+        }
+
+
+        /* =====================================================
+             手机端
+          ===================================================== */
+
+        @media (max-width: 480px) {
+
+            .page-title h1 {
+
+                font-size: 20px;
+
+            }
+
+
+            .analysis-nav button {
+
+                font-size: 13px;
+
+            }
+
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div class="container">
+
+
+        <!-- =====================================================
+          页面标题
+          ====================================================== -->
+
+        <div class="page-header">
+
+
+            <button type="button" class="back-btn" onclick="window.location.href='index.html'" aria-label="返回首页"
+                title="返回首页">
+
+                ←
+
+            </button>
+
+
+            <div class="page-title">
+
+                <h1>
+                    📊 训练统计
+                </h1>
+
+                <p id="today" class="muted">
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+          快捷导航
+          ====================================================== -->
+
+        <div class="analysis-nav">
+
+
+            <button type="button" class="active" onclick="showAnalysisSection('weeklySection', this)">
+
+                📊 每周
+
+            </button>
+
+
+            <button type="button" onclick="showAnalysisSection('monthlySection', this)">
+
+                📅 每月
+
+            </button>
+
+
+            <button type="button" onclick="showAnalysisSection('yearlySection', this)">
+
+                📈 每年
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+          每周
+          ====================================================== -->
+
+        <section id="weeklySection" class="analysis-section">
+
+
+            <!-- ================================
+               本周概况
+               ================================= -->
+
+            <div class="card">
+
+
+                <h2>
+                    📊 本周概况
+                </h2>
+
+
+                <!-- 力量训练 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        力量训练
+                    </span>
+
+                    <strong id="weeklyOverviewWorkouts">
+                        0 次
+                    </strong>
+
+                </div>
+
+
+                <!-- 本周还需力量训练 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        本周还需力量训练
+                    </span>
+
+                    <strong id="weeklyOverviewRemainingStrength">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <!-- 力量训练时间 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        力量训练时间
+                    </span>
+
+                    <strong id="weeklyOverviewStrengthMinutes">
+                        0 分钟
+                    </strong>
+
+                </div>
+
+
+                <!-- 其它运动 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        其它运动
+                    </span>
+
+                    <strong id="weeklyOverviewOtherMinutes">
+                        0 分钟
+                    </strong>
+
+                </div>
+
+
+                <!-- 平均每日步数 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        平均每日步数
+                    </span>
+
+                    <strong id="weeklyOverviewAverageSteps">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <!-- 平均完成度 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        平均完成度
+                    </span>
+
+                    <strong id="weeklyOverviewAverageCompletion">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <!-- 最高完成度 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        最高完成度
+                    </span>
+
+                    <strong id="weeklyOverviewBestCompletion">
+                        —
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+               本周运动趋势
+               ================================================== -->
+
+            <div class="card">
+
+
+                <h2>
+                    📊 本周运动趋势
+                </h2>
+
+
+                <div class="muted">
+
+                    按周一至周日查看本周的力量训练、
+                    其它运动和每日步数。
+
+                </div>
+
+
+
+                <!-- ================================
+                    力量训练
+                    ================================= -->
+
+                <div class="chart-block">
+
+
+                    <h3>
+                        🏋️ 力量训练
+                    </h3>
+
+
+                    <div class="chart-container">
+
+                        <canvas id="weeklyStrengthChart">
+                        </canvas>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ================================
+                    其它运动
+                    ================================= -->
+
+                <div class="chart-block">
+
+
+                    <h3>
+                        🏃 其它运动
+                    </h3>
+
+
+                    <div class="chart-container">
+
+                        <canvas id="weeklyOtherChart">
+                        </canvas>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ================================
+                    每日步数
+                    ================================= -->
+
+                <div class="chart-block">
+
+
+                    <h3>
+                        👟 每日步数
+                    </h3>
+
+
+                    <div class="chart-container">
+
+                        <canvas id="weeklyStepsChart">
+                        </canvas>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =====================================================
+          每月
+          ====================================================== -->
+
+        <section id="monthlySection" class="analysis-section hidden">
+
+
+            <!-- ================================
+               本月概况
+               ================================= -->
+
+            <div class="card">
+
+
+                <h2>
+                    📅 本月概况
+                </h2>
+
+
+                <!-- 力量训练 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        力量训练
+                    </span>
+
+                    <strong id="monthlyOverviewWorkouts">
+                        0 次
+                    </strong>
+
+                </div>
+
+
+                <!-- 力量训练时间 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        力量训练时间
+                    </span>
+
+                    <strong id="monthlyOverviewStrengthMinutes">
+                        0 分钟
+                    </strong>
+
+                </div>
+
+
+                <!-- 其它运动 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        其它运动
+                    </span>
+
+                    <strong id="monthlyOverviewOtherMinutes">
+                        0 分钟
+                    </strong>
+
+                </div>
+
+
+                <!-- 平均每日步数 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        平均每日步数
+                    </span>
+
+                    <strong id="monthlyOverviewAverageSteps">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <!-- 平均完成度 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        平均完成度
+                    </span>
+
+                    <strong id="monthlyOverviewAverageCompletion">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <!-- 最高完成度 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        最高完成度
+                    </span>
+
+                    <strong id="monthlyOverviewBestCompletion">
+                        —
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+               本月运动趋势
+               ================================================== -->
+
+            <div class="card">
+
+
+                <h2>
+                    📊 本月运动趋势
+                </h2>
+
+
+                <div class="muted">
+
+                    按每天查看本月的力量训练、
+                    其它运动和每日步数。
+
+                </div>
+
+
+
+                <!-- ================================
+                    力量训练
+                    ================================= -->
+
+                <div class="chart-block">
+
+
+                    <h3>
+                        🏋️ 力量训练
+                    </h3>
+
+
+                    <div class="chart-container">
+
+                        <canvas id="monthlyStrengthChart">
+                        </canvas>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ================================
+                    其它运动
+                    ================================= -->
+
+                <div class="chart-block">
+
+
+                    <h3>
+                        🏃 其它运动
+                    </h3>
+
+
+                    <div class="chart-container">
+
+                        <canvas id="monthlyOtherChart">
+                        </canvas>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ================================
+                    每日步数
+                    ================================= -->
+
+                <div class="chart-block">
+
+
+                    <h3>
+                        👟 每日步数
+                    </h3>
+
+
+                    <div class="chart-container">
+
+                        <canvas id="monthlyStepsChart">
+                        </canvas>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =====================================================
+          每年
+          ====================================================== -->
+
+        <section id="yearlySection" class="analysis-section hidden">
+
+
+            <!-- ================================
+               年份选择
+               ================================= -->
+
+            <div class="card">
+
+
+                <h2>
+                    📅 年度趋势
+                </h2>
+
+
+                <label>
+                    查看年份
+                </label>
+
+
+                <select id="trendYearSelect" class="note" onchange="updateYearlyCharts()">
+                </select>
+
+
+            </div>
+
+
+
+            <!-- ================================
+               年度概况
+               ================================= -->
+
+            <div class="card">
+
+
+                <h2>
+                    📊 年度概况
+                </h2>
+
+
+                <!-- 力量训练 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        力量训练
+                    </span>
+
+                    <strong id="totalWorkouts">
+                        0 次
+                    </strong>
+
+                </div>
+
+
+                <!-- 力量训练时间 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        力量训练时间
+                    </span>
+
+                    <strong id="totalMinutes">
+                        0 分钟
+                    </strong>
+
+                </div>
+
+
+                <!-- 其它运动 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        其它运动
+                    </span>
+
+                    <strong id="yearOtherMinutes">
+                        0 分钟
+                    </strong>
+
+                </div>
+
+
+                <!-- 平均每日步数 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        平均每日步数
+                    </span>
+
+                    <strong id="yearAverageSteps">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <!-- 平均完成度 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        平均完成度
+                    </span>
+
+                    <strong id="totalAverage">
+                        —
+                    </strong>
+
+                </div>
+
+
+                <!-- 最高完成度 -->
+
+                <div class="trend-row">
+
+                    <span>
+                        最高完成度
+                    </span>
+
+                    <strong id="bestCompletion">
+                        —
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+               年度力量训练
+               ================================================== -->
+
+            <div class="card">
+
+
+                <h2>
+                    🏋️ 年度力量训练
+                </h2>
+
+
+                <div class="chart-container">
+
+                    <canvas id="yearlyStrengthChart">
+                    </canvas>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+               年度其它运动
+               ================================================== -->
+
+            <div class="card">
+
+
+                <h2>
+                    🏃 年度其它运动
+                </h2>
+
+
+                <div class="chart-container">
+
+                    <canvas id="yearlyOtherChart">
+                    </canvas>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+               年度步数
+               ================================================== -->
+
+            <div class="card">
+
+
+                <h2>
+                    👟 年度平均每日步数
+                </h2>
+
+
+                <div class="chart-container">
+
+                    <canvas id="yearlyStepsChart">
+                    </canvas>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =====================================================
+          页面底部
+          ====================================================== -->
+
+        <div class="footer">
+
+            私人哑铃增肌 / 塑形训练系统
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+     JavaScript
+     ====================================================== -->
+
+    <script src="js/config.js"></script>
+
+    <script src="js/api.js"></script>
+
+    <script src="js/plan.js"></script>
+
+    <script src="js/workout.js"></script>
+
+    <script src="js/metrics.js"></script>
+
+
+    <!-- Chart.js -->
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+    <!-- 统计逻辑 -->
+
+    <script src="js/analysis.js"></script>
+
+
+    <script src="js/other-activities.js"></script>
+
+    <script src="js/ai-plan.js"></script>
+
+    <script src="js/app.js"></script>
+
+
+
+    <!-- =====================================================
+     统计页面专用导航
+     ====================================================== -->
+
+    <script>
+
+        function showAnalysisSection(sectionId, button) {
+
+            const sections = document.querySelectorAll(".analysis-section");
+
+            sections.forEach((section) => {
+
+                section.classList.add("hidden");
+
+            });
+
+
+            const target = document.getElementById(sectionId);
+
+            if (target) {
+
+                target.classList.remove("hidden");
+
+            }
+
+
+            const buttons = document.querySelectorAll(".analysis-nav button");
+
+            buttons.forEach((item) => {
+
+                item.classList.remove("active");
+
+            });
+
+
+            if (button) {
+
+                button.classList.add("active");
+
+            }
+
+
+            /* =================================================
+               切换到不同统计页面时重新刷新对应内容
+            ================================================= */
+
+            if (sectionId === "weeklySection") {
+
+                if (typeof updateWeeklyCharts === "function") {
+
+                    updateWeeklyCharts();
+
+                }
+
+            }
+
+
+            if (sectionId === "monthlySection") {
+
+                if (typeof updateMonthlyAnalysis === "function") {
+
+                    updateMonthlyAnalysis();
+
+                }
+
+            }
+
+
+            if (sectionId === "yearlySection") {
+
+                if (typeof updateTrendAnalysis === "function") {
+
+                    updateTrendAnalysis();
+
+                }
+
+            }
+
+        }
+
+
+        /* =====================================================
+           页面初始化
+        ===================================================== */
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+            /*
+             * 默认显示每周
+             */
+
+            const weeklyButton =
+                document.querySelector(".analysis-nav button");
+
+            if (typeof updateWeeklyCharts === "function") {
+
+                updateWeeklyCharts();
+
+            }
+
+            if (weeklyButton) {
+
+                weeklyButton.classList.add("active");
+
+            }
+
+        });
+
+    </script>
+
+
+</body>
+
+</html>

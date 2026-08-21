@@ -22,24 +22,33 @@
      <div class="container">
 
 
-          <!-- ================================
+          <!-- =====================================================
           页面标题
-          ================================= -->
+          ====================================================== -->
 
           <div class="header">
 
-               <h1>
-                    🏋️ 我的私人哑铃训练
-               </h1>
+               <div class="header-top">
 
-               <p id="today"></p>
+                    <div class="header-title">
+
+                         <h1>
+                              🏋️ 我的私人哑铃训练
+                         </h1>
+
+                         <p id="today"></p>
+
+                    </div>
+
+               </div>
 
           </div>
 
 
-          <!-- ================================
+
+          <!-- =====================================================
           数据库连接状态
-          ================================= -->
+          ====================================================== -->
 
           <div id="connectionStatus" class="status">
 
@@ -48,9 +57,10 @@
           </div>
 
 
-          <!-- ================================
+
+          <!-- =====================================================
           复制训练计划
-          ================================= -->
+          ====================================================== -->
 
           <div id="copyPlanStatus" class="status" onclick="copyLastTrainingPlan()" style="cursor:pointer;">
 
@@ -59,12 +69,61 @@
           </div>
 
 
-          <!-- ================================
-          标签
-          ================================= -->
+
+          <!-- =====================================================
+          独立页面快捷入口
+          ====================================================== -->
+
+          <div class="page-shortcuts">
+
+
+               <!-- ================================
+               训练统计
+               ================================= -->
+
+               <a href="analysis.html" class="page-shortcut">
+
+                    📊 训练统计
+
+               </a>
+
+
+               <!-- ================================
+               历史记录
+               ================================= -->
+
+               <a href="history.html" class="page-shortcut">
+
+                    📚 历史记录
+
+               </a>
+
+
+               <!-- ================================
+               设置
+               ================================= -->
+
+               <a href="settings.html" class="page-shortcut">
+
+                    ⚙️ 设置
+
+               </a>
+
+
+          </div>
+
+
+
+          <!-- =====================================================
+          首页 Tab
+          ====================================================== -->
 
           <div class="tabs">
 
+
+               <!-- ================================
+               今日
+               ================================= -->
 
                <button class="tab active" onclick="showTab('todayTab',this)">
 
@@ -73,6 +132,10 @@
                </button>
 
 
+               <!-- ================================
+               其它运动
+               ================================= -->
+
                <button class="tab" onclick="showTab('otherActivitiesTab',this)">
 
                     🏃 其它运动
@@ -80,33 +143,9 @@
                </button>
 
 
-               <button class="tab" onclick="showTab('weeklyTab',this)">
-
-                    每周
-
-               </button>
-
-
-               <button class="tab" onclick="showTab('monthlyTab',this)">
-
-                    每月
-
-               </button>
-
-
-               <button class="tab" onclick="showTab('trendTab',this)">
-
-                    每年
-
-               </button>
-
-
-               <button class="tab" onclick="showTab('historyTab',this)">
-
-                    历史
-
-               </button>
-
+               <!-- ================================
+               身体数据
+               ================================= -->
 
                <button class="tab" onclick="showTab('metricsTab',this)">
 
@@ -114,6 +153,10 @@
 
                </button>
 
+
+               <!-- ================================
+               AI教练
+               ================================= -->
 
                <button class="tab" onclick="showTab('aiTab',this)">
 
@@ -123,6 +166,7 @@
 
 
           </div>
+
 
 
           <!-- =====================================================
@@ -147,17 +191,16 @@
                </div>
 
 
+
                <!-- ================================
                训练感受
                ================================= -->
 
                <div class="card">
 
-
                     <h2>
                          📝 训练感受
                     </h2>
-
 
                     <div class="muted">
 
@@ -166,13 +209,11 @@
 
                     </div>
 
-
                     <textarea id="bodyNote" class="note" rows="4"
                          placeholder="例如：左手还是比较弱、肩推左侧明显更吃力、腰没有不舒服、臀部发力明显……"></textarea>
 
-
-                    <br><br>
-
+                    <br>
+                    <br>
 
                     <button id="saveButton" class="primary-btn" onclick="finishWorkout()" disabled>
 
@@ -180,9 +221,7 @@
 
                     </button>
 
-
                </div>
-
 
           </section>
 
@@ -190,7 +229,6 @@
 
           <!-- =====================================================
           其它运动
-          这里只负责录入其它运动和每日步数
           ====================================================== -->
 
           <section id="otherActivitiesTab" class="hidden">
@@ -202,11 +240,9 @@
 
                <div class="card">
 
-
                     <h2>
                          🏃 记录其它运动
                     </h2>
-
 
                     <div class="muted">
 
@@ -215,22 +251,17 @@
 
                     </div>
 
-
                     <br>
-
 
                     <label>
                          运动日期
                     </label>
 
-
                     <input id="otherActivityDate" class="note" type="date">
-
 
                     <label>
                          运动类型
                     </label>
-
 
                     <select id="otherActivityType" class="note">
 
@@ -238,11 +269,9 @@
                               八部金刚功
                          </option>
 
-
                          <option value="跑步">
                               跑步
                          </option>
-
 
                          <option value="其它">
                               其它
@@ -250,25 +279,21 @@
 
                     </select>
 
-
                     <label>
                          运动时间（分钟）
                     </label>
 
-
                     <input id="otherActivityDuration" class="note" type="number" min="1" max="1440" step="1"
                          placeholder="例如 30">
 
-
-                    <br><br>
-
+                    <br>
+                    <br>
 
                     <button type="button" class="primary-btn" onclick="saveOtherActivity()">
 
                          💾 保存运动
 
                     </button>
-
 
                </div>
 
@@ -280,11 +305,9 @@
 
                <div class="card">
 
-
                     <h2>
                          👟 每日步数
                     </h2>
-
 
                     <div class="muted">
 
@@ -293,29 +316,23 @@
 
                     </div>
 
-
                     <br>
-
 
                     <label>
                          日期
                     </label>
 
-
                     <input id="dailyStepsDate" class="note" type="date">
-
 
                     <label>
                          今日步数
                     </label>
 
-
                     <input id="dailyStepsInput" class="note" type="number" min="0" max="200000" step="1"
                          placeholder="例如 8000">
 
-
-                    <br><br>
-
+                    <br>
+                    <br>
 
                     <button type="button" class="primary-btn" onclick="saveDailySteps()">
 
@@ -323,687 +340,7 @@
 
                     </button>
 
-
                </div>
-
-
-          </section>
-
-
-
-          <!-- =====================================================
-          每周
-          ====================================================== -->
-
-          <section id="weeklyTab" class="hidden">
-
-
-               <!-- ================================
-               本周概况
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         📊 本周概况
-                    </h2>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              力量训练
-                         </span>
-
-                         <strong id="weeklyOverviewWorkouts">
-                              0 次
-                         </strong>
-
-                    </div>
-
-                    <!-- 本周还需力量训练 -->
-
-                    <div class="trend-row">
-
-                         <span>
-
-                              本周还需力量训练
-
-                         </span>
-
-                         <strong id="weeklyOverviewRemainingStrength">
-
-                              —
-
-                         </strong>
-
-                    </div>
-
-                    <div class="trend-row">
-
-                         <span>
-                              力量训练时间
-                         </span>
-
-                         <strong id="weeklyOverviewStrengthMinutes">
-                              0 分钟
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              其它运动
-                         </span>
-
-                         <strong id="weeklyOverviewOtherMinutes">
-                              0 分钟
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              平均每日步数
-                         </span>
-
-                         <strong id="weeklyOverviewAverageSteps">
-                              —
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              平均完成度
-                         </span>
-
-                         <strong id="weeklyOverviewAverageCompletion">
-                              —
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              最高完成度
-                         </span>
-
-                         <strong id="weeklyOverviewBestCompletion">
-                              —
-                         </strong>
-
-                    </div>
-
-               </div>
-
-
-
-               <!-- ================================
-               本周趋势图
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         📊 本周运动趋势
-                    </h2>
-
-
-                    <div class="muted">
-
-                         按周一至周日查看本周的力量训练、其它运动和每日步数。
-
-                    </div>
-
-
-                    <!-- 力量训练 -->
-
-                    <div class="chart-block">
-
-
-                         <h3>
-                              🏋️ 力量训练
-                         </h3>
-
-
-                         <div class="chart-container">
-
-                              <canvas id="weeklyStrengthChart"></canvas>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <!-- 其它运动 -->
-
-                    <div class="chart-block">
-
-
-                         <h3>
-                              🏃 其它运动
-                         </h3>
-
-
-                         <div class="chart-container">
-
-                              <canvas id="weeklyOtherChart"></canvas>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <!-- 步数 -->
-
-                    <div class="chart-block">
-
-
-                         <h3>
-                              👟 每日步数
-                         </h3>
-
-
-                         <div class="chart-container">
-
-                              <canvas id="weeklyStepsChart"></canvas>
-
-                         </div>
-
-
-                    </div>
-
-
-               </div>
-
-
-          </section>
-
-
-
-          <!-- =====================================================
-          每月
-          ====================================================== -->
-
-          <section id="monthlyTab" class="hidden">
-
-
-               <!-- ================================
-               本月概况
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         📊 本月概况
-                    </h2>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              力量训练
-                         </span>
-
-                         <strong id="monthlyOverviewWorkouts">
-                              0 次
-                         </strong>
-
-                    </div>
-
-                    <div class="trend-row">
-
-                         <span>
-                              力量训练时间
-                         </span>
-
-                         <strong id="monthlyOverviewStrengthMinutes">
-                              0 分钟
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              其它运动
-                         </span>
-
-                         <strong id="monthlyOverviewOtherMinutes">
-                              0 分钟
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              平均每日步数
-                         </span>
-
-                         <strong id="monthlyOverviewAverageSteps">
-                              —
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              平均完成度
-                         </span>
-
-                         <strong id="monthlyOverviewAverageCompletion">
-                              —
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              最高完成度
-                         </span>
-
-                         <strong id="monthlyOverviewBestCompletion">
-                              —
-                         </strong>
-
-                    </div>
-
-
-               </div>
-
-
-
-               <!-- ================================
-               本月趋势图
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         📊 本月运动趋势
-                    </h2>
-
-
-                    <div class="muted">
-
-                         按每天查看本月的力量训练、其它运动和每日步数。
-
-                    </div>
-
-
-                    <div class="chart-block">
-
-
-                         <h3>
-                              🏋️ 力量训练
-                         </h3>
-
-
-                         <div class="chart-container">
-
-                              <canvas id="monthlyStrengthChart"></canvas>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <div class="chart-block">
-
-
-                         <h3>
-                              🏃 其它运动
-                         </h3>
-
-
-                         <div class="chart-container">
-
-                              <canvas id="monthlyOtherChart"></canvas>
-
-                         </div>
-
-
-                    </div>
-
-
-                    <div class="chart-block">
-
-
-                         <h3>
-                              👟 每日步数
-                         </h3>
-
-
-                         <div class="chart-container">
-
-                              <canvas id="monthlyStepsChart"></canvas>
-
-                         </div>
-
-
-                    </div>
-
-
-               </div>
-
-
-          </section>
-
-
-
-          <!-- =====================================================
-          每年
-          ====================================================== -->
-
-          <section id="trendTab" class="hidden">
-
-
-               <!-- ================================
-               年份选择
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         📅 年度趋势
-                    </h2>
-
-
-                    <label>
-                         查看年份
-                    </label>
-
-
-                    <select id="trendYearSelect" class="note" onchange="updateYearlyCharts()">
-                    </select>
-
-
-               </div>
-
-
-
-               <!-- ================================
-               年度概况
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         📊 年度概况
-                    </h2>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              力量训练
-                         </span>
-
-                         <strong id="totalWorkouts">
-                              0 次
-                         </strong>
-
-                    </div>
-
-                    <div class="trend-row">
-
-                         <span>
-                              力量训练时间
-                         </span>
-
-                         <strong id="totalMinutes">
-                              0 分钟
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              其它运动
-                         </span>
-
-                         <strong id="yearOtherMinutes">
-                              0 分钟
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              平均每日步数
-                         </span>
-
-                         <strong id="yearAverageSteps">
-                              —
-                         </strong>
-
-                    </div>
-
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              平均完成度
-                         </span>
-
-                         <strong id="totalAverage">
-                              —
-                         </strong>
-
-                    </div>
-
-
-                    <div class="trend-row">
-
-                         <span>
-                              最高完成度
-                         </span>
-
-                         <strong id="bestCompletion">
-                              —
-                         </strong>
-
-                    </div>
-
-
-               </div>
-
-
-
-               <!-- ================================
-               年度力量训练
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         🏋️ 年度力量训练
-                    </h2>
-
-
-                    <div class="chart-container">
-
-                         <canvas id="yearlyStrengthChart"></canvas>
-
-                    </div>
-
-
-               </div>
-
-
-
-               <!-- ================================
-               年度其它运动
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         🏃 年度其它运动
-                    </h2>
-
-
-                    <div class="chart-container">
-
-                         <canvas id="yearlyOtherChart"></canvas>
-
-                    </div>
-
-
-               </div>
-
-
-
-               <!-- ================================
-               年度步数
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         👟 年度平均每日步数
-                    </h2>
-
-
-                    <div class="chart-container">
-
-                         <canvas id="yearlyStepsChart"></canvas>
-
-                    </div>
-
-
-               </div>
-
-
-          </section>
-
-
-
-          <!-- =====================================================
-          历史
-          现在统一包含三种历史记录
-          ====================================================== -->
-
-          <section id="historyTab" class="hidden">
-
-
-               <!-- ================================
-               ① 力量训练历史
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         🏋️ 力量训练历史
-                    </h2>
-
-
-                    <div id="historyList">
-
-
-                         <div class="muted">
-
-                              正在读取力量训练历史……
-
-                         </div>
-
-
-                    </div>
-
-
-               </div>
-
-
-
-               <!-- ================================
-               ② 其它运动历史
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         🏃 其它运动历史
-                    </h2>
-
-
-                    <div id="otherActivityList">
-
-
-                         <div class="muted">
-
-                              正在读取其它运动……
-
-                         </div>
-
-
-                    </div>
-
-
-               </div>
-
-
-
-               <!-- ================================
-               ③ 步数历史
-               ================================= -->
-
-               <div class="card">
-
-
-                    <h2>
-                         👟 步数历史
-                    </h2>
-
-
-                    <div id="dailyStepsHistory">
-
-
-                         <div class="muted">
-
-                              正在读取步数……
-
-                         </div>
-
-
-                    </div>
-
-
-               </div>
-
 
           </section>
 
@@ -1022,11 +359,9 @@
 
                <div class="card">
 
-
                     <h2>
                          📏 身体数据
                     </h2>
-
 
                     <div class="muted">
 
@@ -1035,51 +370,40 @@
 
                     </div>
 
-
                     <br>
-
 
                     <label>
                          体重 kg
                     </label>
 
-
                     <input id="metricWeight" class="note" type="number" step="0.1" min="0" placeholder="例如 52.0">
-
 
                     <label>
                          腰围 cm
                     </label>
 
-
                     <input id="metricWaist" class="note" type="number" step="0.1" min="0" placeholder="例如 68.0">
-
 
                     <label>
                          臀围 cm
                     </label>
 
-
                     <input id="metricHip" class="note" type="number" step="0.1" min="0" placeholder="例如 90.0">
-
 
                     <label>
                          身体备注
                     </label>
 
-
                     <textarea id="metricNote" class="note" placeholder="例如：腰腹感觉更紧实，臀部训练后有酸胀感……"></textarea>
 
-
-                    <br><br>
-
+                    <br>
+                    <br>
 
                     <button class="primary-btn" onclick="saveBodyMetrics()">
 
                          保存今天身体数据
 
                     </button>
-
 
                </div>
 
@@ -1091,11 +415,9 @@
 
                <div class="card">
 
-
                     <h2>
                          📈 最近变化
                     </h2>
-
 
                     <div id="metricsTrend" class="analysis">
 
@@ -1103,7 +425,6 @@
                          这里会显示你的变化趋势。
 
                     </div>
-
 
                </div>
 
@@ -1115,11 +436,9 @@
 
                <div class="card">
 
-
                     <h2>
                          📅 本月变化
                     </h2>
-
 
                     <div id="metricsMonthly" class="analysis">
 
@@ -1127,7 +446,6 @@
                          这里会显示月度变化。
 
                     </div>
-
 
                </div>
 
@@ -1139,11 +457,9 @@
 
                <div class="card">
 
-
                     <h2>
                          📊 长期变化
                     </h2>
-
 
                     <div id="metricsLongTerm" class="analysis">
 
@@ -1151,7 +467,6 @@
                          这里会显示长期变化。
 
                     </div>
-
 
                </div>
 
@@ -1163,14 +478,11 @@
 
                <div class="card">
 
-
                     <h2>
                          📚 最近身体记录
                     </h2>
 
-
                     <div id="metricsHistory">
-
 
                          <div class="muted">
 
@@ -1178,9 +490,7 @@
 
                          </div>
 
-
                     </div>
-
 
                </div>
 
@@ -1202,11 +512,9 @@
 
                <div class="card">
 
-
                     <h2>
                          🤖 AI私人教练
                     </h2>
-
 
                     <div class="muted">
 
@@ -1216,33 +524,29 @@
 
                     </div>
 
-
                </div>
 
 
 
                <!-- ================================
-               第一步
+               第一步：生成训练分析
                ================================= -->
 
                <div class="card">
-
 
                     <h2>
                          🧠 第一步：生成训练分析
                     </h2>
 
-
                     <div class="muted">
 
                          网站会自动读取你的训练历史，
+                         并根据设置中的 AI 分析要求，
                          生成一段完整的训练分析提示词。
 
                     </div>
 
-
                     <br>
-
 
                     <button class="primary-btn" onclick="generateAITrainingPrompt()">
 
@@ -1250,15 +554,12 @@
 
                     </button>
 
-
-                    <br><br>
-
+                    <br>
+                    <br>
 
                     <textarea id="aiPrompt" class="note" rows="14" placeholder="点击上面的按钮后，这里会生成训练历史分析提示词……"></textarea>
 
-
                     <br>
-
 
                     <button class="primary-btn" onclick="copyAIPrompt()">
 
@@ -1266,22 +567,19 @@
 
                     </button>
 
-
                </div>
 
 
 
                <!-- ================================
-               第二步
+               第二步：导入训练计划
                ================================= -->
 
                <div class="card">
 
-
                     <h2>
                          📥 第二步：导入 ChatGPT 生成的训练
                     </h2>
-
 
                     <div class="muted">
 
@@ -1290,22 +588,17 @@
 
                     </div>
 
-
                     <br>
-
 
                     <textarea id="aiPlanInput" class="note" rows="14" placeholder="把 ChatGPT 生成的训练计划粘贴到这里……"></textarea>
 
-
                     <br>
-
 
                     <button class="primary-btn" onclick="importAITrainingPlan()">
 
                          ⬇️ 导入下一次训练计划
 
                     </button>
-
 
                </div>
 
@@ -1317,85 +610,96 @@
 
                <div class="card">
 
-
                     <h2>
                          🔄 AI训练流程
                     </h2>
 
-
                     <div class="analysis">
-
 
                          <strong>
                               ① 完成训练
                          </strong>
 
-
                          <br>
-
 
                          记录每个动作的完成情况和训练难度，
                          并填写训练感受。
 
-
-                         <br><br>
-
+                         <br>
+                         <br>
 
                          <strong>
                               ② 生成训练分析
                          </strong>
 
-
                          <br>
 
+                         网站自动整理你的训练历史数据，
+                         并结合设置中的 AI 分析要求。
 
-                         网站自动整理你的历史训练数据。
-
-
-                         <br><br>
-
+                         <br>
+                         <br>
 
                          <strong>
                               ③ 交给 ChatGPT
                          </strong>
 
-
                          <br>
-
 
                          ChatGPT 根据真实历史决定下一次训练。
 
-
-                         <br><br>
-
+                         <br>
+                         <br>
 
                          <strong>
                               ④ 导入训练计划
                          </strong>
 
-
                          <br>
-
 
                          网站自动写入 Supabase。
 
-
-                         <br><br>
-
+                         <br>
+                         <br>
 
                          <strong>
                               ⑤ 开始下一次训练
                          </strong>
 
-
                          <br>
-
 
                          首页自动显示新的训练计划。
 
+                    </div>
+
+               </div>
+
+
+
+               <!-- ================================
+               AI设置入口
+               ================================= -->
+
+               <div class="card">
+
+                    <h2>
+                         ⚙️ AI设置
+                    </h2>
+
+                    <div class="muted">
+
+                         可以在设置页面修改每周训练目标，
+                         以及 AI 生成训练分析时需要重点关注的内容。
 
                     </div>
 
+                    <br>
+
+                    <button type="button" class="secondary-btn" onclick="window.location.href='settings.html'">
+
+                         ⚙️ 打开设置
+
+                    </button>
 
                </div>
 
@@ -1440,6 +744,8 @@
      <script src="js/analysis.js"></script>
 
      <script src="js/other-activities.js"></script>
+
+     <script src="js/settings.js"></script>
 
      <script src="js/ai-plan.js"></script>
 

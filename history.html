@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+    <meta name="theme-color" content="#f5f5f5">
+
+    <title>历史记录 - 我的私人哑铃训练</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+
+    <style>
+        /* =====================================================
+           历史页面顶部
+           与 analysis.html 完全统一
+        ===================================================== */
+
+        .page-header {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .back-btn {
+
+            flex-shrink: 0;
+
+            width: 42px;
+
+            height: 42px;
+
+            border: none;
+
+            border-radius: 12px;
+
+            background: #ffffff;
+
+            font-size: 20px;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.08);
+
+            transition:
+                transform 0.15s ease,
+                box-shadow 0.15s ease;
+
+        }
+
+
+        .back-btn:active {
+
+            transform: scale(0.94);
+
+        }
+
+
+        .page-title {
+
+            flex: 1;
+
+        }
+
+
+        .page-title h1 {
+
+            margin: 0;
+
+            font-size: 22px;
+
+        }
+
+
+        .page-title p {
+
+            margin: 5px 0 0;
+
+        }
+
+
+        /* =====================================================
+           历史分类导航
+        ===================================================== */
+
+        .history-nav {
+
+            display: grid;
+
+            grid-template-columns: repeat(3, 1fr);
+
+            gap: 8px;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .history-nav button {
+
+            border: none;
+
+            border-radius: 10px;
+
+            padding: 11px 6px;
+
+            background: #ffffff;
+
+            font-size: 14px;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.05);
+
+            font-family: inherit;
+
+        }
+
+
+        .history-nav button.active {
+
+            font-weight: 600;
+
+        }
+
+
+        .history-section {
+
+            display: block;
+
+        }
+
+
+        .history-section.hidden {
+
+            display: none;
+
+        }
+
+
+        /* =====================================================
+           手机端
+        ===================================================== */
+
+        @media (max-width: 480px) {
+
+            .page-title h1 {
+
+                font-size: 20px;
+
+            }
+
+
+            .history-nav button {
+
+                font-size: 13px;
+
+            }
+
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div class="container">
+
+
+        <!-- =====================================================
+             页面标题
+        ====================================================== -->
+
+        <div class="page-header">
+
+
+            <button type="button" class="back-btn" onclick="window.location.href='index.html'" aria-label="返回首页"
+                title="返回首页">
+
+                ←
+
+            </button>
+
+
+            <div class="page-title">
+
+                <h1>
+                    📚 历史记录
+                </h1>
+
+                <p id="today" class="muted"></p>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+             历史分类导航
+        ====================================================== -->
+
+        <div class="history-nav">
+
+
+            <button type="button" class="active" onclick="showHistorySection('workoutHistorySection', this)">
+
+                🏋️ 力量训练
+
+            </button>
+
+
+            <button type="button" onclick="showHistorySection('otherActivityHistorySection', this)">
+
+                🏃 其它运动
+
+            </button>
+
+
+            <button type="button" onclick="showHistorySection('stepsHistorySection', this)">
+
+                👟 步数
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+             力量训练历史
+        ====================================================== -->
+
+        <section id="workoutHistorySection" class="history-section">
+
+
+            <div class="card">
+
+
+                <h2>
+                    🏋️ 力量训练历史
+                </h2>
+
+
+                <div id="historyList">
+
+                    <div class="muted">
+
+                        正在读取力量训练历史……
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =====================================================
+             其它运动历史
+        ====================================================== -->
+
+        <section id="otherActivityHistorySection" class="history-section hidden">
+
+
+            <div class="card">
+
+
+                <h2>
+                    🏃 其它运动历史
+                </h2>
+
+
+                <div id="otherActivityList">
+
+                    <div class="muted">
+
+                        正在读取其它运动……
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =====================================================
+             步数历史
+        ====================================================== -->
+
+        <section id="stepsHistorySection" class="history-section hidden">
+
+
+            <div class="card">
+
+
+                <h2>
+                    👟 步数历史
+                </h2>
+
+
+                <div id="dailyStepsHistory">
+
+                    <div class="muted">
+
+                        正在读取步数……
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =====================================================
+             身体数据历史
+             ====================================================== -->
+
+        <section id="metricsHistorySection" class="history-section hidden">
+
+
+            <div class="card">
+
+
+                <h2>
+                    📏 身体数据历史
+                </h2>
+
+
+                <div id="metricsHistory">
+
+                    <div class="muted">
+
+                        正在读取身体数据……
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =====================================================
+             页面底部
+        ====================================================== -->
+
+        <div class="footer">
+
+            私人哑铃增肌 / 塑形训练系统
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         JavaScript
+    ====================================================== -->
+
+    <script src="js/config.js"></script>
+
+    <script src="js/api.js"></script>
+
+    <script src="js/plan.js"></script>
+
+    <script src="js/workout.js"></script>
+
+    <script src="js/metrics.js"></script>
+
+    <script src="js/other-activities.js"></script>
+
+    <script src="js/ai-plan.js"></script>
+
+    <script src="js/analysis.js"></script>
+
+    <script src="js/app.js"></script>
+
+
+
+    <!-- =====================================================
+         历史页面导航
+    ====================================================== -->
+
+    <script>
+
+        function showHistorySection(sectionId, button) {
+
+            const sections =
+                document.querySelectorAll(".history-section");
+
+            sections.forEach(function (section) {
+
+                section.classList.add("hidden");
+
+            });
+
+
+            const target =
+                document.getElementById(sectionId);
+
+            if (target) {
+
+                target.classList.remove("hidden");
+
+            }
+
+
+            const buttons =
+                document.querySelectorAll(".history-nav button");
+
+            buttons.forEach(function (item) {
+
+                item.classList.remove("active");
+
+            });
+
+
+            if (button) {
+
+                button.classList.add("active");
+
+            }
+
+        }
+
+
+        /* =====================================================
+           页面初始化
+        ====================================================== */
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const firstButton =
+                    document.querySelector(".history-nav button");
+
+                if (firstButton) {
+
+                    firstButton.classList.add("active");
+
+                }
+
+            }
+        );
+
+    </script>
+
+
+</body>
+
+</html>

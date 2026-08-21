@@ -5,6 +5,18 @@
    + 动作历史读取
 ================================ */
 
+/* =========================================================
+   全局 DOM 工具
+========================================================= */
+
+function setText(id, text) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.textContent = text;
+  }
+}
+
 /* ================================
    状态
 ================================ */
@@ -135,14 +147,6 @@ function saveWeeklyGoal() {
   if (editor) {
     editor.style.display = "none";
   }
-
-  /* ================================
-     立即刷新每周页面
-  ================================ */
-
-  if (typeof updateWeeklyAnalysis === "function") {
-    updateWeeklyAnalysis();
-  }
 }
 
 /* ================================
@@ -216,16 +220,6 @@ function showTab(id, button) {
 
     if (typeof loadOtherActivities === "function") {
       loadOtherActivities();
-    }
-  }
-
-  /* ========================================
-     每周
-  ======================================== */
-
-  if (id === "weeklyTab") {
-    if (typeof updateWeeklyAnalysis === "function") {
-      updateWeeklyAnalysis();
     }
   }
 
@@ -449,14 +443,6 @@ async function loadHistory() {
     }
 
     /* ================================
-       刷新每周分析
-    ================================ */
-
-    if (typeof updateWeeklyAnalysis === "function") {
-      updateWeeklyAnalysis();
-    }
-
-    /* ================================
        刷新每月分析
     ================================ */
 
@@ -626,15 +612,6 @@ async function loadExerciseRecords() {
     console.log("动作历史读取成功：", exerciseRecords.length, "条");
 
     updateTodayStats();
-
-    /*
-      读取完成后，
-      刷新动作进步分析
-    */
-
-    if (typeof updateExerciseProgressAnalysis === "function") {
-      updateExerciseProgressAnalysis();
-    }
   } catch (error) {
     console.error("动作历史读取失败：", error);
 

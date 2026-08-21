@@ -2,34 +2,149 @@
    ai-plan.js
    ChatGPT AI训练计划中转模块
 
-   最终版
+   最终稳定版
 
    核心逻辑：
 
    1. 下一次训练编号
       = workouts 中最近一次已保存训练 + 1
 
-   2. 不依赖 records 是否已经加载。
+   2. AI设置统一从 settings.js
+      的 getAISettings() 获取
 
-   3. AI 只负责：
-      分析历史
-      → 制定下一次训练计划
+   3. 如果设置尚未从 Supabase 加载，
+      生成Prompt前会主动等待 / 加载设置
 
-   4. 网站负责：
-      确定正确 workout_number
-      → 写入 training_plans
-      → 写入 training_plan_exercises
+   4. 最近整次训练：
+      最近5次
 
-   5. 每个动作实际训练难度：
-      easy
-      normal
-      hard
-      incomplete
+   5. 最近动作历史：
+      按动作名称聚合
+      → 同一个动作合并
+      → 最近使用过的动作优先
+      → 每个动作保留最近5次记录
 
-   6. 未完成：
-      completed = false
-      difficulty = null
+   6. 增加：
+      本周训练统计
+      本月训练统计
+      本年训练统计
+
+   7. 最近身体数据：
+      最近10条
+
+   8. AI不限制动作数量。
+
+      热身、激活、主训练、核心、
+      拉伸等都可以根据实际需要安排。
+
+   9. 不把20～25分钟硬编码为绝对限制。
+
+      如果用户设置中有训练时间要求，
+      作为AI要求传递。
+
+   10. 网站自己确定 workout_number。
+
+   11. 每个动作必须包含：
+
+       exercise_name
+       equipment
+       weight_kg
+       reps
+       sets
+       notes
 ================================ */
+
+/* ============================================================
+   工具：安全获取数组
+============================================================ */
+
+function getSafeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+/* ============================================================
+   日期工具
+============================================================ */
+
+function aiPlanParseLocalDate(dateString) {
+  if (!dateString) {
+    return null;
+  }
+
+  const parts = String(dateString).split("-");
+
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+
+  if (
+    !Number.isFinite(year) ||
+    !Number.isFinite(month) ||
+    !Number.isFinite(day)
+  ) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+/* ============================================================
+   当前周一
+============================================================ */
+
+function aiPlanGetCurrentMonday() {
+  const now = new Date();
+
+  const day = now.getDay();
+
+  const diff = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(now);
+
+  monday.setDate(now.getDate() + diff);
+
+  monday.setHours(0, 0, 0, 0);
+
+  return monday;
+}
+
+/* ============================================================
+   当前月份开始
+============================================================ */
+
+function aiPlanGetCurrentMonthStart() {
+  const now = new Date();
+
+  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+}
+
+/* ============================================================
+   当前年份开始
+============================================================ */
+
+function aiPlanGetCurrentYearStart() {
+  const now = new Date();
+
+  return new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+}
+
+/* ============================================================
+   日期是否在范围内
+============================================================ */
+
+function aiPlanDateBetween(dateString, startDate, endDate) {
+  const date = aiPlanParseLocalDate(dateString);
+
+  if (!date) {
+    return false;
+  }
+
+  return date >= startDate && date <= endDate;
+}
 
 /* ============================================================
    获取最近一次已经保存的训练编号
@@ -64,21 +179,6 @@ async function getLatestWorkoutNumberForAI() {
 
 /* ============================================================
    获取下一次训练编号
-
-   与 plan.js 保持完全一致：
-
-   最近一次训练 + 1
-
-   例如：
-
-   没有训练
-   → 第1次
-
-   已完成第5次
-   → 第6次
-
-   即使 training_plans 已经有第6、第7、第8次，
-   下一次仍然是第6次。
 ============================================================ */
 
 async function getNextWorkoutNumber() {
@@ -88,30 +188,398 @@ async function getNextWorkoutNumber() {
 }
 
 /* ============================================================
-   生成给 ChatGPT 的训练分析
+   获取当前AI设置
+
+   ★ 本次重点修复
+
+   settings.js：
+
+   getAISettings()
+
+   是同步读取缓存。
+
+   但是页面初始化时，
+   Supabase 设置是异步加载的。
+
+   所以：
+
+   如果 currentAISettings 还没有加载完成，
+   这里主动等待 loadAISettings()。
+
+   防止：
+
+   数据库设置 = 5
+
+   但AI拿到默认设置 = 3
+============================================================ */
+
+async function getCurrentAISettingsForPrompt() {
+  try {
+    if (typeof getAISettings !== "function") {
+      throw new Error("找不到 getAISettings()。请确认 settings.js 已经加载。");
+    }
+
+    /*
+       如果 settings.js 已经有缓存，
+       直接使用。
+    */
+
+    let settings = getAISettings();
+
+    /*
+       如果 settings.js 当前还是初始缓存，
+       并且 loadAISettings 存在，
+       主动重新读取一次数据库。
+
+       注意：
+
+       不依赖 localStorage。
+    */
+
+    if (typeof loadAISettings === "function") {
+      try {
+        const loaded = await loadAISettings();
+
+        if (loaded && typeof loaded === "object") {
+          settings = loaded;
+        }
+      } catch (loadError) {
+        console.error("AI生成前重新读取设置失败：", loadError);
+
+        throw new Error(
+          "无法从数据库读取当前AI教练设置。\n\n" +
+            (loadError.message || String(loadError)),
+        );
+      }
+    }
+
+    if (!settings || typeof settings !== "object") {
+      throw new Error("getAISettings() 没有返回有效设置。");
+    }
+
+    /*
+       ★ 这里不再使用默认值覆盖真实设置。
+
+       如果没有读取到每周目标，
+       就显示 null，
+       方便发现问题。
+    */
+
+    const weeklyTarget = Number(settings.weekly_strength_target);
+
+    const normalizedSettings = {
+      weekly_strength_target: Number.isFinite(weeklyTarget)
+        ? weeklyTarget
+        : null,
+
+      goals: Array.isArray(settings.goals)
+        ? settings.goals
+            .map((item) => String(item || "").trim())
+            .filter(Boolean)
+        : [],
+
+      focus: String(settings.focus || "").trim(),
+
+      behavior: String(settings.behavior || "").trim(),
+
+      limitations: String(settings.limitations || "").trim(),
+
+      restrictions: String(settings.restrictions || "").trim(),
+    };
+
+    console.log("🤖 AI生成前读取到的最终设置：", normalizedSettings);
+
+    return normalizedSettings;
+  } catch (error) {
+    console.error("读取当前AI设置失败：", error);
+
+    throw new Error(
+      "无法读取当前AI教练设置。\n\n" + (error.message || String(error)),
+    );
+  }
+}
+
+/* ============================================================
+   获取最近5次整次训练
+============================================================ */
+
+function getRecentFiveWorkoutsForAI(history) {
+  return getSafeArray(history)
+    .slice()
+    .sort((a, b) => {
+      const dateA = String(a.workout_date || "");
+
+      const dateB = String(b.workout_date || "");
+
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
+
+      return Number(b.workout_number || 0) - Number(a.workout_number || 0);
+    })
+    .slice(0, 5);
+}
+
+/* ============================================================
+   动作名称标准化
+============================================================ */
+
+function normalizeAIExerciseName(name) {
+  return String(name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[（]/g, "(")
+    .replace(/[）]/g, ")");
+}
+
+/* ============================================================
+   聚合动作历史
+============================================================ */
+
+function buildAIExerciseHistory(exercises, history) {
+  const exerciseList = getSafeArray(exercises);
+
+  const workoutMap = new Map();
+
+  getSafeArray(history).forEach((workout) => {
+    const number = Number(workout.workout_number);
+
+    if (Number.isFinite(number)) {
+      workoutMap.set(number, workout);
+    }
+  });
+
+  const groups = new Map();
+
+  exerciseList.forEach((exercise) => {
+    const name = normalizeAIExerciseName(exercise.exercise_name);
+
+    if (!name) {
+      return;
+    }
+
+    if (!groups.has(name)) {
+      groups.set(name, {
+        exercise_name: name,
+
+        count: 0,
+
+        last_workout_number: null,
+
+        last_workout_date: null,
+
+        recent_records: [],
+      });
+    }
+
+    const group = groups.get(name);
+
+    group.count++;
+
+    const workoutNumber = Number(exercise.workout_number);
+
+    const workout = Number.isFinite(workoutNumber)
+      ? workoutMap.get(workoutNumber)
+      : null;
+
+    const workoutDate =
+      exercise.workout_date ||
+      exercise.record_date ||
+      workout?.workout_date ||
+      null;
+
+    const record = {
+      workout_number: Number.isFinite(workoutNumber) ? workoutNumber : null,
+
+      workout_date: workoutDate,
+
+      exercise_order:
+        exercise.exercise_order !== undefined ? exercise.exercise_order : null,
+
+      exercise_name: name,
+
+      weight_kg: exercise.weight_kg !== undefined ? exercise.weight_kg : null,
+
+      reps: exercise.reps !== undefined ? exercise.reps : null,
+
+      sets: exercise.sets !== undefined ? exercise.sets : null,
+
+      completed: exercise.completed !== undefined ? exercise.completed : null,
+
+      difficulty:
+        exercise.difficulty !== undefined ? exercise.difficulty : null,
+
+      notes: exercise.notes !== undefined ? exercise.notes : null,
+    };
+
+    group.recent_records.push(record);
+
+    const currentNumber = Number.isFinite(workoutNumber)
+      ? workoutNumber
+      : -Infinity;
+
+    const lastNumber = Number.isFinite(group.last_workout_number)
+      ? group.last_workout_number
+      : -Infinity;
+
+    if (currentNumber > lastNumber) {
+      group.last_workout_number = Number.isFinite(workoutNumber)
+        ? workoutNumber
+        : null;
+
+      group.last_workout_date = workoutDate;
+    }
+  });
+
+  const result = Array.from(groups.values());
+
+  result.forEach((group) => {
+    group.recent_records.sort((a, b) => {
+      const numberA = Number(a.workout_number);
+
+      const numberB = Number(b.workout_number);
+
+      if (
+        Number.isFinite(numberA) &&
+        Number.isFinite(numberB) &&
+        numberA !== numberB
+      ) {
+        return numberB - numberA;
+      }
+
+      return String(b.workout_date || "").localeCompare(
+        String(a.workout_date || ""),
+      );
+    });
+
+    /*
+       每个动作只保留最近5次
+    */
+
+    group.recent_records = group.recent_records.slice(0, 5);
+  });
+
+  /*
+     最近使用过的动作优先
+  */
+
+  result.sort((a, b) => {
+    const lastA = Number(a.last_workout_number);
+
+    const lastB = Number(b.last_workout_number);
+
+    if (Number.isFinite(lastA) && Number.isFinite(lastB) && lastA !== lastB) {
+      return lastB - lastA;
+    }
+
+    return b.count - a.count;
+  });
+
+  return result;
+}
+
+/* ============================================================
+   获取周 / 月 / 年训练统计
+============================================================ */
+
+function buildAITrainingSummary(history) {
+  const records = getSafeArray(history);
+
+  const now = new Date();
+
+  const monday = aiPlanGetCurrentMonday();
+
+  const monthStart = aiPlanGetCurrentMonthStart();
+
+  const yearStart = aiPlanGetCurrentYearStart();
+
+  const weekRecords = records.filter((record) =>
+    aiPlanDateBetween(record.workout_date, monday, now),
+  );
+
+  const monthRecords = records.filter((record) =>
+    aiPlanDateBetween(record.workout_date, monthStart, now),
+  );
+
+  const yearRecords = records.filter((record) =>
+    aiPlanDateBetween(record.workout_date, yearStart, now),
+  );
+
+  function calculateStats(list) {
+    const completionValues = list
+      .map((record) => Number(record.completion_percent))
+      .filter((value) => Number.isFinite(value));
+
+    const averageCompletion = completionValues.length
+      ? Math.round(
+          completionValues.reduce((sum, value) => sum + value, 0) /
+            completionValues.length,
+        )
+      : null;
+
+    const totalMinutes = list.reduce(
+      (sum, record) => sum + (Number(record.duration_minutes) || 0),
+      0,
+    );
+
+    const workoutNumbers = list
+      .map((record) => Number(record.workout_number))
+      .filter((value) => Number.isFinite(value));
+
+    return {
+      workouts: list.length,
+
+      total_minutes: totalMinutes,
+
+      average_completion_percent: averageCompletion,
+
+      latest_workout_number: workoutNumbers.length
+        ? Math.max(...workoutNumbers)
+        : null,
+
+      dates: list.map((record) => record.workout_date).filter(Boolean),
+    };
+  }
+
+  return {
+    this_week: calculateStats(weekRecords),
+
+    this_month: calculateStats(monthRecords),
+
+    this_year: calculateStats(yearRecords),
+  };
+}
+
+/* ============================================================
+   生成AI训练Prompt
 ============================================================ */
 
 async function generateAITrainingPrompt() {
   try {
+    console.log("🤖 开始生成AI训练分析……");
+
     /* ========================================================
-       1. 网站直接从数据库确定下一次训练编号
+       1. 先读取当前真实AI设置
+
+       ★ 这里必须在最前面
+
+       防止设置页面异步读取尚未完成。
+    ======================================================== */
+
+    const aiSettings = await getCurrentAISettingsForPrompt();
+
+    console.log("🤖 当前AI教练设置：", aiSettings);
+
+    /* ========================================================
+       2. 获取下一次训练编号
     ======================================================== */
 
     const nextNumber = await getNextWorkoutNumber();
 
-    console.log("AI计划下一次训练编号：", nextNumber);
+    console.log("🤖 下一次训练编号：", nextNumber);
 
     /* ========================================================
-       2. 获取已经加载好的历史数据
-
-       records：
-       整次训练历史
-
-       exerciseRecords：
-       每个动作历史
-
-       bodyMetricsRecords：
-       身体数据历史
+       3. 获取历史数据
     ======================================================== */
 
     const history =
@@ -129,198 +597,310 @@ async function generateAITrainingPrompt() {
         : [];
 
     /* ========================================================
-       3. 只把最近的数据给 AI
-
-       避免提示词无限增长。
+       4. 最近5次整次训练
     ======================================================== */
 
-    const recentWorkouts = history.slice(0, 10);
-
-    const recentExercises = exercises.slice(0, 40);
-
-    const recentBodyData = bodyData.slice(0, 10);
+    const recentWorkouts = getRecentFiveWorkoutsForAI(history);
 
     /* ========================================================
-       4. 生成 Prompt
+       5. 动作历史聚合
+    ======================================================== */
+
+    const recentExercises = buildAIExerciseHistory(exercises, history);
+
+    /* ========================================================
+       6. 最近10条身体数据
+    ======================================================== */
+
+    const recentBodyData = getSafeArray(bodyData)
+      .slice()
+      .sort((a, b) => {
+        const dateA = String(a.record_date || a.measurement_date || "");
+
+        const dateB = String(b.record_date || b.measurement_date || "");
+
+        return dateB.localeCompare(dateA);
+      })
+      .slice(0, 10);
+
+    /* ========================================================
+       7. 周 / 月 / 年统计
+    ======================================================== */
+
+    const trainingSummary = buildAITrainingSummary(history);
+
+    /* ========================================================
+       8. 设置转文本
+    ======================================================== */
+
+    const weeklyTargetText =
+      aiSettings.weekly_strength_target !== null
+        ? `${aiSettings.weekly_strength_target} 次`
+        : "未设置";
+
+    const goalsText = aiSettings.goals.length
+      ? aiSettings.goals.join("、")
+      : "暂未设置";
+
+    const focusText = aiSettings.focus || "暂未设置";
+
+    const behaviorText = aiSettings.behavior || "暂未设置";
+
+    const limitationsText = aiSettings.limitations || "暂无特别限制";
+
+    const restrictionsText = aiSettings.restrictions || "暂无其它要求";
+
+    /* ========================================================
+       9. 生成Prompt
     ======================================================== */
 
     const prompt = `
 
 你现在是我的私人哑铃增肌/塑形教练。
 
-请根据我过去的训练历史、每个动作的完成情况、训练难度、重量、次数、训练频率、身体感受以及身体数据，为我制定下一次训练计划。
+请根据我的当前AI教练设置、最近训练历史、动作历史、身体数据以及近期训练统计，分析后制定下一次实际可执行的训练计划。
 
-不要按照死板的固定规则安排。
-
-请真正分析历史之后，再决定下一次训练。
-
-
-========================
-我的基本情况
-========================
-
-初始身高：162 cm
-初始体重：52 kg
-
-训练目标优先级：
-
-1. 腰腹收紧、核心稳定
-2. 臀部塑形
-3. 手臂塑形
-4. 背部训练
+不要机械套用固定计划。
+不要为了变化而变化。
+如果当前动作合理，可以继续使用。
+只有历史数据支持时，才调整重量、次数、组数或更换动作。
 
 
 ========================
-训练条件
+【当前AI教练设置】
 ========================
 
-- 两个 5 kg 哑铃
-- 瑜伽垫
-- 椅子
-- 桌子
+每周力量训练目标：
+${weeklyTargetText}
 
+训练目标：
+${goalsText}
 
-========================
-训练限制
-========================
+AI重点关注：
+${focusText}
 
-- 深蹲-我暂时不会
-- 罗马尼亚硬拉-暂时不会
-- 俯身哑铃划船-暂时不会
-- 腰部容易疲劳，需要保护腰部
-- 左手力量比右手弱
-- 不要为了追求进步而强行增加训练量
-- 如果当前动作已经适合继续训练，不要为了“变化”而强行更换
+AI教练行为：
+${behaviorText}
 
+目前不会 / 不适合的动作：
+${limitationsText}
 
-========================
-下一次训练
-========================
-
-网站根据实际训练数据库判断：
-
-第 ${nextNumber} 次训练
+训练限制 / 其它要求：
+${restrictionsText}
 
 
 ========================
-最近训练历史
+【基础训练条件】
+========================
+
+身高：162 cm
+当前体重：52 kg
+
+
+========================
+【下一次训练】
+========================
+
+网站根据数据库实际训练记录判断：
+
+第${nextNumber}次训练
+
+
+========================
+【近期训练统计】
+========================
+
+${JSON.stringify(trainingSummary, null, 2)}
+
+
+========================
+【最近5次整次训练】
 ========================
 
 ${JSON.stringify(recentWorkouts, null, 2)}
 
 
 ========================
-最近动作训练数据
+【动作历史】
 ========================
+
+动作历史已经按照动作名称进行聚合。
+
+同一个动作的历史记录会合并。
+
+最近训练过的动作会优先显示。
+
+请重点观察：
+
+- 哪些动作最近刚训练过
+- 哪些动作长期反复出现
+- 哪些动作完成得很好
+- 哪些动作经常未完成
+- 哪些动作长期感觉吃力
+- 哪些动作已经明显轻松
+- 左右手力量差异
+- 动作是否需要继续使用
+- 动作是否需要调整
+- 是否需要休息某些肌群
 
 ${JSON.stringify(recentExercises, null, 2)}
 
 
 ========================
-最近身体数据
+【最近身体数据】
 ========================
 
 ${JSON.stringify(recentBodyData, null, 2)}
 
 
 ========================
-动作历史数据说明
+【动作完成情况说明】
 ========================
 
-动作历史中可能包含：
-
 completed：
+
 true = 动作完成
 false = 动作未完成
 
 difficulty：
+
 easy = 轻松
 normal = 正常
 hard = 吃力
-null = 未完成
-
-请特别关注：
-
-- 哪些动作连续训练
-- 哪些动作经常未完成
-- 哪些动作长期感觉吃力
-- 哪些动作已经比较轻松
-- 是否存在左手明显弱于右手的情况
-- 最近训练量是否过高
-- 是否需要恢复
-- 是否应该增加、减少或维持训练量
+null = 未完成或没有记录
 
 
 ========================
-你的分析任务
+【请重点分析】
 ========================
 
-请分析：
+1. 最近训练频率是否合适
 
-1. 最近哪些动作已经连续训练
-2. 哪些肌群最近训练量较高
-3. 哪些肌群需要恢复
-4. 哪些动作出现进步
-5. 哪些动作出现停滞
-6. 左右手是否存在差异
-7. 最近整体训练完成度
-8. 最近各动作训练难度
-9. 是否应该增加重量
-10. 是否应该增加次数
-11. 是否应该增加组数
-12. 是否应该降低训练量
-13. 是否应该更换某个动作
-14. 是否应该安排恢复性训练
-15. 如何继续实现：
-   - 腰腹收紧
-   - 核心稳定
-   - 臀部塑形
-   - 手臂塑形
-   - 背部训练
+2. 本周已经完成多少次力量训练
 
-不要为了“变化”而变化。
+3. 本周距离当前每周力量训练目标还差多少次
 
-如果某个动作继续使用是合理的，可以继续使用。
+4. 本月训练情况
 
-如果某个动作需要调整重量、次数或组数，请明确调整。
+5. 本年度训练情况
 
-如果需要更换动作，请根据历史表现说明原因。
+6. 最近哪些肌群训练较多
 
+7. 哪些肌群需要恢复
 
-========================
-训练计划要求
-========================
+8. 最近哪些动作连续出现
 
-- 必须使用现有训练条件
-- 注意保护腰部
-- 不要一次增加过多训练量
-- 对左手较弱的问题进行合理处理
-- 如果使用单侧动作，可以根据左右手差异安排不同次数
-- 训练计划必须具有实际可执行性
-- 每个动作都必须有明确的重量、次数、组数
-- 自重动作 weight_kg 必须为 null
-- reps 可以使用：
-  "10"
-  "10/侧"
-  "12/侧"
-  "30秒"
-  "60秒"
-  等形式
+9. 哪些动作适合继续使用
+
+10. 哪些动作表现出进步
+
+11. 哪些动作可能停滞
+
+12. 哪些动作过于轻松
+
+13. 哪些动作过于吃力
+
+14. 是否存在左手明显弱于右手
+
+15. 是否需要增加重量
+
+16. 是否需要增加次数
+
+17. 是否需要增加组数
+
+18. 是否需要降低训练量
+
+19. 是否需要更换动作
+
+20. 是否需要安排恢复性训练
+
+21. 下一次训练如何更好地服务当前AI教练设置中的目标
 
 
 ========================
-输出格式
+【训练计划要求】
 ========================
 
-请严格只输出 JSON。
+必须使用现有训练条件。
 
-不要输出 Markdown。
+必须遵守当前AI教练设置中的：
 
-不要输出 \`\`\`json。
+- 训练目标
+- AI重点关注
+- AI教练行为
+- 目前不适合动作（如果你觉得我可以挑战这些不适合动作，也可以安排）
+- 训练限制 / 其它要求
 
-不要输出任何解释文字。
+不要自行增加用户没有提出的硬性限制。
 
-JSON 格式必须严格如下：
+如果当前AI教练设置中没有明确限制训练动作数量，
+不要人为限制动作数量。
+
+如果用户设置中包含训练时间，
+应作为训练安排的重要参考，
+但不要机械为了达到某个分钟数而堆砌动作。
+
+力量训练前后的热身、激活、主训练、核心、拉伸等内容，
+都可以根据实际需要安排。
+
+不要为了增加动作数量而增加无意义动作。
+
+不要为了变化而强行更换已经合适的动作。
+
+
+========================
+【动作安排】
+========================
+
+每个动作都必须明确：
+
+exercise_order
+exercise_name
+equipment
+weight_kg
+reps
+sets
+notes
+
+自重动作：
+
+weight_kg = null
+
+哑铃动作：
+
+weight_kg = 实际使用重量
+
+reps允许使用：
+
+"10"
+"10/侧"
+"12/侧"
+"30秒"
+"60秒"
+
+如果是单侧动作，
+可以根据左右侧能力合理安排。
+
+如果左侧较弱，
+优先保证左侧动作质量。
+
+不要为了追求左右完全一样，
+强行让弱侧超过合理能力。
+
+
+========================
+【最终输出】
+========================
+
+严格只输出JSON。
+
+不要输出Markdown。
+
+不要使用 Markdown 代码块包裹 JSON。
+
+不要输出解释文字。
+
+格式：
 
 {
   "workout_number": ${nextNumber},
@@ -343,22 +923,26 @@ JSON 格式必须严格如下：
 
 再次强调：
 
-只能输出 JSON。
+只能输出JSON。
 `;
 
     /* ========================================================
-       5. 写入页面
+       10. 写入页面
     ======================================================== */
 
     const box = document.getElementById("aiPrompt");
 
     if (box) {
       box.value = prompt.trim();
+    } else {
+      console.warn("没有找到 #aiPrompt。");
     }
+
+    console.log("✅ AI训练Prompt生成完成。");
 
     return prompt.trim();
   } catch (error) {
-    console.error("生成 AI 训练提示词失败：", error);
+    console.error("❌ 生成AI训练提示词失败：", error);
 
     alert("生成 AI 训练提示词失败：\n\n" + (error.message || String(error)));
 
@@ -367,7 +951,7 @@ JSON 格式必须严格如下：
 }
 
 /* ============================================================
-   复制提示词
+   复制Prompt
 ============================================================ */
 
 async function copyAIPrompt() {
@@ -411,10 +995,6 @@ function cleanAIPlanText(text) {
     return "";
   }
 
-  /*
-    去掉 Markdown JSON 代码块
-  */
-
   result = result.replace(/^```(?:json)?\s*/i, "");
 
   result = result.replace(/\s*```$/i, "");
@@ -423,15 +1003,7 @@ function cleanAIPlanText(text) {
 }
 
 /* ============================================================
-   从 ChatGPT 返回内容中提取 JSON
-
-   支持：
-
-   ① 纯 JSON
-   ② ```json ... ```
-   ③ ``` ... ```
-   ④ JSON 前后带普通文字
-   ⑤ 中文全角标点
+   从ChatGPT返回内容提取JSON
 ============================================================ */
 
 function extractAIPlanJSON(text) {
@@ -441,10 +1013,6 @@ function extractAIPlanJSON(text) {
     throw new Error("没有检测到任何内容。");
   }
 
-  /* ========================================================
-     1. 修正常见中文全角标点
-  ======================================================== */
-
   source = source
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
@@ -452,48 +1020,21 @@ function extractAIPlanJSON(text) {
     .replace(/，/g, ",")
     .trim();
 
-  /* ========================================================
-     2. 直接解析
-  ======================================================== */
-
   try {
     return JSON.parse(source);
-  } catch (error) {
-    // 继续处理
-  }
-
-  /* ========================================================
-     3. 去掉 Markdown 代码块
-  ======================================================== */
+  } catch (error) {}
 
   source = cleanAIPlanText(source);
 
   try {
     return JSON.parse(source);
-  } catch (error) {
-    // 继续提取 JSON
-  }
-
-  /* ========================================================
-     4. 寻找 JSON 对象开头
-  ======================================================== */
+  } catch (error) {}
 
   const firstBrace = source.indexOf("{");
 
   if (firstBrace === -1) {
     throw new Error("没有找到 JSON 对象。");
   }
-
-  /* ========================================================
-     5. 使用括号深度寻找完整 JSON
-
-     同时处理：
-
-     {
-     }
-
-     出现在字符串内部的情况。
-  ======================================================== */
 
   let depth = 0;
 
@@ -506,31 +1047,17 @@ function extractAIPlanJSON(text) {
   for (let i = firstBrace; i < source.length; i++) {
     const char = source[i];
 
-    /*
-      转义字符
-    */
-
     if (char === "\\" && !escaped) {
       escaped = true;
 
       continue;
     }
 
-    /*
-      双引号
-
-      只有不在转义状态时才切换字符串状态。
-    */
-
     if (char === '"' && !escaped) {
       inString = !inString;
     }
 
     escaped = false;
-
-    /*
-      字符串内部的括号不参与计算
-    */
 
     if (inString) {
       continue;
@@ -552,30 +1079,22 @@ function extractAIPlanJSON(text) {
   }
 
   if (endIndex === -1) {
-    throw new Error("找到了 JSON 开头，但没有找到完整的 JSON 结尾。");
+    throw new Error("找到了JSON开头，但没有找到完整的JSON结尾。");
   }
 
-  /* ========================================================
-     6. 提取 JSON
-  ======================================================== */
-
   const jsonText = source.slice(firstBrace, endIndex + 1);
-
-  /* ========================================================
-     7. 最后解析
-  ======================================================== */
 
   try {
     return JSON.parse(jsonText);
   } catch (error) {
-    console.error("提取出的 JSON：", jsonText);
+    console.error("提取出的JSON：", jsonText);
 
-    throw new Error("找到了一段 JSON，但 JSON 格式仍然无法解析。");
+    throw new Error("找到了一段JSON，但JSON格式仍然无法解析。");
   }
 }
 
 /* ============================================================
-   验证 AI 训练计划
+   验证AI训练计划
 ============================================================ */
 
 function validateAITrainingPlan(plan) {
@@ -591,13 +1110,17 @@ function validateAITrainingPlan(plan) {
     throw new Error("训练计划中没有任何训练动作。");
   }
 
-  if (plan.exercises.length > 5) {
-    throw new Error("AI生成的动作超过5个，请重新生成。");
-  }
+  /*
+     ★ 不限制动作数量
 
-  if (plan.exercises.length < 3) {
-    throw new Error("AI生成的动作少于3个，请重新生成。");
-  }
+     可以包含：
+
+     热身
+     激活
+     主训练
+     核心
+     拉伸
+  */
 
   for (let i = 0; i < plan.exercises.length; i++) {
     const exercise = plan.exercises[i];
@@ -639,7 +1162,7 @@ function validateAITrainingPlan(plan) {
 }
 
 /* ============================================================
-   导入 ChatGPT 训练计划
+   导入ChatGPT训练计划
 ============================================================ */
 
 async function importAITrainingPlan() {
@@ -652,7 +1175,7 @@ async function importAITrainingPlan() {
   }
 
   /* ========================================================
-     1. 解析 ChatGPT 返回内容
+     1. 解析
   ======================================================== */
 
   let plan;
@@ -660,7 +1183,7 @@ async function importAITrainingPlan() {
   try {
     plan = extractAIPlanJSON(box.value);
   } catch (error) {
-    console.error("AI训练计划 JSON 解析失败：", error);
+    console.error("AI训练计划JSON解析失败：", error);
 
     alert(
       "无法识别 ChatGPT 返回的训练计划。\n\n" +
@@ -676,7 +1199,7 @@ async function importAITrainingPlan() {
   }
 
   /* ========================================================
-     2. 验证训练计划
+     2. 验证
   ======================================================== */
 
   try {
@@ -690,17 +1213,7 @@ async function importAITrainingPlan() {
   }
 
   /* ========================================================
-     3. 网站自己确定正确的下一次训练编号
-
-     不相信 ChatGPT 返回的 workout_number。
-
-     例如：
-
-     workouts 最大编号 = 5
-
-     那么：
-
-     本次导入 = 第6次
+     3. 网站确定下一次训练编号
   ======================================================== */
 
   let nextNumber;
@@ -714,27 +1227,19 @@ async function importAITrainingPlan() {
   }
 
   /* ========================================================
-     4. 检查 AI 返回的编号
-
-     如果不同：
-
-     只警告
-
-     最终仍然使用数据库计算出的编号。
+     4. 检查AI编号
   ======================================================== */
 
   const aiNumber = Number(plan.workout_number);
 
   if (Number.isFinite(aiNumber) && aiNumber !== nextNumber) {
     console.warn(
-      `ChatGPT 返回的训练编号为 ${aiNumber}，` +
-        `但数据库判断下一次训练应为 ${nextNumber}。` +
-        `已自动使用 ${nextNumber}。`,
+      `ChatGPT 返回的训练编号为 ${aiNumber}，但数据库判断下一次训练应为 ${nextNumber}。已自动使用 ${nextNumber}。`,
     );
   }
 
   /* ========================================================
-     5. 整理最终训练计划
+     5. 最终计划
   ======================================================== */
 
   const finalPlan = {
@@ -752,14 +1257,10 @@ async function importAITrainingPlan() {
   };
 
   /* ========================================================
-     6. 写入 Supabase
+     6. 写入Supabase
   ======================================================== */
 
   try {
-    /* ======================================================
-       查询这个训练编号是否已经存在
-    ====================================================== */
-
     const existing = await supabaseRequest(
       "training_plans" +
         "?select=*" +
@@ -771,13 +1272,7 @@ async function importAITrainingPlan() {
     let planId;
 
     /* ======================================================
-       情况 A：
-
-       已经存在训练计划
-
-       → 更新训练计划
-       → 删除旧动作
-       → 重新写入动作
+       A：已有计划
     ====================================================== */
 
     if (existing && existing.length) {
@@ -801,9 +1296,7 @@ async function importAITrainingPlan() {
         },
       });
 
-      /* ====================================================
-         删除旧动作
-      ==================================================== */
+      /* 删除旧动作 */
 
       await supabaseRequest(
         "training_plan_exercises" + "?plan_id=eq." + planId,
@@ -815,11 +1308,7 @@ async function importAITrainingPlan() {
       );
     } else {
       /* ======================================================
-       情况 B：
-
-       不存在
-
-       → 创建新的训练计划
+       B：新建计划
     ====================================================== */
       const created = await supabaseRequest("training_plans", {
         method: "POST",
@@ -847,7 +1336,7 @@ async function importAITrainingPlan() {
     }
 
     /* ========================================================
-       7. 写入 training_plan_exercises
+       7. 写入动作
     ======================================================== */
 
     let insertedExerciseCount = 0;
@@ -866,12 +1355,6 @@ async function importAITrainingPlan() {
 
       /* ====================================================
          重量
-
-         null / 空字符串
-         → null
-
-         数字
-         → Number
       ==================================================== */
 
       let weight = null;
@@ -900,13 +1383,6 @@ async function importAITrainingPlan() {
 
       /* ====================================================
          次数
-
-         允许：
-
-         10
-         10/侧
-         30秒
-         60秒
       ==================================================== */
 
       const reps =
@@ -915,7 +1391,7 @@ async function importAITrainingPlan() {
           : String(exercise.reps).trim();
 
       /* ====================================================
-         写入动作
+         写入
       ==================================================== */
 
       await supabaseRequest("training_plan_exercises", {
@@ -944,7 +1420,7 @@ async function importAITrainingPlan() {
     }
 
     /* ========================================================
-       8. 检查最终有没有真正写入动作
+       8. 检查
     ======================================================== */
 
     if (insertedExerciseCount === 0) {
@@ -952,7 +1428,7 @@ async function importAITrainingPlan() {
     }
 
     /* ========================================================
-       9. 导入成功
+       9. 成功
     ======================================================== */
 
     alert(
@@ -960,35 +1436,15 @@ async function importAITrainingPlan() {
         `共 ${insertedExerciseCount} 个动作。`,
     );
 
-    /* ========================================================
-       清空 AI 输出输入框
-    ======================================================== */
-
     box.value = "";
 
     /* ========================================================
-       10. 刷新当前训练计划
-
-       如果当前应该训练第6次：
-
-       导入第6次
-       → 首页显示第6次
-
-       如果第6次已经完成：
-
-       getCurrentWorkoutNumber()
-       → 第7次
+       刷新当前训练计划
     ======================================================== */
 
     if (typeof loadCurrentPlan === "function") {
       await loadCurrentPlan();
     }
-
-    /* ========================================================
-       11. 刷新其他页面数据
-
-       函数不存在也不会报错。
-    ======================================================== */
 
     if (typeof loadPlans === "function") {
       await loadPlans();
@@ -999,16 +1455,12 @@ async function importAITrainingPlan() {
     }
 
     /* ========================================================
-       12. 更新状态
+       状态
     ======================================================== */
 
     if (typeof setStatus === "function") {
       setStatus("☁️ AI训练计划已同步", "ok");
     }
-
-    /* ========================================================
-       13. 控制台记录
-    ======================================================== */
 
     console.log("AI训练计划导入成功：", {
       workout_number: finalPlan.workout_number,
@@ -1020,6 +1472,6 @@ async function importAITrainingPlan() {
   } catch (error) {
     console.error("AI训练计划导入失败：", error);
 
-    alert("训练计划导入失败：\n\n" + (error.message || String(error)));
+    alert("AI训练计划导入失败：\n\n" + (error.message || String(error)));
   }
 }

@@ -1,4 +1,4 @@
-/* v1.3
+/* v1.4
    私人哑铃训练系统
    全局样式
 */
@@ -45,7 +45,29 @@ body {
 }
 
 
-.header h1 {
+/* ================================
+   首页顶部标题 + 设置按钮
+================================ */
+
+.header-top {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+
+.header-title {
+  flex: 1;
+
+  min-width: 0;
+}
+
+
+.header-title h1 {
   margin: 0 0 6px;
 
   font-size: 26px;
@@ -58,6 +80,105 @@ body {
   color: #777;
 
   font-size: 14px;
+}
+
+
+/* ================================
+   设置按钮
+================================ */
+
+.settings-btn {
+  flex-shrink: 0;
+
+  width: 42px;
+
+  height: 42px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.08);
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.settings-btn:active {
+  transform: scale(.94);
+}
+
+
+/* ================================
+   独立页面快捷入口
+================================ */
+
+.page-shortcuts {
+  display: grid;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  gap: 12px;
+
+  margin: 14px 0;
+}
+
+
+.page-shortcut {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-height: 48px;
+
+  padding: 10px 8px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: inherit;
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  text-align: center;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06);
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.page-shortcut:active {
+  transform: scale(.97);
+}
+
+
+.page-shortcut:hover {
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.09);
 }
 
 
@@ -271,17 +392,11 @@ body {
    轻松 / 正常 / 吃力 / 未完成
 ========================================================= */
 
-
-/* ================================
-   四个按钮容器
-
-   强制一行四个
-================================ */
-
 .difficulty-buttons {
   display: grid;
 
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
 
   gap: 8px;
 
@@ -290,10 +405,6 @@ body {
   margin-top: 0;
 }
 
-
-/* ================================
-   按钮基础样式
-================================ */
 
 .difficulty-btn {
   appearance: none;
@@ -488,10 +599,6 @@ body {
 
 /* ================================
    选中状态的 ✓
-   
-   注意：
-   plan.js 不需要自己输出 ✓
-   CSS 自动添加
 ================================ */
 
 .difficulty-btn.selected::before {
@@ -590,7 +697,8 @@ body {
 .stats {
   display: grid;
 
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns:
+    repeat(3, 1fr);
 
   gap: 8px;
 
@@ -754,7 +862,8 @@ body {
 
 
   .difficulty-buttons {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
 
     gap: 5px;
   }
@@ -770,22 +879,44 @@ body {
     border-radius: 10px;
   }
 
+
+  .page-shortcuts {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+
+    gap: 8px;
+  }
+
+
+  .page-shortcut {
+    min-height: 46px;
+
+    padding: 8px 4px;
+
+    font-size: 13px;
+  }
+
+
+  .settings-btn {
+    width: 40px;
+
+    height: 40px;
+
+    font-size: 19px;
+  }
+
 }
 
 
 /* =========================================================
    很小的手机
-
-   仍然保持四个按钮一行
-   因为你的要求就是：
-   轻松 / 正常 / 吃力 / 未完成
-   必须在同一行
 ========================================================= */
 
 @media (max-width: 350px) {
 
   .difficulty-buttons {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
 
     gap: 3px;
   }
@@ -799,6 +930,20 @@ body {
     font-size: 11px;
 
     border-radius: 9px;
+  }
+
+
+  .page-shortcuts {
+    gap: 5px;
+  }
+
+
+  .page-shortcut {
+    min-height: 44px;
+
+    padding: 7px 2px;
+
+    font-size: 12px;
   }
 
 }
@@ -859,7 +1004,7 @@ body {
 
 
 /* =========================================================
-   手机端
+   手机端图表
 ========================================================= */
 
 @media (max-width: 420px) {

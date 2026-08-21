@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+    <meta name="theme-color" content="#f5f5f5">
+
+    <title>设置 - 我的私人哑铃训练</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+
+    <style>
+        /* =====================================================
+           设置页面顶部
+        ===================================================== */
+
+        .page-header {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .back-btn {
+
+            flex-shrink: 0;
+
+            width: 42px;
+
+            height: 42px;
+
+            border: none;
+
+            border-radius: 12px;
+
+            background: #ffffff;
+
+            font-size: 20px;
+
+            cursor: pointer;
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.08);
+
+            transition:
+                transform 0.15s ease,
+                box-shadow 0.15s ease;
+
+        }
+
+
+        .back-btn:active {
+
+            transform: scale(0.94);
+
+        }
+
+
+        .page-title {
+
+            flex: 1;
+
+        }
+
+
+        .page-title h1 {
+
+            margin: 0;
+
+            font-size: 22px;
+
+        }
+
+
+        .page-title p {
+
+            margin: 5px 0 0;
+
+        }
+
+
+        /* =====================================================
+           设置区域
+        ===================================================== */
+
+        .setting-group {
+
+            margin-top: 8px;
+
+        }
+
+
+        .setting-label {
+
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+        }
+
+
+        .setting-help {
+
+            color: #888;
+
+            font-size: 13px;
+
+            line-height: 1.6;
+
+            margin-top: 7px;
+
+        }
+
+
+        .setting-save {
+
+            margin-top: 8px;
+
+        }
+
+
+        /* =====================================================
+           AI目标复选框
+        ===================================================== */
+
+        .ai-goals {
+
+            display: grid;
+
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+
+            gap: 10px;
+
+            margin-top: 10px;
+
+        }
+
+
+        .ai-goal-item {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            padding: 11px 12px;
+
+            border-radius: 10px;
+
+            background: #f8f8f8;
+
+            cursor: pointer;
+
+            font-size: 14px;
+
+        }
+
+
+        .ai-goal-item input {
+
+            width: 17px;
+
+            height: 17px;
+
+            flex-shrink: 0;
+
+            cursor: pointer;
+
+        }
+
+
+        /* =====================================================
+           AI文本输入区域
+        ===================================================== */
+
+        .ai-textarea {
+
+            width: 100%;
+
+            box-sizing: border-box;
+
+            resize: vertical;
+
+            min-height: 90px;
+
+            line-height: 1.7;
+
+        }
+
+
+        /* =====================================================
+           动作输入
+        ===================================================== */
+
+        .input-row {
+
+            display: flex;
+
+            gap: 8px;
+
+            align-items: stretch;
+
+        }
+
+
+        .input-row input {
+
+            flex: 1;
+
+            min-width: 0;
+
+        }
+
+
+        .add-btn {
+
+            flex-shrink: 0;
+
+            border: none;
+
+            border-radius: 10px;
+
+            padding: 0 16px;
+
+            background: #ffffff;
+
+            cursor: pointer;
+
+            font-family: inherit;
+
+            font-size: 14px;
+
+            box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.08);
+
+        }
+
+
+        .add-btn:active {
+
+            transform: scale(0.96);
+
+        }
+
+
+        /* =====================================================
+           已添加动作
+        ===================================================== */
+
+        .limitation-list {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+            margin-top: 10px;
+
+        }
+
+
+        .limitation-tag {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            padding: 7px 10px;
+
+            border-radius: 999px;
+
+            background: #f3f3f3;
+
+            font-size: 13px;
+
+        }
+
+
+        .limitation-remove {
+
+            border: none;
+
+            background: transparent;
+
+            padding: 0;
+
+            margin: 0;
+
+            font-size: 15px;
+
+            line-height: 1;
+
+            cursor: pointer;
+
+            color: #888;
+
+        }
+
+
+        .limitation-empty {
+
+            color: #999;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =====================================================
+           当前设置
+        ===================================================== */
+
+        .settings-status-item {
+
+            line-height: 1.7;
+
+        }
+
+
+        /* =====================================================
+           手机端
+        ===================================================== */
+
+        @media (max-width: 480px) {
+
+            .page-title h1 {
+
+                font-size: 20px;
+
+            }
+
+
+            .ai-goals {
+
+                grid-template-columns: 1fr;
+
+            }
+
+
+            .input-row {
+
+                flex-direction: column;
+
+            }
+
+
+            .add-btn {
+
+                padding: 11px 16px;
+
+            }
+
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div class="container">
+
+
+        <!-- =====================================================
+             页面标题
+        ====================================================== -->
+
+        <div class="page-header">
+
+
+            <button type="button" class="back-btn" onclick="window.location.href='index.html'" aria-label="返回首页"
+                title="返回首页">
+
+                ←
+
+            </button>
+
+
+            <div class="page-title">
+
+                <h1>
+                    ⚙️ 设置
+                </h1>
+
+                <p id="today" class="muted"></p>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+             第一部分：训练目标
+        ====================================================== -->
+
+        <div class="card">
+
+
+            <h2>
+                🏋️ 训练目标
+            </h2>
+
+
+            <div class="muted">
+
+                设置你每周希望完成的力量训练次数。
+                这个目标会用于训练统计和 AI 教练分析。
+
+            </div>
+
+
+            <br>
+
+
+            <div class="setting-group">
+
+
+                <label for="weeklyStrengthTarget" class="setting-label">
+
+                    每周力量训练次数
+
+                </label>
+
+
+                <input id="weeklyStrengthTarget" class="note" type="number" min="1" max="7" step="1" placeholder="例如 3">
+
+
+                <div class="setting-help">
+
+                    推荐每周 3～4 次。
+
+                </div>
+
+
+            </div>
+
+
+            <br>
+
+
+            <button type="button" class="primary-btn setting-save" onclick="saveTrainingSettings()">
+
+                💾 保存训练目标
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+             第二部分：AI私人教练设置
+        ====================================================== -->
+
+        <div class="card">
+
+
+            <h2>
+                🤖 AI私人教练设置
+            </h2>
+
+
+            <div class="muted">
+
+                这些设置会影响 AI 教练之后对你的训练分析和训练计划制定。
+                你可以根据自己的情况随时修改。
+
+            </div>
+
+
+            <br>
+
+
+
+            <!-- =================================================
+                 AI训练目标
+            ================================================== -->
+
+            <div class="setting-group">
+
+
+                <label class="setting-label">
+
+                    AI训练目标
+
+                </label>
+
+
+                <div class="setting-help">
+
+                    选择你目前希望 AI 教练重点帮助你实现的目标。
+
+                </div>
+
+
+                <div class="ai-goals">
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="腰腹收紧 / 核心稳定">
+
+                        <span>
+                            腰腹收紧 / 核心稳定
+                        </span>
+
+                    </label>
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="臀部塑形">
+
+                        <span>
+                            臀部塑形
+                        </span>
+
+                    </label>
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="手臂">
+
+                        <span>
+                            手臂
+                        </span>
+
+                    </label>
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="背部">
+
+                        <span>
+                            背部
+                        </span>
+
+                    </label>
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="增加力量">
+
+                        <span>
+                            增加力量
+                        </span>
+
+                    </label>
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="增加肌肉">
+
+                        <span>
+                            增加肌肉
+                        </span>
+
+                    </label>
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="减脂">
+
+                        <span>
+                            减脂
+                        </span>
+
+                    </label>
+
+
+                    <label class="ai-goal-item">
+
+                        <input type="checkbox" name="aiGoal" value="提高体能">
+
+                        <span>
+                            提高体能
+                        </span>
+
+                    </label>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <br>
+
+
+
+            <!-- =================================================
+                 AI重点关注
+            ================================================== -->
+
+            <div class="setting-group">
+
+
+                <label for="aiFocus" class="setting-label">
+
+                    AI重点关注
+
+                </label>
+
+
+                <div class="setting-help">
+
+                    告诉 AI 教练，你希望它在每次训练分析时重点观察哪些数据和问题。
+
+                </div>
+
+
+                <br>
+
+
+                <textarea id="aiFocus" class="note ai-textarea" rows="5"
+                    placeholder="例如：动作完成度、训练难度、左右侧力量差异……"></textarea>
+
+
+            </div>
+
+
+
+            <br>
+
+
+
+            <!-- =================================================
+                 AI教练行为
+            ================================================== -->
+
+            <div class="setting-group">
+
+
+                <label for="aiBehavior" class="setting-label">
+
+                    AI教练行为
+
+                </label>
+
+
+                <div class="setting-help">
+
+                    这里决定 AI 教练应该如何分析和调整你的训练，而不是关注什么数据。
+
+                </div>
+
+
+                <br>
+
+
+                <textarea id="aiBehavior" class="note ai-textarea" rows="6"
+                    placeholder="例如：根据训练历史动态调整训练，不为了变化而变化……"></textarea>
+
+
+            </div>
+
+
+
+            <br>
+
+
+
+            <!-- =================================================
+                 不会 / 不适合的动作
+            ================================================== -->
+
+            <div class="setting-group">
+
+
+                <label for="aiLimitationsInput" class="setting-label">
+
+                    我目前不会 / 不适合的动作
+
+                </label>
+
+
+                <div class="setting-help">
+
+                    输入一个动作后点击“添加”。AI 教练之后不会随意安排这些动作。
+
+                </div>
+
+
+                <br>
+
+
+                <div class="input-row">
+
+
+                    <input id="aiLimitationsInput" class="note" type="text" placeholder="例如：深蹲">
+
+
+                    <button type="button" class="add-btn" onclick="addAILimitation()">
+
+                        ＋ 添加
+
+                    </button>
+
+
+                </div>
+
+
+                <div id="aiLimitationsList" class="limitation-list">
+
+                </div>
+
+
+            </div>
+
+
+
+            <br>
+
+
+
+            <!-- =================================================
+                 训练限制 / 其它要求
+            ================================================== -->
+
+            <div class="setting-group">
+
+
+                <label for="aiRestrictions" class="setting-label">
+
+                    训练限制 / 其它要求
+
+                </label>
+
+
+                <div class="setting-help">
+
+                    可以填写腰部保护、训练时间、器械条件、训练习惯等其它要求。
+
+                </div>
+
+
+                <br>
+
+
+                <textarea id="aiRestrictions" class="note ai-textarea" rows="6"
+                    placeholder="例如：腰部容易疲劳，需要保护腰部；单次训练控制在20～25分钟……"></textarea>
+
+
+            </div>
+
+
+
+            <br>
+
+
+            <button type="button" class="primary-btn setting-save" onclick="saveAISettings()">
+
+                💾 保存 AI 教练设置
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+             当前设置
+        ====================================================== -->
+
+        <div class="card">
+
+
+            <h2>
+                📋 当前设置
+            </h2>
+
+
+            <div id="settingsStatus" class="analysis">
+
+                正在读取设置……
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =====================================================
+             页面底部
+        ====================================================== -->
+
+        <div class="footer">
+
+            私人哑铃增肌 / 塑形训练系统
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         JavaScript
+    ====================================================== -->
+
+    <script src="js/config.js"></script>
+
+    <script src="js/api.js"></script>
+
+    <script src="js/plan.js"></script>
+
+    <script src="js/workout.js"></script>
+
+    <script src="js/metrics.js"></script>
+
+    <script src="js/other-activities.js"></script>
+
+    <script src="js/settings.js"></script>
+
+    <script src="js/app.js"></script>
+
+
+
+    <!-- =====================================================
+         动作限制输入辅助逻辑
+    ====================================================== -->
+
+    <script>
+
+        /* =====================================================
+           临时保存动作限制
+
+           最终保存时由 settings.js 统一写入。
+
+           为了兼容当前 settings.js 的结构，
+           这里直接操作 aiLimitations 字段。
+        ===================================================== */
+
+        let currentAILimitations = [];
+
+
+        /* =====================================================
+           初始化动作限制
+        ===================================================== */
+
+        function loadAILimitationsUI() {
+
+            const settings =
+                typeof getAISettings === "function"
+                    ? getAISettings()
+                    : null;
+
+
+            if (!settings) {
+
+                currentAILimitations = [];
+
+                renderAILimitations();
+
+                return;
+
+            }
+
+
+            const text =
+                String(settings.limitations || "").trim();
+
+
+            if (!text) {
+
+                currentAILimitations = [];
+
+            } else {
+
+                currentAILimitations =
+                    text
+                        .split(/[、,，\n]/)
+                        .map(function (item) {
+
+                            return item.trim();
+
+                        })
+                        .filter(Boolean);
+
+            }
+
+
+            renderAILimitations();
+
+        }
+
+
+        /* =====================================================
+           添加动作限制
+        ===================================================== */
+
+        function addAILimitation() {
+
+            const input =
+                document.getElementById("aiLimitationsInput");
+
+
+            if (!input) {
+                return;
+            }
+
+
+            const value =
+                input.value.trim();
+
+
+            if (!value) {
+
+                return;
+
+            }
+
+
+            /*
+               避免重复添加
+            */
+
+            const exists =
+                currentAILimitations.some(function (item) {
+
+                    return item === value;
+
+                });
+
+
+            if (!exists) {
+
+                currentAILimitations.push(value);
+
+            }
+
+
+            input.value = "";
+
+            renderAILimitations();
+
+            syncAILimitationsToTextarea();
+
+        }
+
+
+        /* =====================================================
+           删除动作限制
+        ===================================================== */
+
+        function removeAILimitation(index) {
+
+            if (
+                index < 0 ||
+                index >= currentAILimitations.length
+            ) {
+
+                return;
+
+            }
+
+
+            currentAILimitations.splice(index, 1);
+
+            renderAILimitations();
+
+            syncAILimitationsToTextarea();
+
+        }
+
+
+        /* =====================================================
+           渲染动作限制
+        ===================================================== */
+
+        function renderAILimitations() {
+
+            const box =
+                document.getElementById("aiLimitationsList");
+
+
+            if (!box) {
+                return;
+            }
+
+
+            if (!currentAILimitations.length) {
+
+                box.innerHTML =
+                    '<div class="limitation-empty">暂未添加限制动作</div>';
+
+                return;
+
+            }
+
+
+            box.innerHTML =
+                currentAILimitations
+                    .map(function (item, index) {
+
+                        return `
+
+                            <div class="limitation-tag">
+
+                                <span>
+                                    ${escapeSettingsHTML(item)}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="limitation-remove"
+                                    onclick="removeAILimitation(${index})"
+                                    aria-label="删除">
+
+                                    ×
+
+                                </button>
+
+                            </div>
+
+                        `;
+
+                    })
+                    .join("");
+
+        }
+
+
+        /* =====================================================
+           同步到 settings.js 使用的文本字段
+        ===================================================== */
+
+        function syncAILimitationsToTextarea() {
+
+            const value =
+                currentAILimitations.join("、");
+
+
+            /*
+               settings.js 当前保存动作限制使用：
+
+               aiLimitations
+
+               这里不需要真的有 textarea，
+               保存时直接替换字段。
+            */
+
+            window.__currentAILimitations =
+                value;
+
+        }
+
+
+
+
+        /* =====================================================
+           页面加载后初始化
+        ===================================================== */
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                /*
+                   settings.js 已经先执行，
+                   所以这里直接读取设置。
+                */
+
+                loadAILimitationsUI();
+
+
+                /*
+                   输入框按 Enter 直接添加
+                */
+
+                const input =
+                    document.getElementById(
+                        "aiLimitationsInput"
+                    );
+
+
+                if (input) {
+
+                    input.addEventListener(
+                        "keydown",
+                        function (event) {
+
+                            if (event.key === "Enter") {
+
+                                event.preventDefault();
+
+                                addAILimitation();
+
+                            }
+
+                        }
+                    );
+
+                }
+
+            }
+        );
+
+    </script>
+
+
+</body>
+
+</html>
