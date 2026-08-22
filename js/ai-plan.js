@@ -2,7 +2,7 @@
    ai-plan.js
    ChatGPT AI训练计划中转模块
 
-   最终稳定版
+   稳定版
 
    核心逻辑：
 
@@ -32,17 +32,11 @@
    7. 最近身体数据：
       最近10条
 
-   8. AI不限制动作数量。
+   8. AI不限制动作数量
 
-      热身、激活、主训练、核心、
-      拉伸等都可以根据实际需要安排。
+   9. 不把20～25分钟硬编码为绝对限制
 
-   9. 不把20～25分钟硬编码为绝对限制。
-
-      如果用户设置中有训练时间要求，
-      作为AI要求传递。
-
-   10. 网站自己确定 workout_number。
+   10. 网站自己确定 workout_number
 
    11. 每个动作必须包含：
 
@@ -52,6 +46,14 @@
        reps
        sets
        notes
+
+   12. ★ 导入同一个 workout_number 时：
+       删除该编号下所有旧训练计划
+       删除所有旧动作
+       再重新创建唯一训练计划
+
+   13. ★ 导入完成后：
+       再次从数据库验证实际动作数量
 ================================ */
 
 /* ============================================================
@@ -189,28 +191,6 @@ async function getNextWorkoutNumber() {
 
 /* ============================================================
    获取当前AI设置
-
-   ★ 本次重点修复
-
-   settings.js：
-
-   getAISettings()
-
-   是同步读取缓存。
-
-   但是页面初始化时，
-   Supabase 设置是异步加载的。
-
-   所以：
-
-   如果 currentAISettings 还没有加载完成，
-   这里主动等待 loadAISettings()。
-
-   防止：
-
-   数据库设置 = 5
-
-   但AI拿到默认设置 = 3
 ============================================================ */
 
 async function getCurrentAISettingsForPrompt() {
@@ -219,22 +199,7 @@ async function getCurrentAISettingsForPrompt() {
       throw new Error("找不到 getAISettings()。请确认 settings.js 已经加载。");
     }
 
-    /*
-       如果 settings.js 已经有缓存，
-       直接使用。
-    */
-
     let settings = getAISettings();
-
-    /*
-       如果 settings.js 当前还是初始缓存，
-       并且 loadAISettings 存在，
-       主动重新读取一次数据库。
-
-       注意：
-
-       不依赖 localStorage。
-    */
 
     if (typeof loadAISettings === "function") {
       try {
@@ -256,14 +221,6 @@ async function getCurrentAISettingsForPrompt() {
     if (!settings || typeof settings !== "object") {
       throw new Error("getAISettings() 没有返回有效设置。");
     }
-
-    /*
-       ★ 这里不再使用默认值覆盖真实设置。
-
-       如果没有读取到每周目标，
-       就显示 null，
-       方便发现问题。
-    */
 
     const weeklyTarget = Number(settings.weekly_strength_target);
 
@@ -452,16 +409,8 @@ function buildAIExerciseHistory(exercises, history) {
       );
     });
 
-    /*
-       每个动作只保留最近5次
-    */
-
     group.recent_records = group.recent_records.slice(0, 5);
   });
-
-  /*
-     最近使用过的动作优先
-  */
 
   result.sort((a, b) => {
     const lastA = Number(a.last_workout_number);
@@ -558,29 +507,13 @@ async function generateAITrainingPrompt() {
   try {
     console.log("🤖 开始生成AI训练分析……");
 
-    /* ========================================================
-       1. 先读取当前真实AI设置
-
-       ★ 这里必须在最前面
-
-       防止设置页面异步读取尚未完成。
-    ======================================================== */
-
     const aiSettings = await getCurrentAISettingsForPrompt();
 
     console.log("🤖 当前AI教练设置：", aiSettings);
 
-    /* ========================================================
-       2. 获取下一次训练编号
-    ======================================================== */
-
     const nextNumber = await getNextWorkoutNumber();
 
     console.log("🤖 下一次训练编号：", nextNumber);
-
-    /* ========================================================
-       3. 获取历史数据
-    ======================================================== */
 
     const history =
       typeof records !== "undefined" && Array.isArray(records) ? records : [];
@@ -596,21 +529,9 @@ async function generateAITrainingPrompt() {
         ? bodyMetricsRecords
         : [];
 
-    /* ========================================================
-       4. 最近5次整次训练
-    ======================================================== */
-
     const recentWorkouts = getRecentFiveWorkoutsForAI(history);
 
-    /* ========================================================
-       5. 动作历史聚合
-    ======================================================== */
-
     const recentExercises = buildAIExerciseHistory(exercises, history);
-
-    /* ========================================================
-       6. 最近10条身体数据
-    ======================================================== */
 
     const recentBodyData = getSafeArray(bodyData)
       .slice()
@@ -623,15 +544,7 @@ async function generateAITrainingPrompt() {
       })
       .slice(0, 10);
 
-    /* ========================================================
-       7. 周 / 月 / 年统计
-    ======================================================== */
-
     const trainingSummary = buildAITrainingSummary(history);
-
-    /* ========================================================
-       8. 设置转文本
-    ======================================================== */
 
     const weeklyTargetText =
       aiSettings.weekly_strength_target !== null
@@ -649,10 +562,6 @@ async function generateAITrainingPrompt() {
     const limitationsText = aiSettings.limitations || "暂无特别限制";
 
     const restrictionsText = aiSettings.restrictions || "暂无其它要求";
-
-    /* ========================================================
-       9. 生成Prompt
-    ======================================================== */
 
     const prompt = `
 
@@ -828,7 +737,7 @@ null = 未完成或没有记录
 - 训练目标
 - AI重点关注
 - AI教练行为
-- 目前不适合动作（如果你觉得我可以挑战这些不适合动作，也可以安排）
+- 目前不适合动作
 - 训练限制 / 其它要求
 
 不要自行增加用户没有提出的硬性限制。
@@ -925,10 +834,6 @@ reps允许使用：
 
 只能输出JSON。
 `;
-
-    /* ========================================================
-       10. 写入页面
-    ======================================================== */
 
     const box = document.getElementById("aiPrompt");
 
@@ -1110,18 +1015,6 @@ function validateAITrainingPlan(plan) {
     throw new Error("训练计划中没有任何训练动作。");
   }
 
-  /*
-     ★ 不限制动作数量
-
-     可以包含：
-
-     热身
-     激活
-     主训练
-     核心
-     拉伸
-  */
-
   for (let i = 0; i < plan.exercises.length; i++) {
     const exercise = plan.exercises[i];
 
@@ -1159,6 +1052,236 @@ function validateAITrainingPlan(plan) {
   }
 
   return true;
+}
+
+/* ============================================================
+   ★★★ 获取某个训练编号的全部旧计划
+============================================================ */
+
+async function getAllPlansByWorkoutNumber(workoutNumber) {
+  const number = Number(workoutNumber);
+
+  if (!Number.isFinite(number)) {
+    throw new Error("无效的 workout_number。");
+  }
+
+  const plans = await supabaseRequest(
+    "training_plans" +
+      "?select=id,workout_number,plan_date,title" +
+      "&workout_number=eq." +
+      number +
+      "&order=id.asc",
+  );
+
+  return getSafeArray(plans);
+}
+
+/* ============================================================
+   ★★★ 获取某个计划的动作数量
+============================================================ */
+
+async function getPlanExerciseCount(planId) {
+  if (!planId) {
+    return 0;
+  }
+
+  const exercises = await supabaseRequest(
+    "training_plan_exercises" + "?select=id" + "&plan_id=eq." + planId,
+  );
+
+  return getSafeArray(exercises).length;
+}
+
+/* ============================================================
+   ★★★ 删除某个计划的全部动作
+============================================================ */
+
+async function deleteAllExercisesForPlan(planId) {
+  if (!planId) {
+    return;
+  }
+
+  console.log(`🗑️ 开始删除 plan_id=${planId} 的全部旧动作……`);
+
+  /*
+     先读取数量，方便日志确认
+  */
+
+  const beforeCount = await getPlanExerciseCount(planId);
+
+  console.log(`🗑️ plan_id=${planId} 删除前有 ${beforeCount} 个动作。`);
+
+  if (beforeCount === 0) {
+    return;
+  }
+
+  await supabaseRequest("training_plan_exercises" + "?plan_id=eq." + planId, {
+    method: "DELETE",
+
+    prefer: "return=minimal",
+  });
+
+  /*
+     ★ 删除后重新查询
+
+     如果还有动作，
+     直接报错。
+
+     不允许继续创建新计划，
+     防止出现 14 → 28 → 42。
+  */
+
+  const afterCount = await getPlanExerciseCount(planId);
+
+  console.log(`🗑️ plan_id=${planId} 删除后剩余 ${afterCount} 个动作。`);
+
+  if (afterCount !== 0) {
+    throw new Error(
+      `旧训练计划的动作没有完全删除。\n\n` +
+        `plan_id：${planId}\n` +
+        `删除前：${beforeCount} 个动作\n` +
+        `删除后仍剩：${afterCount} 个动作\n\n` +
+        `请检查 Supabase training_plan_exercises 的 DELETE RLS 权限。`,
+    );
+  }
+}
+
+/* ============================================================
+   ★★★ 删除某个训练计划
+============================================================ */
+
+async function deleteTrainingPlanById(planId) {
+  if (!planId) {
+    return;
+  }
+
+  console.log(`🗑️ 删除旧 training_plans：${planId}`);
+
+  await supabaseRequest("training_plans?id=eq." + planId, {
+    method: "DELETE",
+
+    prefer: "return=minimal",
+  });
+
+  /*
+     ★ 删除后确认
+  */
+
+  const remaining = await supabaseRequest(
+    "training_plans" + "?select=id" + "&id=eq." + planId,
+  );
+
+  if (getSafeArray(remaining).length) {
+    throw new Error(
+      `旧训练计划 ${planId} 没有成功删除。\n\n` +
+        `请检查 Supabase training_plans 的 DELETE RLS 权限。`,
+    );
+  }
+}
+
+/* ============================================================
+   ★★★ 清理某个 workout_number 的全部旧计划
+============================================================ */
+
+async function removeAllExistingPlansForWorkoutNumber(workoutNumber) {
+  console.log(`🧹 开始彻底清理第${workoutNumber}次训练的旧计划……`);
+
+  /*
+     ★ 不再使用 limit=1
+
+     必须把同一个 workout_number
+     下所有历史 plan 都找出来。
+  */
+
+  const oldPlans = await getAllPlansByWorkoutNumber(workoutNumber);
+
+  console.log(`🧹 找到 ${oldPlans.length} 个旧训练计划：`, oldPlans);
+
+  if (!oldPlans.length) {
+    console.log(`🧹 第${workoutNumber}次训练没有旧计划，无需清理。`);
+
+    return;
+  }
+
+  /*
+     第一阶段：
+
+     删除所有旧计划的动作
+  */
+
+  for (let i = 0; i < oldPlans.length; i++) {
+    const plan = oldPlans[i];
+
+    await deleteAllExercisesForPlan(plan.id);
+  }
+
+  /*
+     第二阶段：
+
+     删除所有旧 training_plans
+  */
+
+  for (let i = 0; i < oldPlans.length; i++) {
+    const plan = oldPlans[i];
+
+    await deleteTrainingPlanById(plan.id);
+  }
+
+  /*
+     第三阶段：
+
+     最终确认这个 workout_number
+     已经没有任何旧计划。
+  */
+
+  const remainingPlans = await getAllPlansByWorkoutNumber(workoutNumber);
+
+  if (remainingPlans.length) {
+    throw new Error(
+      `第${workoutNumber}次训练的旧计划没有完全删除。\n\n` +
+        `数据库中仍然存在 ${remainingPlans.length} 个 training_plans 记录。\n\n` +
+        `请检查 Supabase training_plans 的 DELETE RLS 权限。`,
+    );
+  }
+
+  console.log(`✅ 第${workoutNumber}次训练的旧计划已经全部清理完成。`);
+}
+
+/* ============================================================
+   ★★★ 验证最终计划动作数量
+============================================================ */
+
+async function verifyImportedPlan(planId, expectedCount) {
+  if (!planId) {
+    throw new Error("没有 plan_id，无法验证训练动作。");
+  }
+
+  const exercises = await supabaseRequest(
+    "training_plan_exercises" +
+      "?select=id,exercise_name" +
+      "&plan_id=eq." +
+      planId +
+      "&order=exercise_order.asc",
+  );
+
+  const actualCount = getSafeArray(exercises).length;
+
+  console.log("🔎 导入完成后的数据库动作数量：", {
+    plan_id: planId,
+    expected: expectedCount,
+    actual: actualCount,
+  });
+
+  if (actualCount !== expectedCount) {
+    throw new Error(
+      `训练计划动作数量验证失败。\n\n` +
+        `AI返回：${expectedCount} 个动作\n` +
+        `数据库实际：${actualCount} 个动作\n\n` +
+        `本次导入不会被视为成功。`,
+    );
+  }
+
+  return actualCount;
 }
 
 /* ============================================================
@@ -1257,87 +1380,84 @@ async function importAITrainingPlan() {
   };
 
   /* ========================================================
-     6. 写入Supabase
+     6. ★★★ 写入Supabase
+
+     重要：
+
+     不再：
+
+     existing + limit=1
+
+     而是：
+
+     先彻底删除这个 workout_number
+     下所有旧计划和旧动作。
+
+     然后重新创建唯一计划。
   ======================================================== */
 
   try {
-    const existing = await supabaseRequest(
-      "training_plans" +
-        "?select=*" +
-        "&workout_number=eq." +
-        finalPlan.workout_number +
-        "&limit=1",
+    console.log(
+      `🚀 准备导入第${finalPlan.workout_number}次训练，共 ${finalPlan.exercises.length} 个动作。`,
     );
 
-    let planId;
+    /*
+       ★★★★★
+       第一步：彻底清理旧计划
 
-    /* ======================================================
-       A：已有计划
-    ====================================================== */
+       如果数据库里已经有：
 
-    if (existing && existing.length) {
-      planId = existing[0].id;
+       plan A → 14动作
+       plan B → 14动作
+       plan C → 14动作
 
-      await supabaseRequest("training_plans?id=eq." + planId, {
-        method: "PATCH",
+       这里会全部处理。
+    */
 
-        body: {
-          workout_number: finalPlan.workout_number,
+    await removeAllExistingPlansForWorkoutNumber(finalPlan.workout_number);
 
-          plan_date: todayString(),
+    console.log(`✅ 旧第${finalPlan.workout_number}次训练已经完全清理。`);
 
-          title: finalPlan.title,
+    /*
+       ★★★★★
+       第二步：
 
-          focus: finalPlan.focus,
+       创建唯一的新 training_plans
+    */
 
-          duration_minutes: finalPlan.duration_minutes,
+    const created = await supabaseRequest("training_plans", {
+      method: "POST",
 
-          notes: finalPlan.notes,
-        },
-      });
+      body: {
+        workout_number: finalPlan.workout_number,
 
-      /* 删除旧动作 */
+        plan_date: todayString(),
 
-      await supabaseRequest(
-        "training_plan_exercises" + "?plan_id=eq." + planId,
-        {
-          method: "DELETE",
+        title: finalPlan.title,
 
-          prefer: "return=minimal",
-        },
-      );
-    } else {
-      /* ======================================================
-       B：新建计划
-    ====================================================== */
-      const created = await supabaseRequest("training_plans", {
-        method: "POST",
+        focus: finalPlan.focus,
 
-        body: {
-          workout_number: finalPlan.workout_number,
+        duration_minutes: finalPlan.duration_minutes,
 
-          plan_date: todayString(),
+        notes: finalPlan.notes,
+      },
+    });
 
-          title: finalPlan.title,
-
-          focus: finalPlan.focus,
-
-          duration_minutes: finalPlan.duration_minutes,
-
-          notes: finalPlan.notes,
-        },
-      });
-
-      if (!created || !created.length || !created[0].id) {
-        throw new Error("training_plans 创建成功后没有返回 plan_id。");
-      }
-
-      planId = created[0].id;
+    if (!created || !created.length || !created[0].id) {
+      throw new Error("training_plans 创建成功后没有返回 plan_id。");
     }
 
-    /* ========================================================
+    const planId = created[0].id;
+
+    console.log("✅ 新训练计划创建成功：", {
+      plan_id: planId,
+
+      workout_number: finalPlan.workout_number,
+    });
+
+    /* ======================================================
        7. 写入动作
-    ======================================================== */
+    ====================================================== */
 
     let insertedExerciseCount = 0;
 
@@ -1420,20 +1540,50 @@ async function importAITrainingPlan() {
     }
 
     /* ========================================================
-       8. 检查
+       8. 检查本次写入数量
     ======================================================== */
 
     if (insertedExerciseCount === 0) {
       throw new Error("训练计划创建成功，但没有成功写入任何训练动作。");
     }
 
+    /*
+       ★★★
+       这里第一次确认：
+
+       我们实际 POST 了多少个动作。
+    */
+
+    if (insertedExerciseCount !== finalPlan.exercises.length) {
+      throw new Error(
+        `动作写入数量不一致。\n\n` +
+          `AI返回：${finalPlan.exercises.length} 个动作\n` +
+          `实际写入：${insertedExerciseCount} 个动作`,
+      );
+    }
+
     /* ========================================================
-       9. 成功
+       9. ★★★ 从数据库重新读取确认
+
+       防止：
+
+       AI 14
+       JS POST 14
+       数据库却不是14
+    ======================================================== */
+
+    const actualCount = await verifyImportedPlan(
+      planId,
+      finalPlan.exercises.length,
+    );
+
+    /* ========================================================
+       10. 成功
     ======================================================== */
 
     alert(
       `第${finalPlan.workout_number}次训练计划已经成功导入！💪\n\n` +
-        `共 ${insertedExerciseCount} 个动作。`,
+        `共 ${actualCount} 个动作。`,
     );
 
     box.value = "";
@@ -1467,7 +1617,7 @@ async function importAITrainingPlan() {
 
       plan_id: planId,
 
-      exercise_count: insertedExerciseCount,
+      exercise_count: actualCount,
     });
   } catch (error) {
     console.error("AI训练计划导入失败：", error);

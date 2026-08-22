@@ -1,77 +1,89 @@
 /* ================================
    基础请求
+   Supabase REST API
 ================================ */
 
-async function supabaseRequest(
-path,
-options={}
-){
+async function supabaseRequest(path, options = {}) {
+  /* ========================================================
+     1. 默认使用 Supabase anon key
+  ======================================================== */
 
-const response =
-await fetch(
+  let accessToken = SUPABASE_KEY;
 
-SUPABASE_URL +
-"/rest/v1/" +
-path,
+  /* ========================================================
+     2. 如果 Supabase Auth Session 存在
+        使用当前登录用户的 access_token
 
-{
+        这样 RLS 才会识别为：
 
-method:
-options.method || "GET",
+        authenticated
+  ======================================================== */
 
-headers:{
+  try {
+    if (
+      typeof supabase !== "undefined" &&
+      supabase &&
+      supabase.auth &&
+      typeof supabase.auth.getSession === "function"
+    ) {
+      const { data, error } = await supabase.auth.getSession();
 
-"apikey":
-SUPABASE_KEY,
+      if (!error && data?.session?.access_token) {
+        accessToken = data.session.access_token;
+      }
+    }
+  } catch (error) {
+    console.warn("读取 Supabase 登录 Session 失败，继续使用 anon key：", error);
+  }
 
-"Authorization":
-"Bearer " +
-SUPABASE_KEY,
+  /* ========================================================
+     3. 发起请求
+  ======================================================== */
 
-"Content-Type":
-"application/json",
+  const response = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+    method: options.method || "GET",
 
-"Prefer":
-options.prefer ||
-"return=representation"
+    headers: {
+      apikey: SUPABASE_KEY,
 
-},
+      Authorization: "Bearer " + accessToken,
 
-body:
-options.body
-?
-JSON.stringify(options.body)
-:
-undefined
+      "Content-Type": "application/json",
 
-}
+      Prefer: options.prefer || "return=representation",
+    },
 
-);
+    body:
+      options.body !== undefined && options.body !== null
+        ? JSON.stringify(options.body)
+        : undefined,
+  });
 
+  /* ========================================================
+     4. Supabase 返回错误
+  ======================================================== */
 
-if(!response.ok){
+  if (!response.ok) {
+    const text = await response.text();
 
-const text =
-await response.text();
+    throw new Error("HTTP " + response.status + "：" + text);
+  }
 
-throw new Error(
-"HTTP " +
-response.status +
-"：" +
-text
-);
+  /* ========================================================
+     5. 读取返回内容
+  ======================================================== */
 
-}
+  const text = await response.text();
 
+  if (!text) {
+    return [];
+  }
 
-const text =
-await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Supabase 返回的数据不是有效 JSON：", text);
 
-
-return text
-?
-JSON.parse(text)
-:
-[];
-
+    throw new Error("Supabase 返回数据解析失败。");
+  }
 }
