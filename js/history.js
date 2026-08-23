@@ -4,9 +4,8 @@
 
    负责：
    ① 力量训练历史
-   ② 力量训练动作详情
-   ③ 其它运动历史
-   ④ 每日步数历史
+   ② 其它运动历史
+   ③ 每日步数历史
 
    本文件完全独立于：
    app.js
@@ -19,6 +18,49 @@
    唯一依赖：
    config.js
    api.js
+
+   =========================================================
+
+   重要：
+
+   workouts 表：
+
+   duration_minutes
+   = 计划训练时间
+
+   actual_duration_minutes
+   = 实际完成训练时间
+
+   历史页面显示训练时间时：
+
+   优先显示 actual_duration_minutes
+   如果旧数据没有 actual_duration_minutes，
+   再回退显示 duration_minutes。
+
+   =========================================================
+
+   已彻底取消：
+
+   workout_exercise_records
+   的读取
+
+   历史页面不再提供：
+
+   - 查看动作详情
+   - 查看动作完成情况
+   - 查看动作难度
+   - 查看动作组数 / 次数 / 重量
+   - 动作记录数量
+
+   删除 workouts 时：
+
+   workouts
+       ↓
+   workout_exercise_records
+
+   由数据库 ON DELETE CASCADE
+   自动删除动作记录。
+
 ================================ */
 
 /* =========================================================
@@ -26,8 +68,6 @@
 ========================================================= */
 
 let historyWorkouts = [];
-
-let historyExerciseRecords = [];
 
 let historyOtherActivities = [];
 
@@ -128,12 +168,19 @@ async function loadHistoryPage() {
   console.log("📚 开始读取历史数据……");
 
   /*
-     三类数据并行读取。
+     现在只读取三类数据：
+
+     ① 力量训练
+     ② 其它运动
+     ③ 每日步数
+
+     不再读取：
+
+     workout_exercise_records
   */
 
   await Promise.all([
     loadHistoryWorkouts(),
-    loadHistoryExerciseRecords(),
     loadHistoryOtherActivities(),
     loadHistoryDailySteps(),
   ]);
@@ -157,6 +204,17 @@ async function loadHistoryPage() {
 
 async function loadHistoryWorkouts() {
   try {
+    /*
+       直接读取 workouts 全部字段。
+
+       其中包括：
+
+       duration_minutes
+       actual_duration_minutes
+
+       历史页面会优先使用实际训练时间。
+    */
+
     const data = await supabaseRequest(
       "workouts" + "?select=*" + "&order=workout_date.desc,workout_number.desc",
     );
@@ -172,47 +230,7 @@ async function loadHistoryWorkouts() {
 }
 
 /* =========================================================
-   ② 动作历史
-========================================================= */
-
-async function loadHistoryExerciseRecords() {
-  try {
-    /*
-       这里读取每个训练中的动作完成记录。
-
-       同时通过 workouts 关联获取：
-       workout_number
-       workout_date
-    */
-
-    const data = await supabaseRequest(
-      "workout_exercise_records" +
-        "?select=*,workouts(workout_number,workout_date)" +
-        "&order=id.asc",
-    );
-
-    historyExerciseRecords = Array.isArray(data)
-      ? data.map((exercise) => {
-          return {
-            ...exercise,
-
-            workout_number: exercise.workouts?.workout_number ?? null,
-
-            workout_date: exercise.workouts?.workout_date ?? null,
-          };
-        })
-      : [];
-
-    console.log("💪 动作历史读取成功：", historyExerciseRecords.length, "条");
-  } catch (error) {
-    console.error("❌ 动作历史读取失败：", error);
-
-    historyExerciseRecords = [];
-  }
-}
-
-/* =========================================================
-   ③ 其它运动
+   ② 其它运动
 ========================================================= */
 
 async function loadHistoryOtherActivities() {
@@ -236,7 +254,7 @@ async function loadHistoryOtherActivities() {
 }
 
 /* =========================================================
-   ④ 每日步数
+   ③ 每日步数
 ========================================================= */
 
 async function loadHistoryDailySteps() {
@@ -253,6 +271,63 @@ async function loadHistoryDailySteps() {
 
     historyDailySteps = [];
   }
+}
+
+/* =========================================================
+   获取历史训练实际时间
+========================================================= */
+
+/*
+   时间显示规则：
+
+   ① 有 actual_duration_minutes
+      → 显示实际训练时间
+
+   ② 没有实际训练时间
+      → 回退到 duration_minutes
+
+   这样可以兼容以前已经保存的训练记录。
+*/
+
+function getHistoryWorkoutDuration(record) {
+  if (!record || typeof record !== "object") {
+    return {
+      minutes: null,
+      isActual: false,
+    };
+  }
+
+  /*
+     优先读取实际训练时间。
+  */
+
+  const actual = Number(record.actual_duration_minutes);
+
+  if (Number.isFinite(actual) && actual > 0) {
+    return {
+      minutes: actual,
+      isActual: true,
+    };
+  }
+
+  /*
+     如果没有实际时间，
+     回退到计划时间。
+  */
+
+  const planned = Number(record.duration_minutes);
+
+  if (Number.isFinite(planned) && planned > 0) {
+    return {
+      minutes: planned,
+      isActual: false,
+    };
+  }
+
+  return {
+    minutes: null,
+    isActual: false,
+  };
 }
 
 /* =========================================================
@@ -295,20 +370,34 @@ function renderWorkoutHistory() {
           ? `${historyEscapeHtml(record.completion_percent)}%`
           : "—";
 
-      const duration =
-        record.duration_minutes !== null &&
-        record.duration_minutes !== undefined &&
-        record.duration_minutes !== ""
-          ? `${historyEscapeHtml(record.duration_minutes)} 分钟`
-          : "—";
-
       /*
-         判断这次训练是否有动作记录。
+         =====================================================
+         训练时间
+
+         actual_duration_minutes
+         ↓
+         duration_minutes
+
+         优先显示实际训练时间。
+         =====================================================
       */
 
-      const exerciseCount = historyExerciseRecords.filter((exercise) => {
-        return String(exercise.workout_id) === workoutId;
-      }).length;
+      const durationInfo = getHistoryWorkoutDuration(record);
+
+      let durationText = "—";
+
+      if (durationInfo.minutes !== null) {
+        if (durationInfo.isActual) {
+          durationText = `${historyEscapeHtml(durationInfo.minutes)} 分钟`;
+        } else {
+          /*
+             旧记录没有实际训练时间，
+             明确标记为计划时间。
+          */
+
+          durationText = `${historyEscapeHtml(durationInfo.minutes)} 分钟（计划）`;
+        }
+      }
 
       return `
         <div class="history-item">
@@ -330,11 +419,7 @@ function renderWorkoutHistory() {
           </div>
 
           <div class="muted">
-            训练时间：${duration}
-          </div>
-
-          <div class="muted">
-            动作记录：${exerciseCount} 个
+            训练时间：${durationText}
           </div>
 
           <br>
@@ -342,23 +427,12 @@ function renderWorkoutHistory() {
           <button
             type="button"
             class="secondary-btn"
-            onclick="toggleWorkoutDetails('${historyEscapeHtml(workoutId)}')"
-          >
-            📋 查看动作详情
-          </button>
-
-          <button
-            type="button"
-            class="secondary-btn"
-            onclick="handleDeleteWorkoutFromHistory('${historyEscapeHtml(workoutId)}','${historyEscapeHtml(record.workout_number ?? "")}')"
+            onclick="handleDeleteWorkoutFromHistory('${historyEscapeHtml(
+              workoutId,
+            )}','${historyEscapeHtml(record.workout_number ?? "")}')"
           >
             🗑 删除这次训练
           </button>
-
-          <div
-            id="workoutDetails-${historyEscapeHtml(workoutId)}"
-            class="history-details hidden"
-          ></div>
 
         </div>
       `;
@@ -367,209 +441,30 @@ function renderWorkoutHistory() {
 }
 
 /* =========================================================
-   查看 / 隐藏某次训练的动作详情
-========================================================= */
-
-function toggleWorkoutDetails(workoutId) {
-  const box = document.getElementById(`workoutDetails-${workoutId}`);
-
-  if (!box) {
-    return;
-  }
-
-  /*
-     如果已经显示，则隐藏。
-  */
-
-  if (!box.classList.contains("hidden")) {
-    box.classList.add("hidden");
-
-    return;
-  }
-
-  /*
-     找到该训练的动作记录。
-  */
-
-  const exercises = historyExerciseRecords.filter((exercise) => {
-    return String(exercise.workout_id) === String(workoutId);
-  });
-
-  if (!exercises.length) {
-    box.innerHTML = `
-      <div class="analysis">
-        <div class="muted">
-          这次训练没有动作详细记录。
-        </div>
-      </div>
-    `;
-
-    box.classList.remove("hidden");
-
-    return;
-  }
-
-  box.innerHTML = `
-    <div class="analysis">
-
-      <strong>
-        💪 本次训练动作
-      </strong>
-
-      <br>
-      <br>
-
-      ${exercises
-        .map((exercise, index) => {
-          return renderExerciseHistoryItem(exercise, index);
-        })
-        .join("")}
-
-    </div>
-  `;
-
-  box.classList.remove("hidden");
-}
-
-/* =========================================================
-   单个动作历史
-========================================================= */
-
-function renderExerciseHistoryItem(exercise, index) {
-  /*
-     不假定数据库一定存在某一个固定字段。
-
-     根据目前系统常见字段依次尝试：
-
-     exercise_name
-     name
-     title
-
-     训练感受：
-
-     difficulty
-     feeling
-     training_feel
-
-     完成：
-
-     completed
-     completion_percent
-
-     其它字段统一作为补充信息。
-  */
-
-  const name =
-    exercise.exercise_name ||
-    exercise.name ||
-    exercise.title ||
-    `动作 ${index + 1}`;
-
-  const difficulty =
-    exercise.difficulty ||
-    exercise.feeling ||
-    exercise.training_feel ||
-    exercise.training_difficulty ||
-    "";
-
-  let completedText = "";
-
-  if (exercise.completed === true) {
-    completedText = "已完成";
-  } else if (exercise.completed === false) {
-    completedText = "未完成";
-  } else if (
-    exercise.completion_percent !== null &&
-    exercise.completion_percent !== undefined
-  ) {
-    completedText = `完成度：${exercise.completion_percent}%`;
-  }
-
-  /*
-     尝试显示训练次数 / 组数。
-  */
-
-  const reps = exercise.reps ?? exercise.completed_reps ?? null;
-
-  const sets = exercise.sets ?? exercise.completed_sets ?? null;
-
-  const weight = exercise.weight ?? exercise.weight_kg ?? null;
-
-  const details = [];
-
-  if (sets !== null && sets !== "") {
-    details.push(`${sets} 组`);
-  }
-
-  if (reps !== null && reps !== "") {
-    details.push(`${reps} 次`);
-  }
-
-  if (weight !== null && weight !== "") {
-    details.push(`${weight} kg`);
-  }
-
-  return `
-    <div
-      style="
-        padding:12px 0;
-        border-bottom:1px solid rgba(0,0,0,0.06);
-      "
-    >
-
-      <strong>
-        ${historyEscapeHtml(name)}
-      </strong>
-
-      ${
-        details.length
-          ? `
-            <div class="muted">
-              ${details.map((item) => historyEscapeHtml(item)).join(" × ")}
-            </div>
-          `
-          : ""
-      }
-
-      ${
-        completedText
-          ? `
-            <div class="muted">
-              ${historyEscapeHtml(completedText)}
-            </div>
-          `
-          : ""
-      }
-
-      ${
-        difficulty
-          ? `
-            <div class="muted">
-              训练难度：
-              ${historyEscapeHtml(difficulty)}
-            </div>
-          `
-          : ""
-      }
-
-      ${
-        exercise.note
-          ? `
-            <div class="muted">
-              备注：
-              ${historyEscapeHtml(exercise.note)}
-            </div>
-          `
-          : ""
-      }
-
-    </div>
-  `;
-}
-
-/* =========================================================
    删除训练
 ========================================================= */
+
+/*
+   现在只删除：
+
+   workouts
+
+   数据库负责：
+
+   workouts
+       ↓
+   workout_exercise_records
+
+   ON DELETE CASCADE
+   ↓
+   自动删除动作记录
+
+   因此这里不再：
+
+   - 手动删除 workout_exercise_records
+   - 查询 workout_exercise_records
+   - 修改 historyExerciseRecords
+*/
 
 async function handleDeleteWorkoutFromHistory(workoutId, workoutNumber) {
   if (!workoutId) {
@@ -583,7 +478,10 @@ async function handleDeleteWorkoutFromHistory(workoutId, workoutNumber) {
     : "这次训练";
 
   const confirmed = confirm(
-    `确定要删除「${displayNumber}」吗？\n\n这会删除这次训练及其动作记录。`,
+    `确定要删除「${displayNumber}」吗？\n\n` +
+      `这会删除这次训练的实际记录。\n` +
+      `对应的动作记录也会由数据库自动删除。\n\n` +
+      `不会删除训练计划。`,
   );
 
   if (!confirmed) {
@@ -594,27 +492,10 @@ async function handleDeleteWorkoutFromHistory(workoutId, workoutNumber) {
     console.log("🗑 正在删除训练：", workoutId);
 
     /*
-       先删除动作记录。
+       只删除 workouts。
 
-       如果数据库已经设置 ON DELETE CASCADE，
-       即使这里没有记录也不会影响。
-    */
-
-    try {
-      await supabaseRequest(
-        `workout_exercise_records?workout_id=eq.${encodeURIComponent(
-          workoutId,
-        )}`,
-        {
-          method: "DELETE",
-        },
-      );
-    } catch (exerciseError) {
-      console.warn("⚠️ 删除动作记录失败：", exerciseError);
-    }
-
-    /*
-       再删除 workouts。
+       workout_exercise_records
+       由数据库 ON DELETE CASCADE 自动删除。
     */
 
     await supabaseRequest(`workouts?id=eq.${encodeURIComponent(workoutId)}`, {
@@ -622,19 +503,15 @@ async function handleDeleteWorkoutFromHistory(workoutId, workoutNumber) {
     });
 
     /*
-       更新本地数据。
+       更新本地力量训练数据。
     */
 
     historyWorkouts = historyWorkouts.filter(
       (record) => String(record.id) !== String(workoutId),
     );
 
-    historyExerciseRecords = historyExerciseRecords.filter(
-      (exercise) => String(exercise.workout_id) !== String(workoutId),
-    );
-
     /*
-       重新渲染。
+       重新渲染力量训练历史。
     */
 
     renderWorkoutHistory();
@@ -677,23 +554,23 @@ function renderOtherActivityHistory() {
       const minutes = Number(activity.duration_minutes) || 0;
 
       return `
-          <div class="history-item">
+        <div class="history-item">
 
-            <div class="history-title">
-              🏃 ${historyEscapeHtml(type)}
-            </div>
-
-            <div class="muted">
-              📅 ${historyEscapeHtml(date)}
-            </div>
-
-            <div class="muted">
-              运动时间：
-              ${minutes} 分钟
-            </div>
-
+          <div class="history-title">
+            🏃 ${historyEscapeHtml(type)}
           </div>
-        `;
+
+          <div class="muted">
+            📅 ${historyEscapeHtml(date)}
+          </div>
+
+          <div class="muted">
+            运动时间：
+            ${minutes} 分钟
+          </div>
+
+        </div>
+      `;
     })
     .join("");
 }
@@ -726,18 +603,18 @@ function renderDailyStepsHistory() {
       const steps = Number(record.steps) || 0;
 
       return `
-          <div class="history-item">
+        <div class="history-item">
 
-            <div class="history-title">
-              👟 ${steps.toLocaleString()} 步
-            </div>
-
-            <div class="muted">
-              📅 ${historyEscapeHtml(date)}
-            </div>
-
+          <div class="history-title">
+            👟 ${steps.toLocaleString()} 步
           </div>
-        `;
+
+          <div class="muted">
+            📅 ${historyEscapeHtml(date)}
+          </div>
+
+        </div>
+      `;
     })
     .join("");
 }

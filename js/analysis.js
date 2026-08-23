@@ -384,7 +384,7 @@ function updateWeeklyOverview() {
   }, 0);
 
   const strengthMinutes = list.reduce((sum, record) => {
-    return sum + (Number(record.duration_minutes) || 0);
+    return sum + (Number(record.actual_duration_minutes) || 0);
   }, 0);
 
   /* =====================================================
@@ -512,7 +512,7 @@ function updateMonthlyOverview() {
   }, 0);
 
   const strengthMinutes = list.reduce((sum, record) => {
-    return sum + (Number(record.duration_minutes) || 0);
+    return sum + (Number(record.actual_duration_minutes) || 0);
   }, 0);
 
   /* =====================================================
@@ -1191,7 +1191,7 @@ function updateYearlyCharts() {
   const totalWorkouts = yearRecords.length;
 
   const totalMinutes = yearRecords.reduce((sum, record) => {
-    return sum + (Number(record.duration_minutes) || 0);
+    return sum + (Number(record.actual_duration_minutes) || 0);
   }, 0);
 
   const otherMinutes = yearOther.reduce((sum, activity) => {

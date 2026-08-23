@@ -37,6 +37,19 @@
 
    ------------------------------------------------
 
+   时间字段：
+
+   training_plans.duration_minutes
+   = AI 计划建议训练时间
+
+   workouts.duration_minutes
+   = 保存当次训练时，对应的计划建议时间
+
+   workouts.actual_duration_minutes
+   = 用户实际完成这次训练所花费的时间
+
+   ------------------------------------------------
+
    动作状态：
 
    easy
@@ -193,6 +206,82 @@ function getUnrecordedExercises() {
   }
 
   return result;
+}
+
+/* =========================================================
+   输入实际训练时间
+========================================================= */
+
+/*
+   duration_minutes
+   = 计划建议时间
+
+   actual_duration_minutes
+   = 用户实际完成时间
+
+   这里不自动计时。
+
+   用户点击保存训练时，
+   手动输入本次实际训练用了多少分钟。
+
+   默认值：
+   当前训练计划的 duration_minutes。
+
+   例如：
+
+   计划时间：45分钟
+
+   弹窗默认：
+   45
+
+   如果实际训练用了58分钟，
+   用户修改为：
+
+   58
+
+   点击取消：
+   不保存训练。
+
+   点击确定：
+   返回实际训练分钟数。
+*/
+
+function getActualDurationMinutes() {
+  const plannedDuration = Number(currentPlan?.duration_minutes);
+
+  const defaultDuration =
+    Number.isFinite(plannedDuration) && plannedDuration > 0
+      ? Math.round(plannedDuration)
+      : 25;
+
+  while (true) {
+    const input = window.prompt(
+      `请输入本次实际训练时间（分钟）：\n\n` +
+        `计划建议时间：${defaultDuration} 分钟\n\n` +
+        `请输入你这次实际训练用了多少分钟。`,
+      String(defaultDuration),
+    );
+
+    /* =====================================================
+       用户点击取消
+    ===================================================== */
+
+    if (input === null) {
+      return null;
+    }
+
+    const value = Number(String(input).trim());
+
+    /* =====================================================
+       必须是正整数
+    ===================================================== */
+
+    if (Number.isInteger(value) && value > 0) {
+      return value;
+    }
+
+    alert("请输入有效的实际训练时间，例如：45、52、60。");
+  }
 }
 
 /* =========================================================
@@ -516,7 +605,26 @@ async function finishWorkout() {
   const note = document.getElementById("bodyNote")?.value.trim() || null;
 
   /* =====================================================
-     7. 禁用保存按钮
+     7. 输入实际训练时间
+
+     注意：
+
+     这里使用 actual_duration_minutes。
+
+     不再把计划时间直接当成实际训练时间。
+
+     用户取消：
+     → 整个保存流程停止。
+  ===================================================== */
+
+  const actualDurationMinutes = getActualDurationMinutes();
+
+  if (actualDurationMinutes === null) {
+    return;
+  }
+
+  /* =====================================================
+     8. 禁用保存按钮
   ===================================================== */
 
   const button = document.getElementById("saveButton");
@@ -527,7 +635,7 @@ async function finishWorkout() {
   }
 
   /* =====================================================
-     8. 保存过程中记录新建的 workout ID
+     9. 保存过程中记录新建的 workout ID
 
      如果后续动作保存失败，
      可以清理这个半成品。
@@ -537,22 +645,26 @@ async function finishWorkout() {
 
   try {
     /* ===================================================
-       9. 查询同一个训练编号的旧记录
+       10. 查询同一个训练编号的旧记录
     =================================================== */
 
     const oldWorkouts = await getOldWorkouts(currentPlan.workout_number);
 
     /* ===================================================
-       10. 创建新的 workouts
+       11. 创建新的 workouts
 
        注意：
 
-       这里先创建新版本，
-       不删除旧版本。
+       duration_minutes
+       = 计划建议时间
 
-       只有全部保存成功以后，
-       才删除旧版本。
+       actual_duration_minutes
+       = 用户实际输入的训练时间
+
+       两者不再混用。
     =================================================== */
+
+    const plannedDuration = Number(currentPlan.duration_minutes);
 
     const workout = await supabaseRequest("workouts", {
       method: "POST",
@@ -566,7 +678,12 @@ async function finishWorkout() {
 
         focus: currentPlan.focus || "",
 
-        duration_minutes: Number(currentPlan.duration_minutes) || 25,
+        duration_minutes:
+          Number.isFinite(plannedDuration) && plannedDuration > 0
+            ? Math.round(plannedDuration)
+            : 25,
+
+        actual_duration_minutes: actualDurationMinutes,
 
         completion_percent: percent,
 
@@ -575,7 +692,7 @@ async function finishWorkout() {
     });
 
     /* ===================================================
-       11. 检查 workouts 创建结果
+       12. 检查 workouts 创建结果
     =================================================== */
 
     if (!workout || !workout.length || !workout[0].id) {
@@ -585,7 +702,7 @@ async function finishWorkout() {
     newWorkoutId = workout[0].id;
 
     /* ===================================================
-       12. 保存本次所有动作记录
+       13. 保存本次所有动作记录
     =================================================== */
 
     for (let i = 0; i < currentExercises.length; i++) {
@@ -642,7 +759,7 @@ async function finishWorkout() {
     }
 
     /* ===================================================
-       13. 新训练 + 所有动作都保存成功
+       14. 新训练 + 所有动作都保存成功
 
        现在才删除旧版本。
 
@@ -671,17 +788,21 @@ async function finishWorkout() {
     }
 
     /* ===================================================
-       14. 保存成功
+       15. 保存成功
     =================================================== */
 
-    alert("今天的训练已经保存。💪");
+    alert(
+      `今天的训练已经保存。💪\n\n` +
+        `计划时间：${Number.isFinite(plannedDuration) && plannedDuration > 0 ? Math.round(plannedDuration) : 25} 分钟\n` +
+        `实际时间：${actualDurationMinutes} 分钟`,
+    );
 
     if (typeof setStatus === "function") {
       setStatus("☁️ 已同步到云端", "ok");
     }
 
     /* ===================================================
-       15. 刷新训练历史
+       16. 刷新训练历史
     =================================================== */
 
     if (typeof loadHistory === "function") {
@@ -689,7 +810,7 @@ async function finishWorkout() {
     }
 
     /* ===================================================
-       16. 刷新动作历史
+       17. 刷新动作历史
     =================================================== */
 
     if (typeof loadExerciseRecords === "function") {
@@ -697,7 +818,7 @@ async function finishWorkout() {
     }
 
     /* ===================================================
-       17. 重新读取当前训练
+       18. 重新读取当前训练
 
        例如：
 
@@ -765,7 +886,7 @@ async function finishWorkout() {
   }
 
   /* =====================================================
-     18. 恢复保存按钮
+     19. 恢复保存按钮
   ===================================================== */
 
   if (button) {
