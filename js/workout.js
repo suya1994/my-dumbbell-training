@@ -1,31 +1,93 @@
 /* ================================
    workout.js
    训练执行与保存模块
-================================ */
 
-/* ================================
-   设置动作难度
+   当前数据结构：
 
-   由 plan.js 调用
+   training_plans
+       ↓
+   training_plan_exercises
+       ↓
+   workouts
+       ↓
+   workout_exercise_records
+
+   已彻底取消 exercises 表。
+
+   exercises_backup：
+   仅作为数据库备份存在，
+   本文件不读取、不写入、不删除。
+
+   ------------------------------------------------
+
+   数据职责：
+
+   training_plans
+   = AI 生成的训练计划
+
+   training_plan_exercises
+   = 某个训练计划具体有哪些动作
+
+   workouts
+   = 用户实际完成过的某一次训练
+
+   workout_exercise_records
+   = 用户实际完成这次训练时，
+     每个动作的完成情况和难度
+
+   ------------------------------------------------
+
+   动作状态：
 
    easy
    normal
    hard
    incomplete
+
+   easy / normal / hard
+   = completed = true
+
+   incomplete
+   = completed = false
 ================================ */
 
-function setExerciseDifficulty(index, difficulty) {
-  /* ================================
-     检查动作编号
-  ================================= */
+/* =========================================================
+   设置动作难度
+========================================================= */
 
-  if (index < 0 || index >= currentExercises.length) {
+/*
+   用户点击：
+
+   轻松
+   正常
+   吃力
+   未完成
+
+   保存到：
+
+   exerciseDifficulty[index]
+
+   同时同步：
+
+   completed[index]
+*/
+
+function setExerciseDifficulty(index, difficulty) {
+  /* =====================================================
+     1. 检查动作编号
+  ===================================================== */
+
+  if (
+    !Array.isArray(currentExercises) ||
+    index < 0 ||
+    index >= currentExercises.length
+  ) {
     return;
   }
 
-  /* ================================
-     只允许这4种状态
-  ================================= */
+  /* =====================================================
+     2. 只允许4种状态
+  ===================================================== */
 
   const allowed = ["easy", "normal", "hard", "incomplete"];
 
@@ -33,57 +95,58 @@ function setExerciseDifficulty(index, difficulty) {
     return;
   }
 
-  /* ================================
-     保存动作难度
-  ================================= */
+  /* =====================================================
+     3. 保存难度
+  ===================================================== */
 
   exerciseDifficulty[index] = difficulty;
 
-  /* ================================
-     更新完成状态
+  /* =====================================================
+     4. 同步完成状态
 
-     轻松 / 正常 / 吃力
-     = 动作完成
+     easy
+     normal
+     hard
+     → 已完成
 
-     未完成
-     = 动作没有完成
-  ================================= */
+     incomplete
+     → 未完成
+  ===================================================== */
 
-  if (difficulty === "incomplete") {
-    completed[index] = false;
-  } else {
-    completed[index] = true;
+  completed[index] = difficulty !== "incomplete";
+
+  /* =====================================================
+     5. 重新渲染当前训练
+
+     主要作用：
+     让按钮显示 selected 状态。
+  ===================================================== */
+
+  if (typeof renderCurrentPlan === "function") {
+    renderCurrentPlan();
   }
 
-  /* ================================
-     重新渲染
-
-     让按钮立即显示选中状态
-  ================================= */
-
-  renderCurrentPlan();
-
-  /* ================================
-     更新训练进度
-  ================================= */
+  /* =====================================================
+     6. 更新训练进度
+  ===================================================== */
 
   updateProgress();
 }
 
-/* ================================
-   训练进度
-================================ */
+/* =========================================================
+   更新训练进度
+========================================================= */
 
 function updateProgress() {
-  const total = currentExercises.length;
+  const total = Array.isArray(currentExercises) ? currentExercises.length : 0;
 
-  const count = completed.filter(Boolean).length;
+  const count = Array.isArray(completed) ? completed.filter(Boolean).length : 0;
 
   const percent = total ? Math.round((count / total) * 100) : 0;
 
-  /* ================================
-     更新进度条
-  ================================= */
+  /* =====================================================
+     进度条
+  ===================================================== */
 
   const bar = document.getElementById("progressBar");
 
@@ -91,9 +154,9 @@ function updateProgress() {
     bar.style.width = percent + "%";
   }
 
-  /* ================================
-     更新进度文字
-  ================================= */
+  /* =====================================================
+     进度文字
+  ===================================================== */
 
   const text = document.getElementById("progressText");
 
@@ -102,12 +165,26 @@ function updateProgress() {
   }
 }
 
-/* ================================
-   检查是否还有动作没有记录
-================================ */
+/* =========================================================
+   获取还没有记录难度的动作
+========================================================= */
+
+/*
+   返回动作下标：
+
+   [0, 2, 4]
+
+   表示第1、3、5个动作还没有选择：
+
+   轻松 / 正常 / 吃力 / 未完成
+*/
 
 function getUnrecordedExercises() {
   const result = [];
+
+  if (!Array.isArray(currentExercises)) {
+    return result;
+  }
 
   for (let i = 0; i < currentExercises.length; i++) {
     if (!exerciseDifficulty[i]) {
@@ -118,14 +195,233 @@ function getUnrecordedExercises() {
   return result;
 }
 
-/* ================================
+/* =========================================================
+   删除某次旧训练
+
+   重要：
+
+   现在不再手动删除
+   workout_exercise_records。
+
+   因为数据库已经设置：
+
+   workout_exercise_records.workout_id
+   ↓
+   workouts.id
+   ON DELETE CASCADE
+
+   所以：
+
+   删除 workouts
+        ↓
+   数据库自动删除
+   workout_exercise_records
+
+   不需要 JavaScript 再删除一次。
+========================================================= */
+
+async function deleteWorkout(workoutId) {
+  if (!workoutId) {
+    return;
+  }
+
+  await supabaseRequest(`workouts?id=eq.${workoutId}`, {
+    method: "DELETE",
+  });
+}
+
+/* =========================================================
+   用户手动删除某次训练
+========================================================= */
+
+/*
+   只删除：
+
+   workouts
+
+   数据库自动级联删除：
+
+   workout_exercise_records
+
+   不删除：
+
+   training_plans
+   training_plan_exercises
+
+   因为训练计划属于“计划”，
+   实际训练属于“历史记录”。
+
+   删除一次实际训练，
+   不应该把 AI 训练计划也删除。
+*/
+
+async function handleDeleteWorkout(workoutId, workoutNumber) {
+  if (!workoutId) {
+    return;
+  }
+
+  /* =====================================================
+     确认删除
+  ===================================================== */
+
+  const confirmed = confirm(
+    `确定要删除第${workoutNumber}次训练吗？\n\n` +
+      `这会删除这次训练的实际完成记录，` +
+      `但不会删除训练计划。`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    /* ===================================================
+       1. 删除 workouts
+
+       workout_exercise_records
+       会由数据库 CASCADE 自动删除。
+    =================================================== */
+
+    await deleteWorkout(workoutId);
+
+    /* ===================================================
+       2. 确认 workouts 已经删除
+    =================================================== */
+
+    const remaining = await supabaseRequest(
+      `workouts?id=eq.${workoutId}&select=id`,
+      {
+        method: "GET",
+      },
+    );
+
+    if (remaining && remaining.length) {
+      throw new Error("训练记录删除后仍然存在，请检查 Supabase DELETE 权限。");
+    }
+
+    /* ===================================================
+       3. 刷新训练历史
+    =================================================== */
+
+    if (typeof loadHistory === "function") {
+      await loadHistory();
+    }
+
+    /* ===================================================
+       4. 重新读取动作历史
+
+       如果 history.js 中存在这个函数，
+       一并刷新。
+    =================================================== */
+
+    if (typeof loadExerciseRecords === "function") {
+      await loadExerciseRecords();
+    }
+
+    /* ===================================================
+       5. 重新计算首页当前训练
+
+       例如：
+
+       原来：
+
+       第7次
+       第8次
+       第9次
+
+       删除第9次
+
+       ↓
+
+       最新保存 = 第8次
+
+       ↓
+
+       首页重新显示第9次
+    =================================================== */
+
+    if (typeof loadCurrentPlan === "function") {
+      await loadCurrentPlan();
+    }
+
+    /* ===================================================
+       6. 提示
+    =================================================== */
+
+    alert(`第${workoutNumber}次训练已经删除。`);
+  } catch (error) {
+    console.error("删除训练失败：", error);
+
+    alert(
+      `第${workoutNumber}次训练删除失败：\n\n` +
+        (error.message || String(error)),
+    );
+  }
+}
+
+/* =========================================================
+   获取同一个训练编号的旧记录
+========================================================= */
+
+/*
+   例如：
+
+   workout_number = 8
+
+   如果数据库中已经存在：
+
+   第8次旧记录
+
+   就返回。
+
+   保存新第8次成功以后，
+   再删除旧第8次。
+
+   这样可以避免：
+
+   先删旧数据
+   ↓
+   新数据保存失败
+   ↓
+   第8次训练彻底丢失
+
+   现在采用：
+
+   新建
+   ↓
+   保存动作
+   ↓
+   全部成功
+   ↓
+   删除旧版本
+========================================================= */
+
+async function getOldWorkouts(workoutNumber) {
+  if (workoutNumber === null || workoutNumber === undefined) {
+    return [];
+  }
+
+  const result = await supabaseRequest(
+    "workouts" +
+      `?workout_number=eq.${workoutNumber}` +
+      "&select=id,workout_number,created_at" +
+      "&order=created_at.desc",
+    {
+      method: "GET",
+    },
+  );
+
+  return Array.isArray(result) ? result : [];
+}
+
+/* =========================================================
    保存训练
-================================ */
+========================================================= */
 
 async function finishWorkout() {
-  /* ================================
-     检查训练计划
-  ================================= */
+  /* =====================================================
+     1. 检查当前训练计划
+  ===================================================== */
 
   if (!currentPlan) {
     alert("训练计划还没有加载完成。");
@@ -133,15 +429,29 @@ async function finishWorkout() {
     return;
   }
 
-  /* ================================
-     检查动作是否全部有记录
-  ================================= */
+  /* =====================================================
+     2. 检查动作
+  ===================================================== */
+
+  if (!Array.isArray(currentExercises) || currentExercises.length === 0) {
+    alert("当前训练没有动作，无法保存。");
+
+    return;
+  }
+
+  /* =====================================================
+     3. 检查是否所有动作都已经记录
+  ===================================================== */
 
   const unrecorded = getUnrecordedExercises();
 
   if (unrecorded.length > 0) {
     const names = unrecorded
-      .map((index) => `${index + 1}. ${currentExercises[index].exercise_name}`)
+      .map((index) => {
+        const exercise = currentExercises[index];
+
+        return `${index + 1}. ` + (exercise.exercise_name || "未知动作");
+      })
       .join("\n");
 
     const confirmed = confirm(
@@ -156,10 +466,11 @@ async function finishWorkout() {
       return;
     }
 
-    /* ================================
-       未选择的动作
-       自动记为未完成
-    ================================= */
+    /* ===================================================
+       没有选择状态的动作：
+
+       自动设置为 incomplete
+    =================================================== */
 
     for (let i = 0; i < currentExercises.length; i++) {
       if (!exerciseDifficulty[i]) {
@@ -169,18 +480,20 @@ async function finishWorkout() {
       }
     }
 
-    renderCurrentPlan();
+    /* ===================================================
+       更新页面
+    =================================================== */
+
+    if (typeof renderCurrentPlan === "function") {
+      renderCurrentPlan();
+    }
 
     updateProgress();
   }
 
-  /* ================================
-     至少完成一个动作
-
-     如果所有动作都是
-     「未完成」，
-     不保存本次训练。
-  ================================= */
+  /* =====================================================
+     4. 至少完成一个动作
+  ===================================================== */
 
   const count = completed.filter(Boolean).length;
 
@@ -190,34 +503,56 @@ async function finishWorkout() {
     return;
   }
 
-  /* ================================
-     计算完成度
-  ================================= */
+  /* =====================================================
+     5. 计算完成度
+  ===================================================== */
 
   const percent = Math.round((count / currentExercises.length) * 100);
 
-  /* ================================
-     读取训练感受
-  ================================= */
+  /* =====================================================
+     6. 读取训练感受
+  ===================================================== */
 
   const note = document.getElementById("bodyNote")?.value.trim() || null;
 
-  /* ================================
-     保存按钮
-  ================================= */
+  /* =====================================================
+     7. 禁用保存按钮
+  ===================================================== */
 
   const button = document.getElementById("saveButton");
 
   if (button) {
     button.disabled = true;
-
     button.textContent = "正在同步……";
   }
 
+  /* =====================================================
+     8. 保存过程中记录新建的 workout ID
+
+     如果后续动作保存失败，
+     可以清理这个半成品。
+  ===================================================== */
+
+  let newWorkoutId = null;
+
   try {
-    /* ================================
-       保存本次训练
-    ================================= */
+    /* ===================================================
+       9. 查询同一个训练编号的旧记录
+    =================================================== */
+
+    const oldWorkouts = await getOldWorkouts(currentPlan.workout_number);
+
+    /* ===================================================
+       10. 创建新的 workouts
+
+       注意：
+
+       这里先创建新版本，
+       不删除旧版本。
+
+       只有全部保存成功以后，
+       才删除旧版本。
+    =================================================== */
 
     const workout = await supabaseRequest("workouts", {
       method: "POST",
@@ -227,130 +562,211 @@ async function finishWorkout() {
 
         workout_date: todayString(),
 
-        title: currentPlan.title,
+        title: currentPlan.title || "",
 
-        focus: currentPlan.focus,
+        focus: currentPlan.focus || "",
 
-        duration_minutes: currentPlan.duration_minutes,
+        duration_minutes: Number(currentPlan.duration_minutes) || 25,
 
         completion_percent: percent,
-
-        /*
-              不再保存整体 difficulty。
-
-              难度现在按动作记录，
-              保存在 exercises.difficulty。
-            */
 
         body_note: note,
       },
     });
 
-    if (!workout || !workout.length) {
+    /* ===================================================
+       11. 检查 workouts 创建结果
+    =================================================== */
+
+    if (!workout || !workout.length || !workout[0].id) {
       throw new Error("训练保存成功，但没有返回训练记录。");
     }
 
-    const workoutId = workout[0].id;
+    newWorkoutId = workout[0].id;
 
-    /* ================================
-       保存每个动作
-    ================================= */
+    /* ===================================================
+       12. 保存本次所有动作记录
+    =================================================== */
 
     for (let i = 0; i < currentExercises.length; i++) {
       const exercise = currentExercises[i];
 
       const selectedDifficulty = exerciseDifficulty[i];
 
-      /* ================================
-         动作数据
+      /* =================================================
+         最终安全校验
 
-         difficulty：
-
-         easy
-         normal
-         hard
          incomplete
-      ================================= */
+         → false
 
-      const exerciseData = {
-        workout_id: workoutId,
+         easy / normal / hard
+         → true
+      ================================================= */
+
+      if (
+        !["easy", "normal", "hard", "incomplete"].includes(selectedDifficulty)
+      ) {
+        throw new Error(`第${i + 1}个动作的完成状态无效。`);
+      }
+
+      const isCompleted = selectedDifficulty !== "incomplete";
+
+      /* =================================================
+         这里只保存实际训练记录：
+
+         workout_exercise_records
+
+         plan_exercise_id
+         指向：
+
+         training_plan_exercises.id
+      ================================================= */
+
+      const exerciseRecord = {
+        workout_id: newWorkoutId,
+
+        workout_number: currentPlan.workout_number,
 
         plan_exercise_id: exercise.id,
 
-        exercise_order: exercise.exercise_order,
-
-        exercise_name: exercise.exercise_name,
-
-        equipment: exercise.equipment,
-
-        weight_kg: exercise.weight_kg,
-
-        reps: exercise.reps,
-
-        sets: exercise.sets,
-
-        notes: exercise.notes,
-
-        completed: completed[i],
+        completed: isCompleted,
 
         difficulty: selectedDifficulty,
       };
 
-      await supabaseRequest("exercises", {
+      await supabaseRequest("workout_exercise_records", {
         method: "POST",
 
-        body: exerciseData,
+        body: exerciseRecord,
       });
     }
 
-    /* ================================
-       保存成功
-    ================================= */
+    /* ===================================================
+       13. 新训练 + 所有动作都保存成功
+
+       现在才删除旧版本。
+
+       旧：
+
+       workouts
+       ↓
+       workout_exercise_records
+
+       删除 workouts 时：
+
+       workout_exercise_records
+       会由数据库 CASCADE 自动删除。
+    =================================================== */
+
+    for (const oldWorkout of oldWorkouts) {
+      /* =================================================
+         防止误删刚刚创建的新记录
+      ================================================= */
+
+      if (oldWorkout.id === newWorkoutId) {
+        continue;
+      }
+
+      await deleteWorkout(oldWorkout.id);
+    }
+
+    /* ===================================================
+       14. 保存成功
+    =================================================== */
 
     alert("今天的训练已经保存。💪");
 
-    setStatus("☁️ 已同步到云端", "ok");
+    if (typeof setStatus === "function") {
+      setStatus("☁️ 已同步到云端", "ok");
+    }
 
-    /* ================================
-       重新读取训练历史
-    ================================= */
+    /* ===================================================
+       15. 刷新训练历史
+    =================================================== */
 
     if (typeof loadHistory === "function") {
       await loadHistory();
     }
 
-    /* ================================
-       重新读取动作历史
-    ================================= */
+    /* ===================================================
+       16. 刷新动作历史
+    =================================================== */
 
     if (typeof loadExerciseRecords === "function") {
       await loadExerciseRecords();
     }
 
-    /* ================================
-       加载下一次训练
+    /* ===================================================
+       17. 重新读取当前训练
 
        例如：
 
-       第6次完成
+       第8次保存
+
        ↓
-       首页进入第7次
-    ================================= */
+
+       getLatestSavedWorkoutNumber()
+       = 8
+
+       ↓
+
+       getCurrentWorkoutNumber()
+       = 9
+
+       ↓
+
+       首页进入第9次。
+    =================================================== */
 
     if (typeof loadCurrentPlan === "function") {
       await loadCurrentPlan();
     }
   } catch (error) {
-    console.error(error);
+    /* ===================================================
+       保存失败
+    =================================================== */
 
-    setStatus("⚠️ 保存失败：" + error.message, "error");
+    console.error("保存训练失败：", error);
 
-    alert("保存失败：\n" + error.message);
+    /* ===================================================
+       如果已经创建 workouts，
+       但后续动作保存失败：
+
+       删除这个半成品 workouts。
+
+       因为：
+
+       workouts
+       ↓
+       workout_exercise_records
+
+       CASCADE 会自动删除已经成功写进去的
+       workout_exercise_records。
+    =================================================== */
+
+    if (newWorkoutId) {
+      try {
+        await deleteWorkout(newWorkoutId);
+      } catch (cleanupError) {
+        console.error("清理失败的训练记录时发生错误：", cleanupError);
+      }
+    }
+
+    if (typeof setStatus === "function") {
+      setStatus("⚠️ 保存失败：" + (error.message || String(error)), "error");
+    }
+
+    alert(
+      "保存失败：\n" +
+        (error.message || String(error)) +
+        "\n\n" +
+        "本次未完成的训练数据已尝试清理。",
+    );
   }
 
-  /* ================================
-     恢复保存按钮
-  ================================= */
+  /* =====================================================
+     18. 恢复保存按钮
+  ===================================================== */
 
   if (button) {
     button.disabled = false;

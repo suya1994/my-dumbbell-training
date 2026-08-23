@@ -5,7 +5,7 @@
    核心逻辑：
 
    1. 首页当前应该训练哪一次？
-      = 最近一次已经完成的训练 + 1
+      = 最近一次已经保存的训练 + 1
 
    2. training_plans 可以提前存在很多次，
       但首页只显示当前应该训练的编号。
@@ -18,13 +18,21 @@
 
    5. 每个动作只记录：
       轻松 / 正常 / 吃力 / 未完成
+
+   6. 删除训练计划：
+      删除第 N 次时，
+      从第 N 次开始删除所有尚未产生 workouts
+      历史的训练计划。
+
+      一旦遇到已经产生 workouts 历史的训练，
+      立即停止删除，保护训练历史。
 ================================ */
 
-/* ================================
-   获取最近一次已经完成的训练编号
-================================ */
+/* =========================================================
+   获取最近一次已经保存的训练编号
+========================================================= */
 
-async function getLatestCompletedWorkoutNumber() {
+async function getLatestSavedWorkoutNumber() {
   try {
     const workouts = await supabaseRequest(
       "workouts" +
@@ -45,25 +53,47 @@ async function getLatestCompletedWorkoutNumber() {
 
     return number;
   } catch (error) {
-    console.error("读取最近完成训练失败：", error);
+    console.error("读取最近已保存训练失败：", error);
 
     throw error;
   }
 }
 
-/* ================================
+/* =========================================================
    获取当前应该训练的编号
-================================ */
+========================================================= */
 
 async function getCurrentWorkoutNumber() {
-  const latestCompleted = await getLatestCompletedWorkoutNumber();
+  const latestSaved = await getLatestSavedWorkoutNumber();
 
-  return latestCompleted + 1;
+  return latestSaved + 1;
 }
 
-/* ================================
+/* =========================================================
+   检查某个训练编号是否已经产生训练历史
+========================================================= */
+
+async function hasWorkoutHistory(workoutNumber) {
+  try {
+    const workouts = await supabaseRequest(
+      "workouts" +
+        "?select=id,workout_number,workout_date" +
+        "&workout_number=eq." +
+        encodeURIComponent(workoutNumber) +
+        "&limit=1",
+    );
+
+    return Array.isArray(workouts) && workouts.length > 0;
+  } catch (error) {
+    console.error("检查训练历史失败：", error);
+
+    throw error;
+  }
+}
+
+/* =========================================================
    读取当前训练计划
-================================ */
+========================================================= */
 
 async function loadCurrentPlan() {
   try {
@@ -71,21 +101,17 @@ async function loadCurrentPlan() {
 
     console.log("当前应该训练：", currentWorkoutNumber);
 
-    /* ================================
-       查找当前训练计划
-    ================================= */
-
     const plans = await supabaseRequest(
       "training_plans" +
         "?select=*" +
         "&workout_number=eq." +
-        currentWorkoutNumber +
+        encodeURIComponent(currentWorkoutNumber) +
         "&limit=1",
     );
 
-    /* ================================
+    /* =====================================================
        没有当前训练计划
-    ================================= */
+    ===================================================== */
 
     if (!plans || !plans.length) {
       currentPlan = null;
@@ -98,48 +124,56 @@ async function loadCurrentPlan() {
 
       showWaitingForAIPlan(currentWorkoutNumber);
 
+      setTrainingPlanActions(false);
+
       setStatus("☁️ 数据库已连接，等待AI生成下一次训练计划", "ok");
 
       return;
     }
 
-    /* ================================
+    /* =====================================================
        当前训练计划
-    ================================= */
+    ===================================================== */
 
     currentPlan = plans[0];
 
-    /* ================================
+    /* =====================================================
        读取训练动作
-    ================================= */
+    ===================================================== */
 
     const exercises = await supabaseRequest(
       "training_plan_exercises" +
         "?select=*" +
         "&plan_id=eq." +
-        currentPlan.id +
+        encodeURIComponent(currentPlan.id) +
         "&order=exercise_order.asc",
     );
 
-    currentExercises = exercises || [];
+    currentExercises = Array.isArray(exercises) ? exercises : [];
 
-    /* ================================
+    /* =====================================================
        初始化动作状态
-    ================================= */
+    ===================================================== */
 
     completed = new Array(currentExercises.length).fill(false);
 
     exerciseDifficulty = new Array(currentExercises.length).fill(null);
 
-    /* ================================
+    /* =====================================================
        显示训练计划
-    ================================= */
+    ===================================================== */
 
     renderCurrentPlan();
 
-    /* ================================
+    /* =====================================================
+       显示删除按钮
+    ===================================================== */
+
+    setTrainingPlanActions(true);
+
+    /* =====================================================
        更新连接状态
-    ================================= */
+    ===================================================== */
 
     setStatus("☁️ 已连接训练数据库", "ok");
 
@@ -159,13 +193,33 @@ async function loadCurrentPlan() {
   } catch (error) {
     console.error("训练计划读取失败：", error);
 
+    setTrainingPlanActions(false);
+
     setStatus("⚠️ 训练计划读取失败：" + error.message, "error");
   }
 }
 
-/* ================================
+/* =========================================================
+   控制删除按钮显示 / 隐藏
+
+   删除按钮 UI 位于 index.html：
+
+   #trainingPlanActions
+========================================================= */
+
+function setTrainingPlanActions(show) {
+  const actions = document.getElementById("trainingPlanActions");
+
+  if (!actions) {
+    return;
+  }
+
+  actions.classList.toggle("hidden", !show);
+}
+
+/* =========================================================
    等待AI训练计划
-================================ */
+========================================================= */
 
 function showWaitingForAIPlan(workoutNumber) {
   const box = document.getElementById("todayPlan");
@@ -174,7 +228,9 @@ function showWaitingForAIPlan(workoutNumber) {
     return;
   }
 
-  box.innerHTML = `
+  const content = document.getElementById("todayPlanContent") || box;
+
+  content.innerHTML = `
 
     <h2>
       🤖 等待下一次训练计划
@@ -227,9 +283,9 @@ function showWaitingForAIPlan(workoutNumber) {
   }
 }
 
-/* ================================
+/* =========================================================
    难度按钮
-================================ */
+========================================================= */
 
 function renderDifficultyButtons(index) {
   const difficulty = exerciseDifficulty[index];
@@ -239,14 +295,17 @@ function renderDifficultyButtons(index) {
       value: "easy",
       label: "轻松",
     },
+
     {
       value: "normal",
       label: "正常",
     },
+
     {
       value: "hard",
       label: "吃力",
     },
+
     {
       value: "incomplete",
       label: "未完成",
@@ -286,9 +345,9 @@ function renderDifficultyButtons(index) {
   `;
 }
 
-/* ================================
+/* =========================================================
    显示训练计划
-================================ */
+========================================================= */
 
 function renderCurrentPlan() {
   const box = document.getElementById("todayPlan");
@@ -301,70 +360,78 @@ function renderCurrentPlan() {
     .map(
       (exercise, index) => `
 
-          <div
-            class="exercise"
-            id="exercise${index}">
+        <div
+          class="exercise"
+          id="exercise${index}">
 
-            <div class="exercise-row">
+          <div class="exercise-row">
 
-              <div class="exercise-info">
+            <div class="exercise-info">
 
-                <div class="exercise-name">
+              <div class="exercise-name">
 
-                  ${index + 1}️⃣
-                  ${escapeHtml(exercise.exercise_name)}
+                ${index + 1}️⃣
+                ${escapeHtml(exercise.exercise_name)}
 
-                </div>
+              </div>
 
+              <div class="exercise-detail">
 
-                <div class="exercise-detail">
+                ${
+                  exercise.weight_kg !== null
+                    ? exercise.weight_kg + "kg × "
+                    : ""
+                }
 
-                  ${
-                    exercise.weight_kg !== null
-                      ? exercise.weight_kg + "kg × "
-                      : ""
-                  }
+                ${escapeHtml(exercise.reps || "")}
 
-                  ${escapeHtml(exercise.reps || "")}
+                次 ×
 
-                  次 ×
+                ${exercise.sets || 0}
 
-                  ${exercise.sets || 0}
+                组
 
-                  组
-
-                  ${
-                    exercise.notes
-                      ? `
-                        <br>
-                        ${escapeHtml(exercise.notes)}
-                      `
-                      : ""
-                  }
-
-                </div>
+                ${
+                  exercise.notes
+                    ? `
+                      <br>
+                      ${escapeHtml(exercise.notes)}
+                    `
+                    : ""
+                }
 
               </div>
 
             </div>
 
+          </div>
 
-            <div class="difficulty-label">
+          <div class="difficulty-label">
 
-              完成情况
-
-            </div>
-
-
-            ${renderDifficultyButtons(index)}
+            完成情况
 
           </div>
 
-        `,
+          ${renderDifficultyButtons(index)}
+
+        </div>
+
+      `,
     )
     .join("");
 
-  box.innerHTML = `
+  /* =====================================================
+     当前训练计划
+     
+     删除按钮已经移到 index.html，
+     这里不再生成删除按钮。
+  ===================================================== */
+
+  const content = document.getElementById("todayPlanContent");
+
+  const target = content || box;
+
+  target.innerHTML = `
 
     <h2>
 
@@ -374,13 +441,11 @@ function renderCurrentPlan() {
 
     </h2>
 
-
     <div class="muted">
 
       ${escapeHtml(currentPlan.title || "")}
 
     </div>
-
 
     <div class="muted">
 
@@ -389,7 +454,6 @@ function renderCurrentPlan() {
       ${escapeHtml(currentPlan.focus || "")}
 
     </div>
-
 
     <div class="muted">
 
@@ -401,6 +465,7 @@ function renderCurrentPlan() {
 
     </div>
 
+    <br>
 
     <div class="progress">
 
@@ -410,7 +475,6 @@ function renderCurrentPlan() {
       </div>
 
     </div>
-
 
     <div
       id="progressText"
@@ -422,12 +486,302 @@ function renderCurrentPlan() {
 
     </div>
 
-
     ${exercisesHTML}
 
   `;
 
   updateProgress();
+}
+
+/* =========================================================
+   删除当前及以后所有尚未产生历史的训练计划
+
+   规则：
+
+   删除第 N 次时：
+
+   第 N 次
+   第 N+1 次
+   第 N+2 次
+   ...
+
+   只要没有 workouts 历史：
+   → 删除
+
+   一旦发现某一次已经有 workouts：
+   → 停止
+
+   已经产生历史的训练计划以及之后的计划全部保留。
+
+   不删除：
+
+   - workouts
+   - workout_exercise_records
+========================================================= */
+
+async function deleteCurrentTrainingPlan() {
+  if (!currentPlan) {
+    alert("目前没有可以删除的训练计划。");
+
+    return;
+  }
+
+  const startNumber = Number(currentPlan.workout_number);
+
+  if (!Number.isFinite(startNumber)) {
+    alert("当前训练计划编号无效，无法删除。");
+
+    return;
+  }
+
+  if (!currentPlan.id) {
+    alert("当前训练计划缺少 plan_id，无法删除。");
+
+    return;
+  }
+
+  /* =====================================================
+     查找从当前训练开始的所有训练计划
+  ===================================================== */
+
+  let plansToCheck = [];
+
+  try {
+    plansToCheck = await supabaseRequest(
+      "training_plans" +
+        "?select=id,workout_number,title" +
+        "&workout_number=gte." +
+        encodeURIComponent(startNumber) +
+        "&order=workout_number.asc",
+    );
+  } catch (error) {
+    console.error("读取待删除训练计划失败：", error);
+
+    alert("读取待删除训练计划失败：\n\n" + (error.message || String(error)));
+
+    return;
+  }
+
+  if (!Array.isArray(plansToCheck)) {
+    plansToCheck = [];
+  }
+
+  /* =====================================================
+     第一次确认
+  ===================================================== */
+
+  const confirmed = window.confirm(
+    `确定要删除第 ${startNumber} 次及之后尚未产生训练历史的训练计划吗？\n\n` +
+      `系统会从第 ${startNumber} 次开始检查。\n\n` +
+      `已经产生训练历史的训练计划不会删除。\n\n` +
+      `此操作无法恢复。`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const plansToDelete = [];
+
+    /* =====================================================
+       按训练编号从前往后检查
+
+       一旦遇到已经有 workouts 的训练，
+       就停止。
+
+       这样可以保证：
+       第8、9、10没有历史 → 删除
+       第11有历史 → 停止
+       第12以后 → 保留
+    ===================================================== */
+
+    for (const plan of plansToCheck) {
+      const workoutNumber = Number(plan.workout_number);
+
+      if (!Number.isFinite(workoutNumber)) {
+        console.warn("发现无效训练编号，停止删除：", plan);
+
+        break;
+      }
+
+      const hasHistory = await hasWorkoutHistory(workoutNumber);
+
+      if (hasHistory) {
+        console.log(`第${workoutNumber}次已有训练历史，停止继续删除。`);
+
+        break;
+      }
+
+      plansToDelete.push(plan);
+    }
+
+    /* =====================================================
+       没有任何可以删除的计划
+    ===================================================== */
+
+    if (!plansToDelete.length) {
+      alert(
+        `第 ${startNumber} 次训练已经存在训练历史。\n\n` +
+          `为了保护你的训练记录，系统没有删除任何训练计划。`,
+      );
+
+      return;
+    }
+
+    console.log("准备删除训练计划：", plansToDelete);
+
+    /* =====================================================
+       最终确认
+
+       显示实际准备删除的范围
+    ===================================================== */
+
+    const firstNumber = Number(plansToDelete[0].workout_number);
+
+    const lastNumber = Number(
+      plansToDelete[plansToDelete.length - 1].workout_number,
+    );
+
+    const rangeText =
+      firstNumber === lastNumber
+        ? `第 ${firstNumber} 次`
+        : `第 ${firstNumber}～${lastNumber} 次`;
+
+    const finalConfirmed = window.confirm(
+      `确认删除 ${rangeText}训练计划？\n\n` +
+        `共 ${plansToDelete.length} 次训练计划。\n\n` +
+        `这些训练计划都没有产生训练历史。\n\n` +
+        `已有训练历史的计划不会删除。`,
+    );
+
+    if (!finalConfirmed) {
+      return;
+    }
+
+    /* =====================================================
+       逐个删除
+
+       每个计划：
+
+       ① 再检查一次 workouts
+       ② 删除 training_plan_exercises
+       ③ 再检查一次 workouts
+       ④ 删除 training_plans
+
+       双重保护。
+    ===================================================== */
+
+    let deletedCount = 0;
+
+    for (const plan of plansToDelete) {
+      const workoutNumber = Number(plan.workout_number);
+
+      const planId = plan.id;
+
+      /* ===================================================
+         删除前再次检查历史
+      =================================================== */
+
+      const historyBeforeDelete = await hasWorkoutHistory(workoutNumber);
+
+      if (historyBeforeDelete) {
+        console.warn(`第${workoutNumber}次在删除前产生了训练历史，停止删除。`);
+
+        break;
+      }
+
+      /* ===================================================
+         删除动作
+      =================================================== */
+
+      await supabaseRequest(
+        "training_plan_exercises" + "?plan_id=eq." + encodeURIComponent(planId),
+        {
+          method: "DELETE",
+        },
+      );
+
+      console.log(`🗑 第${workoutNumber}次训练动作删除完成`);
+
+      /* ===================================================
+         删除前再次检查历史
+      =================================================== */
+
+      const historyAfterExercises = await hasWorkoutHistory(workoutNumber);
+
+      if (historyAfterExercises) {
+        console.warn(
+          `第${workoutNumber}次删除动作后产生训练历史，停止删除训练计划。`,
+        );
+
+        break;
+      }
+
+      /* ===================================================
+         删除训练计划
+      =================================================== */
+
+      await supabaseRequest(
+        "training_plans" + "?id=eq." + encodeURIComponent(planId),
+        {
+          method: "DELETE",
+        },
+      );
+
+      deletedCount++;
+
+      console.log(`🗑 第${workoutNumber}次训练计划删除完成`);
+    }
+
+    /* =====================================================
+       清空当前页面状态
+    ===================================================== */
+
+    currentPlan = null;
+
+    currentExercises = [];
+
+    completed = [];
+
+    exerciseDifficulty = [];
+
+    setTrainingPlanActions(false);
+
+    /* =====================================================
+       重新读取当前训练
+
+       因为当前训练计划已经删除，
+       首页会重新显示：
+
+       最近完成训练 + 1
+    ===================================================== */
+
+    await loadCurrentPlan();
+
+    /* =====================================================
+       成功提示
+    ===================================================== */
+
+    if (deletedCount > 0) {
+      setStatus(`☁️ 已删除 ${deletedCount} 次训练计划`, "ok");
+
+      alert(
+        `删除完成！\n\n` +
+          `共删除 ${deletedCount} 次训练计划。\n\n` +
+          `已经产生训练历史的训练不会被删除。`,
+      );
+    }
+  } catch (error) {
+    console.error("❌ 删除训练计划失败：", error);
+
+    alert(
+      "删除训练计划失败：\n\n" +
+        (error.message || String(error)) +
+        "\n\n" +
+        "请检查 Supabase 数据库权限或表关联设置。",
+    );
+  }
 }
 
 /* ============================================================
@@ -438,15 +792,15 @@ async function copyLastTrainingPlan() {
   try {
     const currentNumber = await getCurrentWorkoutNumber();
 
-    /* ================================
+    /* =====================================================
        查找当前训练计划
-    ================================= */
+    ===================================================== */
 
     const plans = await supabaseRequest(
       "training_plans" +
         "?select=*" +
         "&workout_number=eq." +
-        currentNumber +
+        encodeURIComponent(currentNumber) +
         "&limit=1",
     );
 
@@ -461,21 +815,21 @@ async function copyLastTrainingPlan() {
 
     const sourcePlan = plans[0];
 
-    /* ================================
+    /* =====================================================
        新训练编号
-    ================================= */
+    ===================================================== */
 
     const newWorkoutNumber = currentNumber + 1;
 
-    /* ================================
+    /* =====================================================
        检查是否已经存在
-    ================================= */
+    ===================================================== */
 
     const existingPlans = await supabaseRequest(
       "training_plans" +
         "?select=id,workout_number,title" +
         "&workout_number=eq." +
-        newWorkoutNumber +
+        encodeURIComponent(newWorkoutNumber) +
         "&limit=1",
     );
 
@@ -485,9 +839,9 @@ async function copyLastTrainingPlan() {
       return;
     }
 
-    /* ================================
+    /* =====================================================
        创建新的训练计划
-    ================================= */
+    ===================================================== */
 
     const created = await supabaseRequest("training_plans", {
       method: "POST",
@@ -513,21 +867,21 @@ async function copyLastTrainingPlan() {
 
     const newPlanId = created[0].id;
 
-    /* ================================
+    /* =====================================================
        读取原训练动作
-    ================================= */
+    ===================================================== */
 
     const sourceExercises = await supabaseRequest(
       "training_plan_exercises" +
         "?select=*" +
         "&plan_id=eq." +
-        sourcePlan.id +
+        encodeURIComponent(sourcePlan.id) +
         "&order=exercise_order.asc",
     );
 
-    /* ================================
+    /* =====================================================
        复制动作
-    ================================= */
+    ===================================================== */
 
     for (let i = 0; i < sourceExercises.length; i++) {
       const exercise = sourceExercises[i];
@@ -558,9 +912,9 @@ async function copyLastTrainingPlan() {
       });
     }
 
-    /* ================================
+    /* =====================================================
        成功提示
-    ================================= */
+    ===================================================== */
 
     alert(
       `已经成功复制！💪\n\n` +
@@ -570,9 +924,9 @@ async function copyLastTrainingPlan() {
         `完成后才会进入第${newWorkoutNumber}次。`,
     );
 
-    /* ================================
+    /* =====================================================
        刷新当前训练
-    ================================= */
+    ===================================================== */
 
     await loadCurrentPlan();
 

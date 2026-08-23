@@ -107,13 +107,6 @@ function isNewAIConversation() {
 ============================================================ */
 
 async function getTrainingSettingsForAI() {
-  // 后面你原来的代码继续
-}
-/* ============================================================
-   ① 获取训练设置
-============================================================ */
-
-async function getTrainingSettingsForAI() {
   try {
     if (typeof getAISettings !== "function") {
       throw new Error("找不到 getAISettings()。请确认 settings.js 已经加载。");
@@ -197,7 +190,7 @@ async function getCurrentStateForAI() {
     const safeLatestNumber = Number.isFinite(latestNumber) ? latestNumber : 0;
 
     return {
-      latest_workout_number: safeLatestNumber,
+      latest_saved_workout_number: safeLatestNumber,
 
       next_workout_number: safeLatestNumber + 1,
 
@@ -294,19 +287,16 @@ async function getRecentTrainingPlansWithResultsForAI(limit = 3) {
     ======================================================== */
 
     /*
-       注意：
+   实际完成情况现在统一保存在：
 
-       这里直接读取 exercises 表，
-       不使用 Supabase 嵌套 select。
+   workout_exercise_records
 
-       因此不会触发：
+   不再读取旧的 exercises 表。
+*/
 
-       PGRST201
-       exercises ↔ workouts
-       多重relationship冲突。
-    */
-
-    const exercises = await supabaseRequest("exercises?select=*");
+    const exercises = await supabaseRequest(
+      "workout_exercise_records?select=*",
+    );
 
     const exerciseRecords = getSafeArray(exercises);
 
@@ -889,7 +879,7 @@ async function generateAITrainingPrompt() {
 【当前训练状态】
 
 最近一次已保存训练：
-第${currentState.latest_workout_number}次
+第${currentState.latest_saved_workout_number}次
 
 下一次训练：
 第${nextNumber}次
