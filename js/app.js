@@ -605,9 +605,19 @@ let exerciseRecords = [];
 
 async function loadExerciseRecords() {
   try {
-    const data = await supabaseRequest("exercises" + "?select=*");
+    const data = await supabaseRequest(
+      "exercises" + "?select=*,workouts(workout_number,workout_date)",
+    );
 
-    exerciseRecords = Array.isArray(data) ? data : [];
+    exerciseRecords = Array.isArray(data)
+      ? data.map((exercise) => ({
+          ...exercise,
+
+          workout_number: exercise.workouts?.workout_number ?? null,
+
+          workout_date: exercise.workouts?.workout_date ?? null,
+        }))
+      : [];
 
     console.log("动作历史读取成功：", exerciseRecords.length, "条");
 

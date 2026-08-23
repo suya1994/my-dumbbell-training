@@ -503,12 +503,13 @@
           AI私人教练
           ====================================================== -->
 
+
           <section id="aiTab" class="hidden">
 
 
                <!-- ================================
-               AI私人教练
-               ================================= -->
+     AI私人教练
+     ================================= -->
 
                <div class="card">
 
@@ -519,8 +520,8 @@
                     <div class="muted">
 
                          完成一次训练后，让 ChatGPT 根据你的历史训练、
-                         每个动作的难度、完成情况、训练感受和身体数据，
-                         制定下一次训练。
+                         每个动作的训练要求、完成情况、训练难度、
+                         训练感受和身体数据，制定下一次训练。
 
                     </div>
 
@@ -529,8 +530,8 @@
 
 
                <!-- ================================
-               第一步：生成训练分析
-               ================================= -->
+     第一步：生成训练分析
+     ================================= -->
 
                <div class="card">
 
@@ -540,13 +541,62 @@
 
                     <div class="muted">
 
-                         网站会自动读取你的训练历史，
-                         并根据设置中的 AI 分析要求，
-                         生成一段完整的训练分析提示词。
+                         选择是否是新的 ChatGPT 对话。
+                         网站会根据你的选择自动决定需要提供多少历史数据。
 
                     </div>
 
                     <br>
+
+
+                    <!-- ================================
+          对话模式
+          ================================= -->
+
+                    <div class="analysis">
+
+                         <strong>
+                              💬 ChatGPT 对话模式
+                         </strong>
+
+                         <br>
+                         <br>
+
+                         <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer;">
+
+                              <input type="radio" name="aiConversationMode" value="continue" checked>
+
+                              <span>
+                                   🔄 继续当前对话
+                              </span>
+
+                         </label>
+
+
+                         <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+
+                              <input type="radio" name="aiConversationMode" value="new">
+
+                              <span>
+                                   🆕 新开 ChatGPT 对话
+                              </span>
+
+                         </label>
+
+
+                         <div class="muted" style="margin-top:12px;">
+
+                              <span id="aiConversationModeHint">
+                                   默认继续当前对话：提供最近3次训练，不重复发送 AI 教练设置。
+                              </span>
+
+                         </div>
+
+                    </div>
+
+
+                    <br>
+
 
                     <button class="primary-btn" onclick="generateAITrainingPrompt()">
 
@@ -554,12 +604,16 @@
 
                     </button>
 
+
                     <br>
                     <br>
 
-                    <textarea id="aiPrompt" class="note" rows="14" placeholder="点击上面的按钮后，这里会生成训练历史分析提示词……"></textarea>
+
+                    <textarea id="aiPrompt" class="note" rows="18" placeholder="点击上面的按钮后，这里会生成训练历史分析提示词……"></textarea>
+
 
                     <br>
+
 
                     <button class="primary-btn" onclick="copyAIPrompt()">
 
@@ -572,8 +626,8 @@
 
 
                <!-- ================================
-               第二步：导入训练计划
-               ================================= -->
+     第二步：导入训练计划
+     ================================= -->
 
                <div class="card">
 
@@ -590,9 +644,12 @@
 
                     <br>
 
+
                     <textarea id="aiPlanInput" class="note" rows="14" placeholder="把 ChatGPT 生成的训练计划粘贴到这里……"></textarea>
 
+
                     <br>
+
 
                     <button class="primary-btn" onclick="importAITrainingPlan()">
 
@@ -605,8 +662,8 @@
 
 
                <!-- ================================
-               AI训练流程
-               ================================= -->
+     AI训练流程
+     ================================= -->
 
                <div class="card">
 
@@ -628,20 +685,37 @@
                          <br>
                          <br>
 
+
                          <strong>
-                              ② 生成训练分析
+                              ② 选择对话模式
+                         </strong>
+
+                         <br>
+
+                         如果是第一次把训练资料交给 ChatGPT，
+                         选择「新开 ChatGPT 对话」；
+                         如果是在继续之前的训练讨论，
+                         选择「继续当前对话」。
+
+                         <br>
+                         <br>
+
+
+                         <strong>
+                              ③ 生成训练分析
                          </strong>
 
                          <br>
 
                          网站自动整理你的训练历史数据，
-                         并结合设置中的 AI 分析要求。
+                         并根据对话模式决定提供 3 次或 8 次历史训练。
 
                          <br>
                          <br>
+
 
                          <strong>
-                              ③ 交给 ChatGPT
+                              ④ 交给 ChatGPT
                          </strong>
 
                          <br>
@@ -651,8 +725,9 @@
                          <br>
                          <br>
 
+
                          <strong>
-                              ④ 导入训练计划
+                              ⑤ 导入训练计划
                          </strong>
 
                          <br>
@@ -662,8 +737,9 @@
                          <br>
                          <br>
 
+
                          <strong>
-                              ⑤ 开始下一次训练
+                              ⑥ 开始下一次训练
                          </strong>
 
                          <br>
@@ -677,8 +753,8 @@
 
 
                <!-- ================================
-               AI设置入口
-               ================================= -->
+     AI设置入口
+     ================================= -->
 
                <div class="card">
 
@@ -695,6 +771,7 @@
 
                     <br>
 
+
                     <button type="button" class="secondary-btn" onclick="window.location.href='settings.html'">
 
                          ⚙️ 打开设置
@@ -705,6 +782,7 @@
 
 
           </section>
+
 
 
 
