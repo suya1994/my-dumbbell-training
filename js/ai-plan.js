@@ -580,27 +580,10 @@ async function getRecentTrainingPlansWithResultsForAI(limit = 3) {
 
         /* ----------------------------------------------------
            实际记录中的扩展字段
-
            当前系统主要使用：
-
            completed
            difficulty
-
-           如果数据库未来增加：
-
-           actual_weight_kg
-           actual_reps
-           actual_sets
-           notes
-
-           仍然可以兼容。
         ---------------------------------------------------- */
-
-        const actualWeight =
-          actualExercise?.actual_weight_kg ??
-          actualExercise?.weight_kg ??
-          actualExercise?.weight ??
-          null;
 
         const actualReps =
           actualExercise?.actual_reps ?? actualExercise?.reps ?? null;
@@ -636,14 +619,6 @@ async function getRecentTrainingPlansWithResultsForAI(limit = 3) {
           status: status,
 
           difficulty: difficulty,
-
-          actual_weight_kg: actualWeight,
-
-          actual_reps: actualReps,
-
-          actual_sets: actualSets,
-
-          actual_notes: String(actualNotes || "").trim(),
         });
       });
 
@@ -805,10 +780,6 @@ function formatRecentTrainingHistoryForPrompt(
 - notes：计划动作要求/注意事项
 - status：实际是否完成
 - difficulty：实际训练难度
-- actual_weight_kg：如果数据库有记录，则为实际使用重量
-- actual_reps：如果数据库有记录，则为实际完成次数
-- actual_sets：如果数据库有记录，则为实际完成组数
-- actual_notes：如果数据库有记录，则为实际动作备注
 
 每次训练还包含：
 
