@@ -1,0 +1,208 @@
+/* ============================================================
+   settings.css
+   私人哑铃训练系统 - 设置页面样式
+============================================================ */
+
+
+/* ============================================================
+   设置页面顶部
+============================================================ */
+
+.page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+
+.back-btn {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 12px;
+    background: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.08);
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+
+.back-btn:active {
+    transform: scale(0.94);
+}
+
+
+.page-title {
+    flex: 1;
+}
+
+
+.page-title h1 {
+    margin: 0;
+    font-size: 22px;
+}
+
+
+.page-title p {
+    margin: 5px 0 0;
+}
+
+
+/* ============================================================
+   设置区域
+============================================================ */
+
+.setting-group {
+    margin-top: 8px;
+}
+
+
+.setting-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+.setting-help {
+    color: #888;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-top: 7px;
+}
+
+
+.setting-save {
+    margin-top: 8px;
+}
+
+
+/* ============================================================
+   AI 文本输入区域
+============================================================ */
+
+.ai-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 90px;
+    line-height: 1.7;
+}
+
+
+/* ============================================================
+   动作限制输入
+============================================================ */
+
+.input-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+
+.input-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+
+.add-btn {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 10px;
+    padding: 0 16px;
+    background: #ffffff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+
+.add-btn:active {
+    transform: scale(0.96);
+}
+
+
+/* ============================================================
+   已添加动作
+============================================================ */
+
+.limitation-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+
+.limitation-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #f3f3f3;
+    font-size: 13px;
+}
+
+
+.limitation-remove {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    color: #888;
+}
+
+
+.limitation-empty {
+    color: #999;
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   当前设置
+============================================================ */
+
+.settings-status-item {
+    line-height: 1.7;
+}
+
+
+/* ============================================================
+   手机端
+============================================================ */
+
+@media (max-width: 480px) {
+
+    .page-title h1 {
+        font-size: 20px;
+    }
+
+
+    .input-row {
+        flex-direction: column;
+    }
+
+
+    .add-btn {
+        padding: 11px 16px;
+    }
+}

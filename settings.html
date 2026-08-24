@@ -12,365 +12,9 @@
     <title>设置 - 我的私人哑铃训练</title>
 
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/settings.css">
 
 
-    <style>
-        /* =====================================================
-           设置页面顶部
-        ===================================================== */
-
-        .page-header {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 12px;
-
-            margin-bottom: 16px;
-
-        }
-
-
-        .back-btn {
-
-            flex-shrink: 0;
-
-            width: 42px;
-
-            height: 42px;
-
-            border: none;
-
-            border-radius: 12px;
-
-            background: #ffffff;
-
-            font-size: 20px;
-
-            cursor: pointer;
-
-            box-shadow:
-                0 2px 8px rgba(0, 0, 0, 0.08);
-
-            transition:
-                transform 0.15s ease,
-                box-shadow 0.15s ease;
-
-        }
-
-
-        .back-btn:active {
-
-            transform: scale(0.94);
-
-        }
-
-
-        .page-title {
-
-            flex: 1;
-
-        }
-
-
-        .page-title h1 {
-
-            margin: 0;
-
-            font-size: 22px;
-
-        }
-
-
-        .page-title p {
-
-            margin: 5px 0 0;
-
-        }
-
-
-        /* =====================================================
-           设置区域
-        ===================================================== */
-
-        .setting-group {
-
-            margin-top: 8px;
-
-        }
-
-
-        .setting-label {
-
-            display: block;
-
-            margin-bottom: 8px;
-
-            font-size: 14px;
-
-            font-weight: 600;
-
-        }
-
-
-        .setting-help {
-
-            color: #888;
-
-            font-size: 13px;
-
-            line-height: 1.6;
-
-            margin-top: 7px;
-
-        }
-
-
-        .setting-save {
-
-            margin-top: 8px;
-
-        }
-
-
-        /* =====================================================
-           AI目标复选框
-        ===================================================== */
-
-        .ai-goals {
-
-            display: grid;
-
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-
-            gap: 10px;
-
-            margin-top: 10px;
-
-        }
-
-
-        .ai-goal-item {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 8px;
-
-            padding: 11px 12px;
-
-            border-radius: 10px;
-
-            background: #f8f8f8;
-
-            cursor: pointer;
-
-            font-size: 14px;
-
-        }
-
-
-        .ai-goal-item input {
-
-            width: 17px;
-
-            height: 17px;
-
-            flex-shrink: 0;
-
-            cursor: pointer;
-
-        }
-
-
-        /* =====================================================
-           AI文本输入区域
-        ===================================================== */
-
-        .ai-textarea {
-
-            width: 100%;
-
-            box-sizing: border-box;
-
-            resize: vertical;
-
-            min-height: 90px;
-
-            line-height: 1.7;
-
-        }
-
-
-        /* =====================================================
-           动作输入
-        ===================================================== */
-
-        .input-row {
-
-            display: flex;
-
-            gap: 8px;
-
-            align-items: stretch;
-
-        }
-
-
-        .input-row input {
-
-            flex: 1;
-
-            min-width: 0;
-
-        }
-
-
-        .add-btn {
-
-            flex-shrink: 0;
-
-            border: none;
-
-            border-radius: 10px;
-
-            padding: 0 16px;
-
-            background: #ffffff;
-
-            cursor: pointer;
-
-            font-family: inherit;
-
-            font-size: 14px;
-
-            box-shadow:
-                0 2px 8px rgba(0, 0, 0, 0.08);
-
-        }
-
-
-        .add-btn:active {
-
-            transform: scale(0.96);
-
-        }
-
-
-        /* =====================================================
-           已添加动作
-        ===================================================== */
-
-        .limitation-list {
-
-            display: flex;
-
-            flex-wrap: wrap;
-
-            gap: 8px;
-
-            margin-top: 10px;
-
-        }
-
-
-        .limitation-tag {
-
-            display: inline-flex;
-
-            align-items: center;
-
-            gap: 6px;
-
-            padding: 7px 10px;
-
-            border-radius: 999px;
-
-            background: #f3f3f3;
-
-            font-size: 13px;
-
-        }
-
-
-        .limitation-remove {
-
-            border: none;
-
-            background: transparent;
-
-            padding: 0;
-
-            margin: 0;
-
-            font-size: 15px;
-
-            line-height: 1;
-
-            cursor: pointer;
-
-            color: #888;
-
-        }
-
-
-        .limitation-empty {
-
-            color: #999;
-
-            font-size: 13px;
-
-        }
-
-
-        /* =====================================================
-           当前设置
-        ===================================================== */
-
-        .settings-status-item {
-
-            line-height: 1.7;
-
-        }
-
-
-        /* =====================================================
-           手机端
-        ===================================================== */
-
-        @media (max-width: 480px) {
-
-            .page-title h1 {
-
-                font-size: 20px;
-
-            }
-
-
-            .ai-goals {
-
-                grid-template-columns: 1fr;
-
-            }
-
-
-            .input-row {
-
-                flex-direction: column;
-
-            }
-
-
-            .add-btn {
-
-                padding: 11px 16px;
-
-            }
-
-        }
-    </style>
 
 </head>
 
@@ -453,6 +97,26 @@
 
                 </div>
 
+                <br>
+
+                <div class="setting-group">
+
+                    <label for="expectedDurationMinutes" class="setting-label">
+
+                        每次期望训练时间
+
+                    </label>
+
+                    <input id="expectedDurationMinutes" class="note" type="number" placeholder="例如 25">
+
+                    <div class="setting-help">
+
+                        AI 教练制定训练计划时，会尽量控制在这个时间范围内。
+
+                    </div>
+
+                </div>
+
 
             </div>
 
@@ -499,116 +163,26 @@
                  AI训练目标
             ================================================== -->
 
+
             <div class="setting-group">
 
-
-                <label class="setting-label">
+                <label for="aiGoals" class="setting-label">
 
                     AI训练目标
 
                 </label>
 
-
                 <div class="setting-help">
 
-                    选择你目前希望 AI 教练重点帮助你实现的目标。
+                    告诉 AI 教练你目前最希望实现什么目标，可以自由填写。
+                    例如：腰腹收紧、臀部塑形、增加肌肉、提高力量等。
 
                 </div>
 
+                <br>
 
-                <div class="ai-goals">
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="腰腹收紧 / 核心稳定">
-
-                        <span>
-                            腰腹收紧 / 核心稳定
-                        </span>
-
-                    </label>
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="臀部塑形">
-
-                        <span>
-                            臀部塑形
-                        </span>
-
-                    </label>
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="手臂">
-
-                        <span>
-                            手臂
-                        </span>
-
-                    </label>
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="背部">
-
-                        <span>
-                            背部
-                        </span>
-
-                    </label>
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="增加力量">
-
-                        <span>
-                            增加力量
-                        </span>
-
-                    </label>
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="增加肌肉">
-
-                        <span>
-                            增加肌肉
-                        </span>
-
-                    </label>
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="减脂">
-
-                        <span>
-                            减脂
-                        </span>
-
-                    </label>
-
-
-                    <label class="ai-goal-item">
-
-                        <input type="checkbox" name="aiGoal" value="提高体能">
-
-                        <span>
-                            提高体能
-                        </span>
-
-                    </label>
-
-
-                </div>
-
+                <textarea id="aiGoals" class="note ai-textarea" rows="5"
+                    placeholder="例如：腰腹收紧 / 核心稳定、臀部塑形、手臂、背部；同时希望增加肌肉和力量……"></textarea>
 
             </div>
 

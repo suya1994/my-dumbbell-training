@@ -15,26 +15,70 @@
 
    已彻底取消 exercises 表。
 
-   ------------------------------------------------------------
 
-   数据职责：
+   ============================================================
+   AI读取训练历史的规则
+   ============================================================
 
-   training_plans
-   = AI生成的训练计划
+   AI不再读取：
 
-   training_plan_exercises
-   = 某个训练计划具体有哪些动作
+   ❌ 最近N次完整训练计划
 
-   workouts
-   = 用户实际完成过的某一次训练
+   而是分成两个部分：
 
-   workout_exercise_records
-   = 用户实际完成这次训练时，
-     每个动作的完成情况和难度
+   ① 最近一次训练及完成情况
 
-   ------------------------------------------------------------
+   = 最近一次已保存训练
+   = 当次完整训练计划
+   + 当次实际完成情况
 
-   动作难度：
+   ② 历史动作表现
+
+   = 按动作名称统计历史表现
+   = 查看这个动作最近几次训练中的：
+       - 重量
+       - 次数
+       - 组数
+       - 完成情况
+       - difficulty
+       - 实际次数
+       - 实际组数
+       - 实际备注
+
+   目的：
+
+   AI应该根据“动作本身的长期表现”决定是否进阶，
+   而不是机械地根据“最近N次训练”判断。
+
+
+   ============================================================
+   同名动作重复记录规则
+   ============================================================
+
+   如果同一次训练中出现两个相同动作：
+
+   例如：
+
+   第7次：
+   死虫
+   死虫
+
+   AI只使用最后一次记录。
+
+   不重复统计。
+
+   判断优先使用：
+
+   created_at
+
+   如果created_at不存在，
+   使用数据库返回顺序，
+   后出现的记录覆盖前面的记录。
+
+
+   ============================================================
+   动作难度
+   ============================================================
 
    easy
    normal
@@ -47,9 +91,10 @@
    incomplete
    = completed = false
 
-   ------------------------------------------------------------
 
-   时间字段：
+   ============================================================
+   时间字段
+   ============================================================
 
    training_plans.duration_minutes
    = AI预计训练时长
@@ -75,69 +120,6 @@
 
 function getSafeArray(value) {
   return Array.isArray(value) ? value : [];
-}
-
-/* ============================================================
-   日期工具
-============================================================ */
-
-function aiPlanGetDateValue(record) {
-  if (!record || typeof record !== "object") {
-    return "";
-  }
-
-  return String(
-    record.workout_date ||
-      record.record_date ||
-      record.measurement_date ||
-      record.plan_date ||
-      "",
-  );
-}
-
-/* ============================================================
-   排序工具
-============================================================ */
-
-function aiPlanSortByDateDesc(a, b) {
-  const dateA = aiPlanGetDateValue(a);
-  const dateB = aiPlanGetDateValue(b);
-
-  if (dateA !== dateB) {
-    return dateB.localeCompare(dateA);
-  }
-
-  const numberA = Number(a?.workout_number);
-  const numberB = Number(b?.workout_number);
-
-  if (Number.isFinite(numberA) && Number.isFinite(numberB)) {
-    return numberB - numberA;
-  }
-
-  return 0;
-}
-
-/* ============================================================
-   AI对话模式
-============================================================ */
-
-/*
-   HTML已经提供：
-
-   input[name="aiConversationMode"]
-
-   false = 继续当前对话
-   true  = 新开ChatGPT对话
-
-   ai-plan.js 不创建UI。
-*/
-
-function isNewAIConversation() {
-  const selected = document.querySelector(
-    'input[name="aiConversationMode"]:checked',
-  );
-
-  return selected ? selected.value === "new" : false;
 }
 
 /* ============================================================
@@ -170,9 +152,22 @@ async function getTrainingSettingsForAI() {
 
     const weeklyTarget = Number(settings.weekly_strength_target);
 
+    const expectedDuration = Number(settings.expected_duration_minutes);
+
+    console.log("🤖 AI读取到的训练设置原始数据：", settings);
+
+    console.log(
+      "🤖 expected_duration_minutes =",
+      settings.expected_duration_minutes,
+    );
+
     return {
       weekly_strength_target: Number.isFinite(weeklyTarget)
         ? weeklyTarget
+        : null,
+
+      expected_duration_minutes: Number.isFinite(expectedDuration)
+        ? expectedDuration
         : null,
 
       goals: Array.isArray(settings.goals)
@@ -206,7 +201,7 @@ async function getCurrentStateForAI() {
   try {
     const workouts = await supabaseRequest(
       "workouts" +
-        "?select=workout_number,workout_date,completion_percent,duration_minutes,actual_duration_minutes" +
+        "?select=workout_number,workout_date,duration_minutes,actual_duration_minutes,body_note,created_at" +
         "&order=workout_number.desc" +
         "&limit=1",
     );
@@ -246,464 +241,1164 @@ async function getCurrentStateForAI() {
 }
 
 /* ============================================================
-   ③ 获取最近5条身体数据
+   ③ 获取AI需要的身体数据
+
+   逻辑：
+
+   1. 最新一次
+      每个指标独立寻找最近一次有效记录
+
+   2. 相比上周
+      每个指标：
+      最新有效数据
+      ↓
+      上一个自然周的最近一次有效数据
+
+   3. 相比上月
+      每个指标：
+      最新有效数据
+      ↓
+      上一个自然月的最近一次有效数据
+
+   不要求体重、腰围、臀围在同一天记录。
 ============================================================ */
 
 async function getBodyDataForAI() {
   try {
+    console.log("📏 正在读取AI身体数据……");
+
     const data = await supabaseRequest(
-      "body_metrics" + "?select=*" + "&order=record_date.desc" + "&limit=5",
+      "body_metrics" + "?select=*" + "&order=record_date.asc",
     );
 
-    return getSafeArray(data);
+    const records = getSafeArray(data);
+
+    if (!records.length) {
+      return {
+        latest: null,
+        week_change: null,
+        month_change: null,
+      };
+    }
+
+    /* ========================================================
+       工具函数
+    ======================================================== */
+
+    function getNumber(record, field) {
+      if (
+        !record ||
+        record[field] === null ||
+        record[field] === undefined ||
+        record[field] === ""
+      ) {
+        return null;
+      }
+
+      const value = Number(record[field]);
+
+      return Number.isFinite(value) ? value : null;
+    }
+
+    function round(value, decimals = 2) {
+      if (value === null || value === undefined) {
+        return null;
+      }
+
+      const factor = Math.pow(10, decimals);
+
+      return Math.round(value * factor) / factor;
+    }
+
+    function formatChange(value) {
+      if (value === null || value === undefined) {
+        return null;
+      }
+
+      const rounded = round(value, 2);
+
+      if (rounded > 0) {
+        return `+${rounded}`;
+      }
+
+      return String(rounded);
+    }
+
+    function getDate(record) {
+      if (!record?.record_date) {
+        return null;
+      }
+
+      const dateString = String(record.record_date).slice(0, 10);
+
+      const [year, month, day] = dateString.split("-").map(Number);
+
+      if (!year || !month || !day) {
+        return null;
+      }
+
+      return new Date(year, month - 1, day);
+    }
+
+    function dateKey(date) {
+      if (!date) {
+        return null;
+      }
+
+      const year = date.getFullYear();
+
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+
+      const day = String(date.getDate()).padStart(2, "0");
+
+      return `${year}-${month}-${day}`;
+    }
+
+    /* ========================================================
+       整理有效数据
+    ======================================================== */
+
+    const validRecords = records
+      .map((record) => ({
+        ...record,
+        _date: getDate(record),
+      }))
+      .filter((record) => record._date)
+      .sort((a, b) => a._date - b._date);
+
+    if (!validRecords.length) {
+      return {
+        latest: null,
+        week_change: null,
+        month_change: null,
+      };
+    }
+
+    /* ========================================================
+       每个指标分别寻找最新有效数据
+    ======================================================== */
+
+    function getLatestMetric(field) {
+      for (let i = validRecords.length - 1; i >= 0; i--) {
+        const record = validRecords[i];
+
+        const value = getNumber(record, field);
+
+        if (value !== null) {
+          return {
+            value,
+
+            date: record._date,
+
+            record_date: dateKey(record._date),
+          };
+        }
+      }
+
+      return null;
+    }
+
+    const latestWeight = getLatestMetric("weight_kg");
+
+    const latestWaist = getLatestMetric("waist_cm");
+
+    const latestHip = getLatestMetric("hip_cm");
+
+    const latestHeight = getLatestMetric("height_cm");
+
+    /* ========================================================
+       最新一次身体数据
+    ======================================================== */
+
+    const latest = {
+      height_cm: latestHeight?.value ?? null,
+
+      weight_kg: latestWeight?.value ?? null,
+
+      waist_cm: latestWaist?.value ?? null,
+
+      hip_cm: latestHip?.value ?? null,
+
+      weight_date: latestWeight?.record_date ?? null,
+
+      waist_date: latestWaist?.record_date ?? null,
+
+      hip_date: latestHip?.record_date ?? null,
+
+      height_date: latestHeight?.record_date ?? null,
+    };
+
+    /* ========================================================
+       参考日期
+
+       使用所有身体数据中最新的日期。
+    ======================================================== */
+
+    const referenceDate = validRecords[validRecords.length - 1]._date;
+
+    function getMetricAverageInRange(field, startDate, endDate) {
+      const values = [];
+
+      validRecords.forEach((record) => {
+        if (record._date < startDate) {
+          return;
+        }
+
+        if (record._date > endDate) {
+          return;
+        }
+
+        const value = getNumber(record, field);
+
+        if (value !== null) {
+          values.push(value);
+        }
+      });
+
+      if (!values.length) {
+        return null;
+      }
+
+      const sum = values.reduce((total, value) => total + value, 0);
+
+      const average = sum / values.length;
+
+      return {
+        value: round(average, 2),
+
+        count: values.length,
+
+        start_date: dateKey(startDate),
+
+        end_date: dateKey(endDate),
+      };
+    }
+
+    /* ========================================================
+       获取自然周
+       周一～周日
+    ======================================================== */
+
+    function getWeekStart(date) {
+      const result = new Date(date);
+
+      const day = result.getDay();
+
+      const diff = day === 0 ? 6 : day - 1;
+
+      result.setDate(result.getDate() - diff);
+
+      result.setHours(0, 0, 0, 0);
+
+      return result;
+    }
+
+    function getPreviousWeekRange(date) {
+      const currentWeekStart = getWeekStart(date);
+
+      const previousWeekStart = new Date(currentWeekStart);
+
+      previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+
+      const previousWeekEnd = new Date(currentWeekStart);
+
+      previousWeekEnd.setDate(previousWeekEnd.getDate() - 1);
+
+      return {
+        start: previousWeekStart,
+
+        end: previousWeekEnd,
+      };
+    }
+
+    /* ========================================================
+       获取上一个自然月
+    ======================================================== */
+
+    function getPreviousMonthRange(date) {
+      const year = date.getFullYear();
+
+      const month = date.getMonth();
+
+      const previousMonthEnd = new Date(year, month, 0);
+
+      previousMonthEnd.setHours(0, 0, 0, 0);
+
+      const previousMonthStart = new Date(
+        previousMonthEnd.getFullYear(),
+        previousMonthEnd.getMonth(),
+        1,
+      );
+
+      previousMonthStart.setHours(0, 0, 0, 0);
+
+      return {
+        start: previousMonthStart,
+
+        end: previousMonthEnd,
+      };
+    }
+
+    const previousWeek = getPreviousWeekRange(referenceDate);
+
+    const previousMonth = getPreviousMonthRange(referenceDate);
+
+    console.log("📅 身体数据比较范围：", {
+      referenceDate: dateKey(referenceDate),
+
+      previousWeek: {
+        start: dateKey(previousWeek.start),
+
+        end: dateKey(previousWeek.end),
+      },
+
+      previousMonth: {
+        start: dateKey(previousMonth.start),
+
+        end: dateKey(previousMonth.end),
+      },
+    });
+
+    /* ========================================================
+       计算变化
+    ======================================================== */
+
+    function calculateChange(field, latestMetric, range) {
+      if (!latestMetric || !range) {
+        return null;
+      }
+
+      const previous = getMetricAverageInRange(field, range.start, range.end);
+
+      if (!previous) {
+        return null;
+      }
+
+      return {
+        change: formatChange(latestMetric.value - previous.value),
+
+        latest_value: latestMetric.value,
+
+        previous_value: previous.value,
+
+        previous_average: previous.value,
+
+        previous_count: previous.count,
+
+        latest_date: latestMetric.record_date,
+
+        previous_start_date: previous.start_date,
+
+        previous_end_date: previous.end_date,
+      };
+    }
+
+    const weekChange = {
+      weight: calculateChange("weight_kg", latestWeight, previousWeek),
+
+      waist: calculateChange("waist_cm", latestWaist, previousWeek),
+
+      hip: calculateChange("hip_cm", latestHip, previousWeek),
+    };
+
+    const monthChange = {
+      weight: calculateChange("weight_kg", latestWeight, previousMonth),
+
+      waist: calculateChange("waist_cm", latestWaist, previousMonth),
+
+      hip: calculateChange("hip_cm", latestHip, previousMonth),
+    };
+
+    const result = {
+      latest,
+
+      week_change: weekChange,
+
+      month_change: monthChange,
+    };
+
+    console.log("📏 AI身体数据整理完成：", result);
+
+    return result;
   } catch (error) {
     console.error("读取身体数据失败：", error);
 
-    /*
-       身体数据不是AI生成训练计划的绝对必要条件。
+    return {
+      latest: null,
 
-       如果当前项目没有body_metrics表，
-       不让整个AI功能崩溃。
-    */
+      week_change: null,
 
-    return [];
+      month_change: null,
+    };
   }
 }
 
 /* ============================================================
-   ④ 获取最近N次训练计划及完整完成情况
+   ④ 工具：根据workout_number选择最新workout
 ============================================================ */
 
-async function getRecentTrainingPlansWithResultsForAI(limit = 3) {
-  try {
-    const safeLimit =
-      Number.isFinite(Number(limit)) && Number(limit) > 0 ? Number(limit) : 3;
+function buildLatestWorkoutMap(workouts) {
+  const map = new Map();
 
-    console.log(`📚 正在读取最近${safeLimit}次训练计划及完成情况……`);
+  getSafeArray(workouts).forEach((workout) => {
+    if (!workout) {
+      return;
+    }
+
+    const number = Number(workout.workout_number);
+
+    if (!Number.isFinite(number)) {
+      return;
+    }
+
+    const existing = map.get(number);
+
+    if (!existing) {
+      map.set(number, workout);
+
+      return;
+    }
+
+    /*
+       如果同一个workout_number存在多个版本，
+       优先created_at较新的记录。
+    */
+
+    const existingCreated = new Date(existing.created_at || 0).getTime();
+
+    const currentCreated = new Date(workout.created_at || 0).getTime();
+
+    if (currentCreated >= existingCreated) {
+      map.set(number, workout);
+    }
+  });
+
+  return map;
+}
+
+/* ============================================================
+   ⑤ 工具：建立实际动作记录索引
+
+   重要：
+
+   一个训练中如果出现相同动作：
+
+   死虫
+   死虫
+
+   这里只保留最后一条。
+
+   优先使用created_at判断“最后一次”。
+
+   如果没有created_at，
+   后出现的记录覆盖前面的记录。
+============================================================ */
+
+function buildLatestActualExerciseMap(actualExerciseRecords) {
+  const map = new Map();
+
+  getSafeArray(actualExerciseRecords).forEach((exercise, index) => {
+    if (
+      !exercise ||
+      exercise.plan_exercise_id === undefined ||
+      exercise.plan_exercise_id === null
+    ) {
+      return;
+    }
+
+    const key = String(exercise.plan_exercise_id);
+
+    const existing = map.get(key);
+
+    if (!existing) {
+      map.set(key, {
+        record: exercise,
+
+        index,
+      });
+
+      return;
+    }
+
+    const existingCreated = new Date(existing.record.created_at || 0).getTime();
+
+    const currentCreated = new Date(exercise.created_at || 0).getTime();
+
+    /*
+         有明确created_at：
+         新时间覆盖旧时间。
+
+         没有created_at：
+         后返回的记录覆盖前面的记录。
+      */
+
+    if (
+      currentCreated > existingCreated ||
+      (currentCreated === existingCreated && index > existing.index)
+    ) {
+      map.set(key, {
+        record: exercise,
+
+        index,
+      });
+    }
+  });
+
+  return new Map(
+    Array.from(map.entries()).map(([key, value]) => [key, value.record]),
+  );
+}
+
+/* ============================================================
+   ⑥ 工具：标准化difficulty
+============================================================ */
+
+function normalizeDifficulty(value) {
+  const difficulty = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (["easy", "normal", "hard", "incomplete"].includes(difficulty)) {
+    return difficulty;
+  }
+
+  return "";
+}
+
+/* ============================================================
+   ⑦ 工具：创建实际动作记录对象
+============================================================ */
+
+function buildActualExerciseResult(actualExercise) {
+  if (!actualExercise) {
+    return {
+      status: "未记录",
+
+      difficulty: "",
+    };
+  }
+
+  const completedValue = actualExercise.completed;
+
+  let status = "未完成";
+
+  if (completedValue === true) {
+    status = "已完成";
+  }
+
+  let difficulty = normalizeDifficulty(actualExercise.difficulty);
+
+  /*
+     incomplete明确代表未完成。
+  */
+
+  if (difficulty === "incomplete") {
+    status = "未完成";
+  }
+
+  return {
+    status,
+
+    difficulty,
+  };
+}
+
+/* ============================================================
+   ⑧ 工具：获取计划动作
+============================================================ */
+
+function sortPlanExercises(list) {
+  return getSafeArray(list)
+    .slice()
+    .sort((a, b) => {
+      return Number(a.exercise_order || 0) - Number(b.exercise_order || 0);
+    });
+}
+
+/* ============================================================
+   ⑨ 获取“最近一次训练及完成情况”
+
+   注意：
+
+   这里不是最近N次。
+
+   只获取最近一次已保存训练。
+============================================================ */
+
+async function getLatestTrainingWithResultsForAI() {
+  try {
+    console.log("🏋️ 正在读取最近一次训练及完成情况……");
 
     /* ========================================================
-       1. 最近N次训练计划
+       1. 获取最近一次workout
+    ======================================================== */
+
+    const workouts = await supabaseRequest(
+      "workouts" + "?select=*" + "&order=workout_number.desc" + "&limit=1",
+    );
+
+    const workoutList = getSafeArray(workouts);
+
+    if (!workoutList.length) {
+      return null;
+    }
+
+    const workout = workoutList[0];
+
+    const workoutNumber = Number(workout.workout_number);
+
+    if (!Number.isFinite(workoutNumber)) {
+      return null;
+    }
+
+    /* ========================================================
+       2. 获取这个训练编号对应的计划
+
+       正常情况下应该只有一个。
+
+       如果有多个：
+       使用created_at最新的。
     ======================================================== */
 
     const plans = await supabaseRequest(
       "training_plans" +
         "?select=*" +
-        "&order=workout_number.desc" +
-        "&limit=" +
-        safeLimit,
+        "&workout_number=eq." +
+        workoutNumber +
+        "&order=id.desc",
     );
 
-    const recentPlans = getSafeArray(plans);
+    const planList = getSafeArray(plans);
 
-    if (!recentPlans.length) {
+    let plan = planList.length ? planList[0] : null;
+
+    if (planList.length > 1) {
+      const sortedPlans = planList.slice().sort((a, b) => {
+        const aTime = new Date(a.created_at || 0).getTime();
+
+        const bTime = new Date(b.created_at || 0).getTime();
+
+        return bTime - aTime;
+      });
+
+      plan = sortedPlans[0];
+    }
+
+    /* ========================================================
+       3. 获取这个计划的动作
+    ======================================================== */
+
+    let planExercises = [];
+
+    if (plan?.id) {
+      const data = await supabaseRequest(
+        "training_plan_exercises" +
+          "?select=*" +
+          "&plan_id=eq." +
+          plan.id +
+          "&order=exercise_order.asc",
+      );
+
+      planExercises = sortPlanExercises(data);
+    }
+
+    /* ========================================================
+       4. 获取实际动作记录
+
+       只获取本次计划对应的动作。
+
+       这样不会把其它训练的记录混进来。
+    ======================================================== */
+
+    let actualExerciseRecords = [];
+
+    if (planExercises.length) {
+      const ids = planExercises
+        .map((item) => item.id)
+        .filter((id) => id !== undefined && id !== null);
+
+      if (ids.length) {
+        const idList = ids.join(",");
+
+        const data = await supabaseRequest(
+          "workout_exercise_records" +
+            "?select=*" +
+            "&plan_exercise_id=in.(" +
+            idList +
+            ")",
+        );
+
+        actualExerciseRecords = getSafeArray(data);
+      }
+    }
+
+    /*
+       同一个plan_exercise_id如果有重复，
+       只保留最后一条。
+    */
+
+    const actualExerciseMap = buildLatestActualExerciseMap(
+      actualExerciseRecords,
+    );
+
+    /* ========================================================
+       5. 组合动作
+
+    ======================================================== */
+
+    const exercises = planExercises
+      .map((planExercise) => {
+        const exerciseName = String(
+          planExercise.exercise_name || "未知动作",
+        ).trim();
+
+        const actualExercise = actualExerciseMap.get(String(planExercise.id));
+
+        const actual = buildActualExerciseResult(actualExercise);
+
+        return {
+          exercise_order: planExercise.exercise_order ?? null,
+
+          exercise_name: exerciseName,
+
+          equipment: planExercise.equipment || "自重",
+
+          weight_kg: planExercise.weight_kg ?? null,
+
+          reps:
+            planExercise.reps !== undefined && planExercise.reps !== null
+              ? String(planExercise.reps)
+              : "",
+
+          sets: planExercise.sets ?? null,
+
+          notes: String(planExercise.notes || "").trim(),
+
+          status: actual.status,
+
+          difficulty: actual.difficulty,
+        };
+      })
+      .sort(
+        (a, b) => Number(a.exercise_order || 0) - Number(b.exercise_order || 0),
+      );
+
+    /* ========================================================
+       6. 汇总
+    ======================================================== */
+
+    const completed = [];
+
+    const notCompleted = [];
+
+    const easy = [];
+
+    const normal = [];
+
+    const difficult = [];
+
+    exercises.forEach((exercise) => {
+      if (exercise.status === "已完成") {
+        completed.push(exercise.exercise_name);
+      }
+
+      if (exercise.status === "未完成") {
+        notCompleted.push(exercise.exercise_name);
+      }
+
+      if (exercise.difficulty === "easy") {
+        easy.push(exercise.exercise_name);
+      }
+
+      if (exercise.difficulty === "normal") {
+        normal.push(exercise.exercise_name);
+      }
+
+      if (exercise.difficulty === "hard") {
+        difficult.push(exercise.exercise_name);
+      }
+
+      if (exercise.difficulty === "incomplete") {
+        if (!notCompleted.includes(exercise.exercise_name)) {
+          notCompleted.push(exercise.exercise_name);
+        }
+      }
+    });
+
+    /* ========================================================
+       7. 时间
+    ======================================================== */
+
+    const plannedDuration =
+      workout.duration_minutes ?? plan?.duration_minutes ?? null;
+
+    const actualDuration = workout.actual_duration_minutes ?? null;
+
+    /* ========================================================
+       8. 最终结果
+    ======================================================== */
+
+    const result = {
+      workout_number: workoutNumber,
+
+      workout_date: workout.workout_date || plan?.plan_date || null,
+
+      title: plan?.title || `第${workoutNumber}次训练`,
+
+      focus: plan?.focus || "",
+
+      duration_minutes: plannedDuration,
+
+      actual_duration_minutes: actualDuration,
+
+      body_note: workout.body_note || "",
+
+      plan_notes: plan?.notes || "",
+
+      exercises,
+
+      completed,
+
+      not_completed: notCompleted,
+
+      easy,
+
+      normal,
+
+      difficult,
+    };
+
+    console.log("✅ 最近一次训练读取完成：", result);
+
+    return result;
+  } catch (error) {
+    console.error("读取最近一次训练失败：", error);
+
+    throw new Error(
+      "无法读取最近一次训练及完成情况。\n\n" + (error.message || String(error)),
+    );
+  }
+}
+
+/* ============================================================
+   ⑩ 获取历史动作表现
+
+   核心规则：
+
+   不再：
+
+   ❌ 最近3次训练
+   ❌ 最近8次训练
+
+   而是：
+
+   所有历史训练
+   ↓
+   找到对应计划动作
+   ↓
+   按动作名称归类
+   ↓
+   每次训练保留这个动作最后一次结果
+   ↓
+   每个动作保留最近若干次历史表现
+
+   这里保留最近6次该动作表现。
+
+   不是“最近6次训练”。
+
+   而是：
+
+   “这个动作最近6次出现时的表现”。
+============================================================ */
+
+async function getExercisePerformanceHistoryForAI(perExerciseLimit = 6) {
+  try {
+    const safeLimit =
+      Number.isFinite(Number(perExerciseLimit)) && Number(perExerciseLimit) > 0
+        ? Number(perExerciseLimit)
+        : 6;
+
+    console.log(`📊 正在读取历史动作表现（每个动作最近${safeLimit}次）……`);
+
+    /* ========================================================
+       1. 获取所有训练计划
+    ======================================================== */
+    const plans = await supabaseRequest(
+      "training_plans" + "?select=*" + "&order=workout_number.desc",
+    );
+
+    let planList = getSafeArray(plans);
+
+    if (!planList.length) {
       return [];
     }
 
     /* ========================================================
-       2. 读取这些计划的动作
+   获取已经实际保存的训练
+
+   重要：
+
+   training_plans 代表“生成过训练计划”。
+
+   workouts 代表“实际存在过一次训练记录”。
+
+   历史动作表现只能使用真正存在于 workouts
+   的训练。
+
+   因此：
+   只有 training_plans，没有 workouts
+   的训练，不进入历史。
+======================================================== */
+
+    const workouts = await supabaseRequest(
+      "workouts" +
+        "?select=workout_number,workout_date,created_at" +
+        "&order=workout_number.desc",
+    );
+
+    const workoutList = getSafeArray(workouts);
+
+    /* ========================================================
+   建立已经实际保存训练的 workout_number 集合
+======================================================== */
+
+    const completedWorkoutNumbers = new Set();
+
+    workoutList.forEach((workout) => {
+      if (!workout) {
+        return;
+      }
+
+      const workoutNumber = Number(workout.workout_number);
+
+      if (!Number.isFinite(workoutNumber)) {
+        return;
+      }
+
+      completedWorkoutNumbers.add(workoutNumber);
+    });
+
+    /* ========================================================
+   只保留真正存在 workouts 的训练计划
+======================================================== */
+
+    planList = planList.filter((plan) => {
+      const workoutNumber = Number(plan?.workout_number);
+
+      return (
+        Number.isFinite(workoutNumber) &&
+        completedWorkoutNumbers.has(workoutNumber)
+      );
+    });
+
+    if (!planList.length) {
+      return [];
+    }
+
+    /* ========================================================
+       2. 获取所有计划动作
     ======================================================== */
 
     const planExercises = await supabaseRequest(
       "training_plan_exercises?select=*",
     );
 
-    const planExerciseRecords = getSafeArray(planExercises);
+    const planExerciseList = getSafeArray(planExercises);
 
     /* ========================================================
-       3. 读取实际训练记录
-
-       这里只读取 workouts。
-
-       不再读取 exercises。
+       3. 获取所有实际动作记录
     ======================================================== */
 
-    const workouts = await supabaseRequest("workouts?select=*");
-
-    const workoutRecords = getSafeArray(workouts);
-
-    /* ========================================================
-       4. 读取实际动作记录
-
-       唯一来源：
-
-       workout_exercise_records
-    ======================================================== */
-
-    const exerciseRecords = await supabaseRequest(
+    const actualRecords = await supabaseRequest(
       "workout_exercise_records?select=*",
     );
 
-    const actualExerciseRecords = getSafeArray(exerciseRecords);
+    const actualRecordList = getSafeArray(actualRecords);
 
     /* ========================================================
-       5. 建立 plan_id → 计划动作
+       4. 先按plan_exercise_id保留最后一条
+
+       这是非常重要的一层去重。
+
+       同一个计划动作如果数据库有两条实际记录：
+
+       旧记录
+       新记录
+
+       只使用新记录。
+    ======================================================== */
+
+    const actualMap = buildLatestActualExerciseMap(actualRecordList);
+
+    /* ========================================================
+       5. 建立plan_id → plan exercises
     ======================================================== */
 
     const planExerciseMap = new Map();
 
-    planExerciseRecords.forEach((item) => {
-      if (!item || item.id === undefined || item.id === null) {
-        return;
-      }
-
-      const planId = String(item.plan_id);
-
-      if (!planExerciseMap.has(planId)) {
-        planExerciseMap.set(planId, []);
-      }
-
-      planExerciseMap.get(planId).push(item);
-    });
-
-    /* ========================================================
-       6. 建立 workout_number → workout
-    ======================================================== */
-
-    const workoutMap = new Map();
-
-    workoutRecords.forEach((workout) => {
-      if (!workout) {
-        return;
-      }
-
-      const number = Number(workout.workout_number);
-
-      if (Number.isFinite(number)) {
-        /*
-           如果同一个workout_number存在多个版本，
-           保留created_at更新的那个。
-
-           正常情况下数据库应该只有一个。
-        */
-
-        const existing = workoutMap.get(number);
-
-        if (!existing) {
-          workoutMap.set(number, workout);
-
-          return;
-        }
-
-        const existingCreated = new Date(existing.created_at || 0).getTime();
-
-        const currentCreated = new Date(workout.created_at || 0).getTime();
-
-        if (currentCreated >= existingCreated) {
-          workoutMap.set(number, workout);
-        }
-      }
-    });
-
-    /* ========================================================
-       7. 建立 plan_exercise_id → 实际动作记录
-    ======================================================== */
-
-    const actualExerciseMap = new Map();
-
-    actualExerciseRecords.forEach((exercise) => {
+    planExerciseList.forEach((planExercise) => {
       if (
-        !exercise ||
-        exercise.plan_exercise_id === undefined ||
-        exercise.plan_exercise_id === null
+        !planExercise ||
+        planExercise.plan_id === undefined ||
+        planExercise.plan_id === null
       ) {
         return;
       }
 
-      /*
-         正常情况下：
+      const key = String(planExercise.plan_id);
 
-         一个plan_exercise_id
-         对应一次实际训练记录。
-
-         如果存在重复，
-         保留created_at更新的一条。
-      */
-
-      const key = String(exercise.plan_exercise_id);
-
-      const existing = actualExerciseMap.get(key);
-
-      if (!existing) {
-        actualExerciseMap.set(key, exercise);
-
-        return;
+      if (!planExerciseMap.has(key)) {
+        planExerciseMap.set(key, []);
       }
 
-      const existingCreated = new Date(existing.created_at || 0).getTime();
-
-      const currentCreated = new Date(exercise.created_at || 0).getTime();
-
-      if (currentCreated >= existingCreated) {
-        actualExerciseMap.set(key, exercise);
-      }
+      planExerciseMap.get(key).push(planExercise);
     });
 
     /* ========================================================
-       8. 组合训练历史
+       6. 逐个训练计划建立动作表现
+
+       先处理：
+
+       同一个训练里同名动作重复。
+
+       只保留最后一个。
     ======================================================== */
 
-    const result = [];
+    const exerciseHistoryMap = new Map();
 
-    recentPlans.forEach((plan) => {
+    planList.forEach((plan) => {
+      if (!plan?.id) {
+        return;
+      }
+
       const workoutNumber = Number(plan.workout_number);
 
       if (!Number.isFinite(workoutNumber)) {
         return;
       }
 
-      const workout = workoutMap.get(workoutNumber);
-
-      const planExercisesForThisPlan =
-        planExerciseMap.get(String(plan.id)) || [];
-
-      /* ======================================================
-         按动作顺序排列
-      ====================================================== */
-
-      planExercisesForThisPlan.sort(
-        (a, b) => Number(a.exercise_order || 0) - Number(b.exercise_order || 0),
+      const exercises = sortPlanExercises(
+        planExerciseMap.get(String(plan.id)) || [],
       );
 
-      const completed = [];
+      /*
+         当前训练内部：
 
-      const notCompleted = [];
+         exercise_name → 最后一次出现
+      */
 
-      const easy = [];
+      const currentWorkoutMap = new Map();
 
-      const normal = [];
+      exercises.forEach((planExercise) => {
+        const exerciseName = String(
+          planExercise.exercise_name || "未知动作",
+        ).trim();
 
-      const difficult = [];
-
-      const exercises = [];
-
-      /* ======================================================
-         处理每一个动作
-      ====================================================== */
-
-      planExercisesForThisPlan.forEach((planExercise) => {
-        const actualExercise = actualExerciseMap.get(String(planExercise.id));
-
-        const exerciseName = planExercise.exercise_name || "未知动作";
-
-        /* ----------------------------------------------------
-           训练计划原始要求
-        ---------------------------------------------------- */
-
-        const equipment = planExercise.equipment || "自重";
-
-        let weight = null;
-
-        if (
-          planExercise.weight_kg !== undefined &&
-          planExercise.weight_kg !== null &&
-          planExercise.weight_kg !== ""
-        ) {
-          weight = planExercise.weight_kg;
+        if (!exerciseName) {
+          return;
         }
 
-        const reps =
-          planExercise.reps !== undefined && planExercise.reps !== null
-            ? String(planExercise.reps)
-            : "";
+        const actual = buildActualExerciseResult(
+          actualMap.get(String(planExercise.id)),
+        );
 
-        const sets =
-          planExercise.sets !== undefined && planExercise.sets !== null
-            ? planExercise.sets
-            : null;
+        const historyItem = {
+          workout_number: workoutNumber,
 
-        const planNotes = String(planExercise.notes || "").trim();
-
-        /* ----------------------------------------------------
-           实际完成情况
-        ---------------------------------------------------- */
-
-        let status = "未记录";
-
-        let difficulty = "";
-
-        if (actualExercise) {
-          const completedValue = actualExercise.completed;
-
-          if (completedValue === true) {
-            status = "已完成";
-          } else {
-            status = "未完成";
-          }
-
-          difficulty = String(actualExercise.difficulty || "")
-            .trim()
-            .toLowerCase();
-        }
-
-        /* ----------------------------------------------------
-           标准化difficulty
-
-           数据库统一：
-
-           easy
-           normal
-           hard
-           incomplete
-        ---------------------------------------------------- */
-
-        if (!["easy", "normal", "hard", "incomplete"].includes(difficulty)) {
-          difficulty = "";
-        }
-
-        /* ----------------------------------------------------
-           根据difficulty汇总
-        ---------------------------------------------------- */
-
-        if (difficulty === "easy") {
-          easy.push(exerciseName);
-        }
-
-        if (difficulty === "normal") {
-          normal.push(exerciseName);
-        }
-
-        if (difficulty === "hard") {
-          difficult.push(exerciseName);
-        }
-
-        /* ----------------------------------------------------
-           完成 / 未完成汇总
-        ---------------------------------------------------- */
-
-        if (status === "已完成") {
-          completed.push(exerciseName);
-        }
-
-        if (status === "未完成" || difficulty === "incomplete") {
-          notCompleted.push(exerciseName);
-        }
-
-        /* ----------------------------------------------------
-           实际记录中的扩展字段
-           当前系统主要使用：
-           completed
-           difficulty
-        ---------------------------------------------------- */
-
-        const actualReps =
-          actualExercise?.actual_reps ?? actualExercise?.reps ?? null;
-
-        const actualSets =
-          actualExercise?.actual_sets ?? actualExercise?.sets ?? null;
-
-        const actualNotes =
-          actualExercise?.actual_notes ??
-          actualExercise?.notes ??
-          actualExercise?.note ??
-          "";
-
-        /* ----------------------------------------------------
-           完整动作历史
-        ---------------------------------------------------- */
-
-        exercises.push({
-          exercise_order: planExercise.exercise_order ?? null,
+          workout_date: plan.plan_date || null,
 
           exercise_name: exerciseName,
 
-          equipment: equipment,
+          equipment: planExercise.equipment || "自重",
 
-          weight_kg: weight,
+          weight_kg: planExercise.weight_kg ?? null,
 
-          reps: reps,
+          reps:
+            planExercise.reps !== undefined && planExercise.reps !== null
+              ? String(planExercise.reps)
+              : "",
 
-          sets: sets,
+          sets: planExercise.sets ?? null,
 
-          notes: planNotes,
+          notes: String(planExercise.notes || "").trim(),
 
-          status: status,
+          status: actual.status,
 
-          difficulty: difficulty,
-        });
+          difficulty: actual.difficulty,
+        };
+
+        /*
+             同一个训练中同名动作：
+
+             后面的覆盖前面的。
+          */
+
+        currentWorkoutMap.set(exerciseName, historyItem);
       });
 
       /* ======================================================
-         训练时长
-
-         duration_minutes
-         = AI原计划预计时间
-
-         actual_duration_minutes
-         = 用户实际输入的训练时间
+         把本次训练最终动作表现加入历史
       ====================================================== */
 
-      const plannedDuration =
-        workout?.duration_minutes ?? plan.duration_minutes ?? null;
+      currentWorkoutMap.forEach((item, exerciseName) => {
+        if (!exerciseHistoryMap.has(exerciseName)) {
+          exerciseHistoryMap.set(exerciseName, []);
+        }
 
-      const actualDuration = workout?.actual_duration_minutes ?? null;
-
-      /* ======================================================
-         生成这一条训练历史
-      ====================================================== */
-
-      result.push({
-        workout_number: workoutNumber,
-
-        workout_date: workout?.workout_date || plan.plan_date || null,
-
-        title: plan.title || `第${workoutNumber}次训练`,
-
-        focus: plan.focus || "",
-
-        /*
-           原计划预计时长
-        */
-
-        duration_minutes: plannedDuration,
-
-        /*
-           实际训练时长
-
-           用户手动输入
-        */
-
-        actual_duration_minutes: actualDuration,
-
-        completion_percent: workout?.completion_percent ?? null,
-
-        body_note: workout?.body_note || workout?.notes || "",
-
-        plan_notes: plan.notes || "",
-
-        exercises: exercises,
-
-        completed: completed,
-
-        not_completed: notCompleted,
-
-        easy: easy,
-
-        normal: normal,
-
-        difficult: difficult,
+        exerciseHistoryMap.get(exerciseName).push(item);
       });
     });
 
     /* ========================================================
-       9. 按训练编号倒序
+       7. 每个动作按训练编号倒序
+
+       并限制最近6次“这个动作”的表现。
     ======================================================== */
 
-    result.sort((a, b) => Number(b.workout_number) - Number(a.workout_number));
+    const result = [];
 
-    console.log(`✅ 最近${safeLimit}次训练计划及完成情况读取完成。`, result);
+    exerciseHistoryMap.forEach((history, exerciseName) => {
+      history.sort(
+        (a, b) => Number(b.workout_number) - Number(a.workout_number),
+      );
+
+      const limited = history.slice(0, safeLimit);
+
+      result.push({
+        exercise_name: exerciseName,
+
+        appearances: limited.length,
+
+        history: limited,
+      });
+    });
+
+    /*
+       按最近一次出现的workout_number排序。
+    */
+
+    result.sort((a, b) => {
+      const aLatest = Number(a.history?.[0]?.workout_number || 0);
+
+      const bLatest = Number(b.history?.[0]?.workout_number || 0);
+
+      return bLatest - aLatest;
+    });
+
+    console.log("✅ 历史动作表现读取完成：", result);
 
     return result;
   } catch (error) {
-    console.error("读取最近训练计划及完成情况失败：", error);
+    console.error("读取历史动作表现失败：", error);
 
     throw new Error(
-      "无法读取最近训练计划及完成情况。\n\n" + (error.message || String(error)),
+      "无法读取历史动作表现。\n\n" + (error.message || String(error)),
     );
   }
 }
 
 /* ============================================================
-   ⑤ 生成AI设置文本
+   ⑪ 生成AI设置文本
 ============================================================ */
 
 function formatAISettingsForPrompt(trainingSettings) {
@@ -714,6 +1409,11 @@ function formatAISettingsForPrompt(trainingSettings) {
   const weeklyTargetText =
     trainingSettings.weekly_strength_target !== null
       ? `${trainingSettings.weekly_strength_target} 次`
+      : "未设置";
+
+  const expectedDurationText =
+    trainingSettings.expected_duration_minutes !== null
+      ? `${trainingSettings.expected_duration_minutes} 分钟`
       : "未设置";
 
   const goalsText = trainingSettings.goals?.length
@@ -734,6 +1434,9 @@ function formatAISettingsForPrompt(trainingSettings) {
 每周力量训练目标：
 ${weeklyTargetText}
 
+期望每次训练时间：
+${expectedDurationText}
+
 训练目标：
 ${goalsText}
 
@@ -752,173 +1455,248 @@ ${restrictionsText}
 }
 
 /* ============================================================
-   ⑥ 生成训练历史说明
+   ⑫ 生成身体数据Prompt
 ============================================================ */
 
-function formatRecentTrainingHistoryForPrompt(
-  recentTrainingPlansWithResults,
-  historyCount,
-) {
-  const data = getSafeArray(recentTrainingPlansWithResults);
+function formatBodyDataForPrompt(bodyData) {
+  if (!bodyData || typeof bodyData !== "object") {
+    return "【身体数据】暂无记录。";
+  }
 
-  if (!data.length) {
-    return "目前没有可提供的训练历史。";
+  const latest = bodyData.latest || {};
+
+  const week = bodyData.week_change || {};
+
+  const month = bodyData.month_change || {};
+
+  function formatLatest(value, unit = "") {
+    if (value === null || value === undefined || value === "") {
+      return "暂无";
+    }
+
+    return `${value}${unit}`;
+  }
+
+  function formatChange(data, unit = "") {
+    if (!data || data.change === null || data.change === undefined) {
+      return "暂无对比数据";
+    }
+
+    return `${data.change}${unit}`;
   }
 
   return `
-【最近${historyCount}次训练计划及完成情况】
+【身体数据】
 
-这里的 exercises 是每次训练当时真实保存的训练计划。
+身高：162cm
 
-每个动作包含：
+最新一次：
+体重：${formatLatest(latest.weight_kg, " kg")}
+腰围：${formatLatest(latest.waist_cm, " cm")}
+臀围：${formatLatest(latest.hip_cm, " cm")}
 
-- exercise_name：动作名称
-- equipment：器械
-- weight_kg：计划重量
-- reps：计划次数
-- sets：计划组数
-- notes：计划动作要求/注意事项
-- status：实际是否完成
-- difficulty：实际训练难度
+相比上周身体变化：
+体重：${formatChange(week.weight, " kg")}
+腰围：${formatChange(week.waist, " cm")}
+臀围：${formatChange(week.hip, " cm")}
 
-每次训练还包含：
+相比上月身体变化：
+体重：${formatChange(month.weight, " kg")}
+腰围：${formatChange(month.waist, " cm")}
+臀围：${formatChange(month.hip, " cm")}
 
-- duration_minutes：原计划预计训练时间
-- actual_duration_minutes：用户实际训练花费时间
-- completion_percent：本次动作完成比例
-- body_note：训练后的身体感受
-
-特别注意：
-
-duration_minutes 是“计划预计时间”。
-
-actual_duration_minutes 是“实际训练时间”。
-
-actual_duration_minutes 由用户训练完成后手动输入，
-不要把它当成AI原计划时间。
-
-动作难度统一使用：
-
-easy
-normal
-hard
-incomplete
-
-含义：
-
-easy
-= 这个动作完成起来比较轻松
-
-normal
-= 正常难度
-
-hard
-= 这个动作比较吃力
-
-incomplete
-= 这个动作没有完成
-
-如果某个动作没有实际记录，
-status 会显示为“未记录”，
-difficulty为空。
-
-请同时参考：
-
-1. 计划动作
-2. 计划次数
-3. 计划组数
-4. 计划重量
-5. 动作备注
-6. 实际是否完成
-7. 实际难度
-8. 实际训练重量/次数/组数（如果有）
-9. 实际训练时间
-10. body_note
-11. 最近几次训练之间的变化
-
-尤其注意：
-
-easy 表示这个动作对我来说偏轻松。
-
-hard 表示这个动作对我来说偏吃力。
-
-normal 表示正常。
-
-incomplete 表示没有完成。
-
-不要只根据动作名称判断训练负荷。
-
-必须结合实际历史表现动态调整下一次训练。
-
-${JSON.stringify(data, null, 2)}
+说明：
+- 最新一次数据中，每个指标分别寻找最近一次有效记录。
+- 体重、腰围、臀围不要求在同一天记录。
+- “相比上周”是与上一个自然周（周一至周日）中平均数据比较。
+- “相比上月”是与上一个自然月平均数据比较。
+- 正数表示增加，负数表示减少。
 `.trim();
 }
 
 /* ============================================================
-   ⑦ 生成AI训练Prompt
+   ⑬ 格式化最近一次训练
+============================================================ */
+
+function formatLatestTrainingForPrompt(latestTraining) {
+  if (!latestTraining || typeof latestTraining !== "object") {
+    return `
+【最近一次力量训练及完成情况】
+
+目前没有训练记录。
+`.trim();
+  }
+
+  return `
+【最近一次力量训练及完成情况】
+
+这是数据库中最近一次已经保存的实际训练。
+
+训练日期：
+${latestTraining.workout_date || "暂无"}
+
+训练标题：
+${latestTraining.title || "暂无"}
+
+训练重点：
+${latestTraining.focus || "暂无"}
+
+计划预计训练时间：
+${latestTraining.duration_minutes ?? "暂无"} 分钟
+
+实际训练时间：
+${latestTraining.actual_duration_minutes ?? "暂无"} 分钟
+
+
+训练后身体感受：
+${latestTraining.body_note || "暂无"}
+
+
+
+动作表现：
+
+${JSON.stringify(latestTraining.exercises || [], null, 2)}
+
+汇总：
+
+已完成：
+${latestTraining.completed?.length ? latestTraining.completed.join("、") : "无"}
+
+未完成：
+${
+  latestTraining.not_completed?.length
+    ? latestTraining.not_completed.join("、")
+    : "无"
+}
+
+轻松：
+${latestTraining.easy?.length ? latestTraining.easy.join("、") : "无"}
+
+正常：
+${latestTraining.normal?.length ? latestTraining.normal.join("、") : "无"}
+
+吃力：
+${latestTraining.difficult?.length ? latestTraining.difficult.join("、") : "无"}
+
+特别规则：
+- difficulty 是用户实际训练时选择的难度。
+- easy = 轻松。
+- normal = 正常。
+- hard = 吃力。
+- incomplete = 未完成。
+- actual_duration_minutes 是用户实际训练花费时间。
+`.trim();
+}
+
+/* ============================================================
+   ⑭ 格式化历史动作表现
+============================================================ */
+
+function formatExercisePerformanceHistoryForPrompt(history) {
+  const data = getSafeArray(history);
+
+  if (!data.length) {
+    return `
+【历史动作表现】
+
+目前没有足够的历史动作数据。
+`.trim();
+  }
+
+  const lines = [];
+
+  lines.push(
+    "【历史动作表现】【每个动作最多显示最近6次的运动情况，难度为我完成运动后的感受】",
+  );
+
+  data.forEach((exercise) => {
+    lines.push(`【${exercise.exercise_name}】`);
+
+    lines.push(`历史出现次数：${exercise.appearances}`);
+
+    const historyList = getSafeArray(exercise.history);
+
+    historyList.forEach((item) => {
+      const weight =
+        item.weight_kg === null ||
+        item.weight_kg === undefined ||
+        item.weight_kg === ""
+          ? "自重"
+          : `${item.weight_kg}kg`;
+
+      const difficulty = item.difficulty || "未记录";
+
+      const reps =
+        item.reps !== null &&
+        item.reps !== undefined &&
+        String(item.reps).trim()
+          ? String(item.reps).trim()
+          : "未记录";
+
+      const sets =
+        item.sets !== null && item.sets !== undefined && item.sets !== ""
+          ? String(item.sets).trim()
+          : "未记录";
+
+      lines.push(
+        `- 第${item.workout_number}次（${item.workout_date || "日期未知"}）：` +
+          `${weight}，计划${reps} × ${sets}组，` +
+          `结果${item.status}，难度${difficulty}`,
+      );
+    });
+
+    lines.push("");
+  });
+
+  return lines.join("\n").trim();
+}
+
+/* ============================================================
+   ⑮ AI训练Prompt
 ============================================================ */
 
 async function generateAITrainingPrompt() {
   try {
     console.log("🤖 开始生成AI训练提示词……");
-
     /* ========================================================
-       判断AI对话模式
-    ======================================================== */
 
-    const isNewConversation = isNewAIConversation();
-
-    const historyCount = isNewConversation ? 8 : 3;
-
-    console.log("🤖 AI对话模式：", isNewConversation ? "新开对话" : "继续对话");
-
-    console.log(`🤖 本次提供最近${historyCount}次训练历史。`);
-
-    /* ========================================================
        数据读取
+
+       每次生成Prompt都使用完整的AI训练上下文：
+
+       ① 当前训练状态
+
+       ② 身体数据
+
+       ③ 最近一次训练
+
+       ④ 历史动作表现
+
+       ⑤ 当前AI训练设置
+
     ======================================================== */
 
-    const dataPromises = [
+    const [
+      trainingSettings,
+
+      currentState,
+
+      bodyData,
+
+      latestTraining,
+
+      exerciseHistory,
+    ] = await Promise.all([
+      getTrainingSettingsForAI(),
+
       getCurrentStateForAI(),
 
       getBodyDataForAI(),
 
-      getRecentTrainingPlansWithResultsForAI(historyCount),
-    ];
+      getLatestTrainingWithResultsForAI(),
 
-    /*
-       新开对话才读取AI设置
-    */
-
-    if (isNewConversation) {
-      dataPromises.unshift(getTrainingSettingsForAI());
-    }
-
-    const dataResults = await Promise.all(dataPromises);
-
-    let trainingSettings = null;
-
-    let currentState = null;
-
-    let bodyData = null;
-
-    let recentTrainingPlansWithResults = null;
-
-    if (isNewConversation) {
-      trainingSettings = dataResults[0];
-
-      currentState = dataResults[1];
-
-      bodyData = dataResults[2];
-
-      recentTrainingPlansWithResults = dataResults[3];
-    } else {
-      currentState = dataResults[0];
-
-      bodyData = dataResults[1];
-
-      recentTrainingPlansWithResults = dataResults[2];
-    }
+      getExercisePerformanceHistoryForAI(6),
+    ]);
 
     const nextNumber = currentState.next_workout_number;
 
@@ -926,59 +1704,13 @@ async function generateAITrainingPrompt() {
        Prompt头部
     ======================================================== */
 
-    const promptHeader = `
-你是我的私人哑铃训练教练。
-
-请根据以下真实训练数据，判断下一次最适合的力量训练计划。
-
-你必须根据历史实际表现动态调整训练。
-
-不要机械套用固定计划。
-不要为了“变化”而强行更换动作。
-
-如果某个动作最近表现良好，可以继续保留并逐步进阶。
-
-如果某个动作连续吃力，应考虑：
-- 保持当前负荷
-- 降低次数
-- 减少组数
-- 降低重量
-- 必要时更换动作
-
-如果某个动作轻松完成，可以在合理范围内进阶。
-
-下一次训练编号：
-第${nextNumber}次
-`.trim();
+    const promptHeader = `你是我的私人哑铃训练教练。`;
 
     /* ========================================================
-       AI设置
-    ======================================================== */
+   AI设置
+======================================================== */
 
-    let settingsSection = "";
-
-    if (isNewConversation) {
-      settingsSection = "\n\n" + formatAISettingsForPrompt(trainingSettings);
-    } else {
-      settingsSection = `
-【AI训练设置】
-
-本次为继续当前ChatGPT对话。
-
-不要重复提供AI训练设置。
-
-请继续使用当前ChatGPT对话中已经确定的：
-
-- 训练目标
-- AI重点关注
-- AI教练行为
-- 动作限制
-- 其它训练要求
-
-如果当前对话中已经存在这些设置，
-以当前对话上下文为准。
-`.trim();
-    }
+    const settingsSection = formatAISettingsForPrompt(trainingSettings);
 
     /* ========================================================
        当前状态
@@ -1001,83 +1733,49 @@ async function generateAITrainingPrompt() {
        身体数据
     ======================================================== */
 
-    const bodyDataSection = `
-【最近5条身体数据】
-
-${JSON.stringify(bodyData, null, 2)}
-
-如果身体数据为空，
-则不要虚构身体数据。
-`.trim();
+    const bodyDataSection = formatBodyDataForPrompt(bodyData);
 
     /* ========================================================
-       训练历史
+       最近一次训练
     ======================================================== */
 
-    const historySection =
-      "\n\n" +
-      formatRecentTrainingHistoryForPrompt(
-        recentTrainingPlansWithResults,
-        historyCount,
-      );
+    const latestTrainingSection = formatLatestTrainingForPrompt(latestTraining);
 
     /* ========================================================
-       AI判断规则
+       历史动作表现
     ======================================================== */
 
-    const analysisRules = `
-【训练计划判断规则】
+    const exerciseHistorySection =
+      formatExercisePerformanceHistoryForPrompt(exerciseHistory);
 
-请重点分析：
+    /* ========================================================
+   最近7天其它运动 + 每日步数
+======================================================== */
 
-1. 最近训练的动作选择
-2. 每个动作的计划重量
-3. 每个动作的计划次数
-4. 每个动作的计划组数
-5. 每个动作的实际完成情况
-6. easy / normal / hard / incomplete
-7. 最近几次训练中同一动作的变化
-8. 是否存在连续未完成动作
-9. 是否存在连续轻松完成动作
-10. 当前身体数据
-11. 当前训练目标
-12. 当前训练限制
-13. 计划训练时间
-14. 实际训练时间
+    const recent7DayActivity = getRecent7DayOtherExerciseAndStepsForAI();
 
-如果左右侧能力不同：
+    const recent7DayActivityText = recent7DayActivity
+      .map((day) => {
+        return `${day.date}：其它运动：${day.otherExercise}；步数：${day.steps}`;
+      })
+      .join("\n");
 
-必须优先照顾较弱侧。
+    const recent7DayActivitySection = `
+【最近7天其它活动情况】
 
-不要为了左右完全一致，
-强行让较弱一侧超过合理能力。
+以下数据用于帮助AI判断最近的整体活动量，
+尤其用于判断力量训练安排是否需要考虑近期活动量和恢复情况。
 
-不要仅仅因为一次easy就大幅增加负荷。
+${recent7DayActivityText}
 
-应结合最近几次同一动作的表现判断是否进阶。
-
-如果历史数据显示某个动作：
-
-- 连续easy → 可以合理进阶
-- normal → 可以保持或小幅进阶
-- hard → 优先保持、降低次数/组数或降低负荷
-- incomplete → 不要机械增加负荷，必要时降低难度或更换动作
-
-如果实际训练时间明显超过计划时间：
-
-下一次应考虑减少动作数量、组数或训练复杂度。
-
-如果实际训练时间明显短于计划时间，
-且动作完成情况良好，
-可以考虑合理增加训练内容，
-但不要为了填满时间而强行增加动作。
-
-训练动作应该围绕当前目标服务。
-
-不要因为凑动作数量而加入没有必要的动作。
-
-不要为了变化而变化。
+说明：
+- 步数是每天实际记录的步数。 “无”表示当天没有记录。
+- 应结合最近一次力量训练、历史动作表现、身体数据和训练目标综合判断。
 `.trim();
+
+    /* =========================================================
+   最近 7 天其它运动 + 每日步数
+========================================================= */
 
     /* ========================================================
        动作输出格式
@@ -1085,37 +1783,6 @@ ${JSON.stringify(bodyData, null, 2)}
 
     const outputRules = `
 【下一次训练动作格式】
-
-每个动作必须包含：
-
-exercise_order
-exercise_name
-equipment
-weight_kg
-reps
-sets
-notes
-
-自重动作：
-
-weight_kg = null
-
-哑铃动作：
-
-weight_kg = 实际使用重量
-
-reps可以使用：
-
-"8"
-"8-10"
-"10"
-"10/侧"
-"12/侧"
-"30秒"
-"45秒"
-"60秒"
-
-sets必须是数字。
 
 例如：
 
@@ -1130,28 +1797,22 @@ sets必须是数字。
 }
 
 表示：
-
-猫牛式（8-10次 × 2组）
-
+猫牛式
+8-10次 × 2组
 不要把：
-
 “8-10次 × 2组”
-
 只写在notes里。
 
-必须把次数放进reps，
-把组数放进sets。
-
+必须：
+reps = 次数或时间
+sets = 组数
 如果动作有左右侧：
-
 可以使用：
-
 "8/侧"
 "10/侧"
 "10-12/侧"
 
 如果动作是时间：
-
 使用：
 
 "30秒"
@@ -1166,12 +1827,7 @@ sets必须是数字。
     const finalOutputRules = `
 【最终输出】
 
-严格只输出JSON。
-
-不要输出Markdown。
-不要使用代码块。
-不要输出解释文字。
-不要在JSON前后添加任何说明。
+严格只输出JSON。不要输出Markdown。不要使用代码块。不要输出解释文字。不要在JSON前后添加任何说明。
 
 格式：
 
@@ -1223,9 +1879,10 @@ actual_duration_minutes：
 
       bodyDataSection,
 
-      historySection,
+      latestTrainingSection,
 
-      analysisRules,
+      exerciseHistorySection,
+      recent7DayActivitySection,
 
       outputRules,
 
@@ -1253,11 +1910,9 @@ actual_duration_minutes：
     console.log("✅ AI训练Prompt生成完成。");
 
     console.log({
-      newConversation: isNewConversation,
+      latestTraining: latestTraining ? latestTraining.workout_number : null,
 
-      historyCount: historyCount,
-
-      includesAISettings: isNewConversation,
+      exerciseHistoryCount: getSafeArray(exerciseHistory).length,
 
       nextWorkoutNumber: nextNumber,
     });
@@ -1273,7 +1928,7 @@ actual_duration_minutes：
 }
 
 /* ============================================================
-   复制Prompt
+   ⑯ 复制Prompt
 ============================================================ */
 
 async function copyAIPrompt() {
@@ -1307,7 +1962,7 @@ async function copyAIPrompt() {
 }
 
 /* ============================================================
-   清理ChatGPT返回内容
+   ⑰ 清理ChatGPT返回内容
 ============================================================ */
 
 function cleanAIPlanText(text) {
@@ -1319,13 +1974,13 @@ function cleanAIPlanText(text) {
 
   result = result.replace(/^```(?:json)?\s*/i, "");
 
-  result = result.replace(/\s*```$/i, "");
+  result = result.replace(/\s*```$/, "");
 
   return result.trim();
 }
 
 /* ============================================================
-   从ChatGPT返回内容提取JSON
+   ⑱ 从ChatGPT返回内容提取JSON
 ============================================================ */
 
 function extractAIPlanJSON(text) {
@@ -1428,7 +2083,7 @@ function extractAIPlanJSON(text) {
 }
 
 /* ============================================================
-   验证AI训练计划
+   ⑲ 验证AI训练计划
 ============================================================ */
 
 function validateAITrainingPlan(plan) {
@@ -1489,13 +2144,6 @@ function validateAITrainingPlan(plan) {
 
     /* ======================================================
        reps
-
-       reps允许字符串：
-
-       8
-       8-10
-       10/侧
-       30秒
     ====================================================== */
 
     if (exercise.reps !== undefined && exercise.reps !== null) {
@@ -1511,7 +2159,7 @@ function validateAITrainingPlan(plan) {
 }
 
 /* ============================================================
-   获取某个训练编号的全部旧计划
+   ⑳ 获取某个训练编号的全部旧计划
 ============================================================ */
 
 async function getAllPlansByWorkoutNumber(workoutNumber) {
@@ -1523,7 +2171,7 @@ async function getAllPlansByWorkoutNumber(workoutNumber) {
 
   const plans = await supabaseRequest(
     "training_plans" +
-      "?select=id,workout_number,plan_date,title" +
+      "?select=id,workout_number,plan_date,title,created_at" +
       "&workout_number=eq." +
       number +
       "&order=id.asc",
@@ -1533,7 +2181,7 @@ async function getAllPlansByWorkoutNumber(workoutNumber) {
 }
 
 /* ============================================================
-   获取某个计划的动作数量
+   ㉑ 获取某个计划的动作数量
 ============================================================ */
 
 async function getPlanExerciseCount(planId) {
@@ -1549,7 +2197,7 @@ async function getPlanExerciseCount(planId) {
 }
 
 /* ============================================================
-   删除某个计划的全部动作
+   ㉒ 删除某个计划的全部动作
 ============================================================ */
 
 async function deleteAllExercisesForPlan(planId) {
@@ -1587,7 +2235,7 @@ async function deleteAllExercisesForPlan(planId) {
 }
 
 /* ============================================================
-   删除某个训练计划
+   ㉓ 删除某个训练计划
 ============================================================ */
 
 async function deleteTrainingPlanById(planId) {
@@ -1614,7 +2262,7 @@ async function deleteTrainingPlanById(planId) {
 }
 
 /* ============================================================
-   删除某个训练计划及其动作
+   ㉔ 删除某个训练计划及其动作
 ============================================================ */
 
 async function deleteTrainingPlanCompletely(planId) {
@@ -1622,25 +2270,13 @@ async function deleteTrainingPlanCompletely(planId) {
     return;
   }
 
-  /*
-     当前数据库如果：
-
-     training_plan_exercises.plan_id
-     ↓
-     training_plans.id
-
-     没有设置CASCADE，
-
-     就先删除动作，再删除计划。
-  */
-
   await deleteAllExercisesForPlan(planId);
 
   await deleteTrainingPlanById(planId);
 }
 
 /* ============================================================
-   清理某个 workout_number 的全部旧计划
+   ㉕ 清理某个workout_number的全部旧计划
 ============================================================ */
 
 async function removeAllExistingPlansForWorkoutNumber(workoutNumber) {
@@ -1688,7 +2324,7 @@ async function removeAllExistingPlansForWorkoutNumber(workoutNumber) {
 }
 
 /* ============================================================
-   验证最终计划动作数量
+   ㉖ 验证最终计划动作数量
 ============================================================ */
 
 async function verifyImportedPlan(planId, expectedCount) {
@@ -1726,7 +2362,7 @@ async function verifyImportedPlan(planId, expectedCount) {
 }
 
 /* ============================================================
-   导入ChatGPT训练计划
+   ㉗ 导入ChatGPT训练计划
 ============================================================ */
 
 async function importAITrainingPlan() {
@@ -1805,6 +2441,12 @@ async function importAITrainingPlan() {
      5. 最终计划
   ======================================================== */
 
+  const durationMinutes = Number(plan.duration_minutes);
+
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+    throw new Error("AI训练计划缺少有效的 duration_minutes。");
+  }
+
   const finalPlan = {
     workout_number: nextNumber,
 
@@ -1812,7 +2454,7 @@ async function importAITrainingPlan() {
 
     focus: String(plan.focus || "").trim(),
 
-    duration_minutes: Number(plan.duration_minutes) || 23,
+    duration_minutes: durationMinutes,
 
     notes: String(plan.notes || "").trim(),
 
@@ -1821,16 +2463,6 @@ async function importAITrainingPlan() {
 
   /* ========================================================
      6. 写入Supabase
-     
-     重要：
-
-     不再：
-
-     先删除旧计划
-     ↓
-     再创建新计划
-
-     而是：
 
      创建新计划
      ↓
@@ -1841,7 +2473,7 @@ async function importAITrainingPlan() {
      删除旧计划
 
      防止新计划导入失败时，
-     把原来的旧计划一起删除。
+     原计划也被删除。
   ======================================================== */
 
   let newPlanId = null;
@@ -1853,7 +2485,7 @@ async function importAITrainingPlan() {
     );
 
     /* ======================================================
-       6.1 创建新的training_plans
+       6.1 创建training_plans
     ====================================================== */
 
     const created = await supabaseRequest("training_plans", {
@@ -1927,12 +2559,6 @@ async function importAITrainingPlan() {
 
       /* ====================================================
          次数
-
-         保留字符串：
-
-         8-10
-         10/侧
-         30秒
       ==================================================== */
 
       const reps =
@@ -1956,7 +2582,7 @@ async function importAITrainingPlan() {
           : i + 1;
 
       /* ====================================================
-         写入training_plan_exercises
+         写入
       ==================================================== */
 
       await supabaseRequest("training_plan_exercises", {
@@ -2018,10 +2644,6 @@ async function importAITrainingPlan() {
     const oldPlans = await getAllPlansByWorkoutNumber(finalPlan.workout_number);
 
     for (const oldPlan of oldPlans) {
-      /*
-         防止误删刚刚创建的新计划
-      */
-
       if (String(oldPlan.id) === String(newPlanId)) {
         continue;
       }
@@ -2030,10 +2652,7 @@ async function importAITrainingPlan() {
     }
 
     /* ======================================================
-       6.6 最终确认：
-
-       同一个workout_number
-       现在只能保留新计划
+       6.6 最终确认
     ====================================================== */
 
     const remainingPlans = await getAllPlansByWorkoutNumber(
@@ -2099,17 +2718,7 @@ async function importAITrainingPlan() {
     console.error("AI训练计划导入失败：", error);
 
     /* ======================================================
-       如果新计划已经创建，
-
-       但后续动作写入或验证失败，
-
-       删除这个新计划。
-
-       这样可以保证：
-
-       旧计划还在
-       +
-       新失败计划被清理
+       清理失败的新计划
     ====================================================== */
 
     if (newPlanId) {
@@ -2131,4 +2740,73 @@ async function importAITrainingPlan() {
         "原有训练计划没有主动删除。",
     );
   }
+}
+
+/* =========================================================
+   获取最近 7 天其它运动 + 每日步数
+   提供给 AI 教练参考
+========================================================= */
+
+function getRecent7DayOtherExerciseAndStepsForAI() {
+  const result = [];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+
+    date.setDate(today.getDate() - i);
+
+    const dateString =
+      date.getFullYear() +
+      "-" +
+      String(date.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(date.getDate()).padStart(2, "0");
+
+    /* ================================
+       其它运动
+    ================================= */
+
+    const dayOtherActivities = Array.isArray(otherActivities)
+      ? otherActivities.filter(
+          (activity) => activity.activity_date === dateString,
+        )
+      : [];
+
+    let otherExerciseText = "无";
+
+    if (dayOtherActivities.length) {
+      otherExerciseText = dayOtherActivities
+        .map((activity) => {
+          const type = activity.activity_type || "其它运动";
+
+          const duration = Number(activity.duration_minutes) || 0;
+
+          return `${type} ${duration} 分钟`;
+        })
+        .join("、");
+    }
+
+    /* ================================
+       每日步数
+    ================================= */
+
+    const stepRecord = Array.isArray(dailySteps)
+      ? dailySteps.find((record) => record.record_date === dateString)
+      : null;
+
+    const stepsText = stepRecord
+      ? `${(Number(stepRecord.steps) || 0).toLocaleString()} 步`
+      : "无";
+
+    result.push({
+      date: dateString,
+      otherExercise: otherExerciseText,
+      steps: stepsText,
+    });
+  }
+
+  return result;
 }

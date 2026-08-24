@@ -20,6 +20,7 @@
 
 const DEFAULT_AI_SETTINGS = {
   weekly_strength_target: 3,
+  expected_duration_minutes: 30,
 
   goals: ["腰腹收紧 / 核心稳定", "臀部塑形", "手臂", "背部"],
 
@@ -80,6 +81,13 @@ function normalizeAISettings(row) {
         return String(item || "").trim();
       })
       .filter(Boolean);
+  } else if (typeof row.ai_goals === "string") {
+    goals = row.ai_goals
+      .split(/[、,，\n]/)
+      .map(function (item) {
+        return item.trim();
+      })
+      .filter(Boolean);
   }
 
   if (!goals.length) {
@@ -96,12 +104,20 @@ function normalizeAISettings(row) {
     weeklyTarget = DEFAULT_AI_SETTINGS.weekly_strength_target;
   }
 
+  let expectedDuration = Number(row.expected_duration_minutes);
+
+  if (!Number.isFinite(expectedDuration) || expectedDuration <= 0) {
+    expectedDuration = DEFAULT_AI_SETTINGS.expected_duration_minutes;
+  }
+
   /* ========================================================
        最终设置
     ======================================================== */
 
   return {
     weekly_strength_target: weeklyTarget,
+
+    expected_duration_minutes: expectedDuration,
 
     goals,
 
@@ -135,6 +151,8 @@ function getAISettings() {
 
   return {
     weekly_strength_target: currentAISettings.weekly_strength_target,
+
+    expected_duration_minutes: currentAISettings.expected_duration_minutes,
 
     goals: [...currentAISettings.goals],
 
@@ -219,6 +237,8 @@ async function createDefaultAISettings() {
   const payload = {
     weekly_strength_target: DEFAULT_AI_SETTINGS.weekly_strength_target,
 
+    expected_duration_minutes: DEFAULT_AI_SETTINGS.expected_duration_minutes,
+
     ai_goals: DEFAULT_AI_SETTINGS.goals,
 
     ai_focus: DEFAULT_AI_SETTINGS.focus,
@@ -264,15 +284,17 @@ function populateAISettingsForm(settings) {
     weeklyTarget.value = settings.weekly_strength_target;
   }
 
-  /* ========================================================
-       AI目标复选框
-    ======================================================== */
+  const expectedDuration = document.getElementById("expectedDurationMinutes");
 
-  const goalCheckboxes = document.querySelectorAll('input[name="aiGoal"]');
+  if (expectedDuration) {
+    expectedDuration.value = settings.expected_duration_minutes;
+  }
 
-  goalCheckboxes.forEach(function (checkbox) {
-    checkbox.checked = settings.goals.includes(checkbox.value);
-  });
+  const goals = document.getElementById("aiGoals");
+
+  if (goals) {
+    goals.value = settings.goals.join("、");
+  }
 
   /* ========================================================
        AI重点关注
@@ -333,37 +355,52 @@ async function saveTrainingSettings() {
 
   if (!Number.isFinite(value) || value < 1 || value > 7) {
     alert("每周力量训练次数必须是 1～7 次。");
+    return;
+  }
 
+  const durationInput = document.getElementById("expectedDurationMinutes");
+  const expectedDuration = Number(durationInput?.value);
+
+  if (
+    !Number.isFinite(expectedDuration) ||
+    expectedDuration <= 0 ||
+    expectedDuration > 180
+  ) {
+    alert("每次期望训练时间必须是有效的分钟数。");
     return;
   }
 
   try {
-    await ensureSettingsRow();
+    const id = await ensureSettingsRow();
 
-    const updated = await supabaseRequest(
-      "user_settings?id=eq." + currentAISettings.__id,
-      {
-        method: "PATCH",
+    const updated = await supabaseRequest("user_settings?id=eq." + id, {
+      method: "PATCH",
 
-        body: {
-          weekly_strength_target: value,
-        },
+      body: {
+        weekly_strength_target: value,
+        expected_duration_minutes: expectedDuration,
       },
-    );
+    });
 
-    /*
-           更新本地缓存
-        */
+    /* ====================================================
+       更新本地缓存
+    ==================================================== */
 
     currentAISettings.weekly_strength_target = value;
+    currentAISettings.expected_duration_minutes = expectedDuration;
 
-    alert("每周训练目标已经保存。💪");
+    alert("训练设置已经保存。💪");
 
     updateSettingsStatus();
-  } catch (error) {
-    console.error("保存训练目标失败：", error);
 
-    alert("保存训练目标失败：\n\n" + (error.message || String(error)));
+    console.log("训练设置已保存到 Supabase：", {
+      weekly_strength_target: value,
+      expected_duration_minutes: expectedDuration,
+    });
+  } catch (error) {
+    console.error("保存训练设置失败：", error);
+
+    alert("保存训练设置失败：\n\n" + (error.message || String(error)));
   }
 }
 
@@ -423,14 +460,14 @@ async function saveAISettings() {
     /* ====================================================
            读取 AI目标
         ==================================================== */
+    const goalsText = document.getElementById("aiGoals")?.value.trim() || "";
 
-    const goals = [];
-
-    document
-      .querySelectorAll('input[name="aiGoal"]:checked')
-      .forEach(function (checkbox) {
-        goals.push(checkbox.value);
-      });
+    const goals = goalsText
+      .split(/[、,，\n]/)
+      .map(function (item) {
+        return item.trim();
+      })
+      .filter(Boolean);
 
     /* ====================================================
            AI重点关注
@@ -514,6 +551,10 @@ async function saveAISettings() {
       weekly_strength_target:
         currentAISettings?.weekly_strength_target ??
         DEFAULT_AI_SETTINGS.weekly_strength_target,
+
+      expected_duration_minutes:
+        currentAISettings?.expected_duration_minutes ??
+        DEFAULT_AI_SETTINGS.expected_duration_minutes,
 
       goals: [...goals],
 
@@ -600,6 +641,14 @@ function updateSettingsStatus(customMessage) {
             ${settings.weekly_strength_target} 次
 
         </div>
+
+        <div class="settings-status-item">
+
+    <strong>每次期望训练时间：</strong>
+
+    ${settings.expected_duration_minutes} 分钟
+
+</div>
 
 
         <div class="settings-status-item">

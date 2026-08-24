@@ -517,13 +517,32 @@ function updateMonthlySummary(data) {
 
   const changeHip = document.getElementById("monthlyChangeHip");
 
+  const previousAverageWeight = document.getElementById(
+    "monthlyPreviousAverageWeight",
+  );
+
+  const previousAverageWaist = document.getElementById(
+    "monthlyPreviousAverageWaist",
+  );
+
+  const previousAverageHip = document.getElementById(
+    "monthlyPreviousAverageHip",
+  );
+
+  /* =====================================================
+     检查页面元素
+  ===================================================== */
+
   if (
     !averageWeight ||
     !averageWaist ||
     !averageHip ||
     !changeWeight ||
     !changeWaist ||
-    !changeHip
+    !changeHip ||
+    !previousAverageWeight ||
+    !previousAverageWaist ||
+    !previousAverageHip
   ) {
     console.warn("⚠️ 身体数据统计元素不存在。");
 
@@ -533,14 +552,62 @@ function updateMonthlySummary(data) {
   /* =====================================================
      获取本月记录
 
-     已经按照：
+     已按照：
      早 → 晚
   ===================================================== */
 
   const list = getCurrentMonthRecords(data);
 
   /* =====================================================
+     获取当前月份
+  ===================================================== */
+
+  const now = new Date();
+
+  const currentYear = now.getFullYear();
+
+  const currentMonth = now.getMonth();
+
+  /* =====================================================
+     获取上个月
+
+     例如：
+
+     2026年8月
+     ↓
+     2026年7月
+
+     2026年1月
+     ↓
+     2025年12月
+  ===================================================== */
+
+  const previousDate = new Date(currentYear, currentMonth - 1, 1);
+
+  const previousYear = previousDate.getFullYear();
+
+  const previousMonth = previousDate.getMonth();
+
+  /* =====================================================
+     获取上个月所有身体数据
+  ===================================================== */
+
+  const previousMonthList = data.filter((item) => {
+    const date = parseMetricDate(item.record_date);
+
+    if (!date) {
+      return false;
+    }
+
+    return (
+      date.getFullYear() === previousYear && date.getMonth() === previousMonth
+    );
+  });
+
+  /* =====================================================
      本月没有任何记录
+
+     所有统计显示 —
   ===================================================== */
 
   if (!list.length) {
@@ -556,16 +623,17 @@ function updateMonthlySummary(data) {
 
     changeHip.textContent = "—";
 
+    previousAverageWeight.textContent = "—";
+
+    previousAverageWaist.textContent = "—";
+
+    previousAverageHip.textContent = "—";
+
     return;
   }
 
   /* =====================================================
      ① 本月平均
-
-     每项指标独立计算。
-
-     null / undefined / "" / 0
-     都不会参与平均。
   ===================================================== */
 
   const weightAverage = calculateAverage(list, "weight_kg");
@@ -581,31 +649,13 @@ function updateMonthlySummary(data) {
   averageHip.textContent = formatMetricNumber(hipAverage);
 
   /* =====================================================
-     ② 获取每项指标：
+     ② 获取本月：
 
-     本月第一条有效记录
+     第一条有效记录
      ↓
-     本月最新有效记录
+     最新一次有效记录
 
      每项指标独立判断。
-
-     例如：
-
-     8月1日：
-     体重 52
-     腰围 —
-     臀围 91
-
-     8月10日：
-     体重 —
-     腰围 68
-     臀围 —
-
-     那么：
-
-     体重从 52 开始
-     腰围从 68 开始
-     臀围从 91 开始
   ===================================================== */
 
   const firstWeight = getFirstValidRecord(list, "weight_kg");
@@ -621,7 +671,10 @@ function updateMonthlySummary(data) {
   const latestHip = getLatestValidRecord(list, "hip_cm");
 
   /* =====================================================
-     ③ 计算相比月初的变化
+     ③ 相比月初
+
+     = 本月最新一次有效记录
+       − 本月第一条有效记录
   ===================================================== */
 
   let weightChange = null;
@@ -643,26 +696,71 @@ function updateMonthlySummary(data) {
     hipChange = Number(latestHip.hip_cm) - Number(firstHip.hip_cm);
   }
 
-  /* =====================================================
-     ④ 更新「相比月初」
-
-     这里只修改数字。
-
-     不修改 HTML 结构。
-
-     所以：
-     .metric-summary-item
-     .metric-summary-number
-     .metric-summary-unit
-
-     都会保持不变。
-  ===================================================== */
-
   changeWeight.textContent = formatMetricChange(weightChange);
 
   changeWaist.textContent = formatMetricChange(waistChange);
 
   changeHip.textContent = formatMetricChange(hipChange);
+
+  /* =====================================================
+     ④ 计算上月平均值
+
+     每项指标独立计算。
+
+     空值 / 0 不参与平均。
+  ===================================================== */
+
+  const previousWeightAverage = calculateAverage(
+    previousMonthList,
+    "weight_kg",
+  );
+
+  const previousWaistAverage = calculateAverage(previousMonthList, "waist_cm");
+
+  const previousHipAverage = calculateAverage(previousMonthList, "hip_cm");
+
+  /* =====================================================
+     ⑤ 相比上月平均值
+
+     重要：
+
+     不是「本月平均 − 上月平均」
+
+     而是：
+
+     本月最新一次有效记录
+     −
+     上月平均值
+  ===================================================== */
+
+  let weightPreviousChange = null;
+
+  let waistPreviousChange = null;
+
+  let hipPreviousChange = null;
+
+  if (latestWeight && previousWeightAverage !== null) {
+    weightPreviousChange =
+      Number(latestWeight.weight_kg) - previousWeightAverage;
+  }
+
+  if (latestWaist && previousWaistAverage !== null) {
+    waistPreviousChange = Number(latestWaist.waist_cm) - previousWaistAverage;
+  }
+
+  if (latestHip && previousHipAverage !== null) {
+    hipPreviousChange = Number(latestHip.hip_cm) - previousHipAverage;
+  }
+
+  /* =====================================================
+     ⑥ 更新「相比上月平均值」
+  ===================================================== */
+
+  previousAverageWeight.textContent = formatMetricChange(weightPreviousChange);
+
+  previousAverageWaist.textContent = formatMetricChange(waistPreviousChange);
+
+  previousAverageHip.textContent = formatMetricChange(hipPreviousChange);
 }
 
 /* =========================================================
