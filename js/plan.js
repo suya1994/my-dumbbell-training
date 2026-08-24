@@ -785,44 +785,97 @@ async function deleteCurrentTrainingPlan() {
 }
 
 /* ============================================================
-   复制当前训练计划
+   复制最新训练计划
+
+   核心规则：
+
+   1. 不看“当前应该训练哪一次”
+   2. 直接寻找 training_plans 中最新的一次训练计划
+   3. 将最新计划完整复制
+   4. 新计划编号 = 最新计划编号 + 1
+
+   例如：
+
+   第8次已完成
+   第9次尚未生成
+
+   点击“复制此次训练计划”：
+
+   第8次 → 第9次
+
+   如果：
+
+   第8次已完成
+   第9次 AI计划已经存在
+
+   点击：
+
+   第9次 → 第10次
 ============================================================ */
 
 async function copyLastTrainingPlan() {
   try {
-    const currentNumber = await getCurrentWorkoutNumber();
-
     /* =====================================================
-       查找当前训练计划
+       ① 查找数据库中最新的训练计划
+
+       注意：
+
+       这里不能使用 getCurrentWorkoutNumber()。
+
+       getCurrentWorkoutNumber() 得到的是：
+
+       最近完成训练 + 1
+
+       而我们需要的是：
+
+       training_plans 中最新的一次计划。
     ===================================================== */
 
-    const plans = await supabaseRequest(
+    const latestPlans = await supabaseRequest(
       "training_plans" +
         "?select=*" +
-        "&workout_number=eq." +
-        encodeURIComponent(currentNumber) +
+        "&order=workout_number.desc" +
         "&limit=1",
     );
 
-    if (!plans || !plans.length) {
-      alert(
-        `目前没有第${currentNumber}次训练计划，\n\n` +
-          `请先生成第${currentNumber}次训练计划。`,
-      );
+    /* =====================================================
+       没有任何训练计划
+    ===================================================== */
+
+    if (!latestPlans || !latestPlans.length) {
+      alert("目前还没有任何训练计划。\n\n" + "请先让 AI 生成第一次训练计划。");
 
       return;
     }
 
-    const sourcePlan = plans[0];
+    const sourcePlan = latestPlans[0];
+
+    const sourceWorkoutNumber = Number(sourcePlan.workout_number);
+
+    if (!Number.isFinite(sourceWorkoutNumber)) {
+      throw new Error("最新训练计划的 workout_number 无效。");
+    }
 
     /* =====================================================
-       新训练编号
+       ② 新训练编号
+
+       最新计划 + 1
+
+       例如：
+
+       第8次 → 第9次
+       第9次 → 第10次
     ===================================================== */
 
-    const newWorkoutNumber = currentNumber + 1;
+    const newWorkoutNumber = sourceWorkoutNumber + 1;
 
     /* =====================================================
-       检查是否已经存在
+       ③ 检查新编号是否已经存在
+
+       正常情况下不应该存在。
+
+       但如果数据库出现重复或并发操作，
+       这里可以防止重复创建。
     ===================================================== */
 
     const existingPlans = await supabaseRequest(
@@ -840,7 +893,33 @@ async function copyLastTrainingPlan() {
     }
 
     /* =====================================================
-       创建新的训练计划
+       ④ 读取最新训练计划的动作
+
+       先读取，确认原计划确实有动作，
+       再创建新的训练计划。
+
+       避免产生一个空的训练计划。
+    ===================================================== */
+
+    const sourceExercises = await supabaseRequest(
+      "training_plan_exercises" +
+        "?select=*" +
+        "&plan_id=eq." +
+        encodeURIComponent(sourcePlan.id) +
+        "&order=exercise_order.asc",
+    );
+
+    if (!Array.isArray(sourceExercises) || !sourceExercises.length) {
+      alert(
+        `第${sourceWorkoutNumber}次训练计划没有训练动作。\n\n` +
+          `无法复制空训练计划。`,
+      );
+
+      return;
+    }
+
+    /* =====================================================
+       ⑤ 创建新的训练计划
     ===================================================== */
 
     const created = await supabaseRequest("training_plans", {
@@ -868,19 +947,17 @@ async function copyLastTrainingPlan() {
     const newPlanId = created[0].id;
 
     /* =====================================================
-       读取原训练动作
-    ===================================================== */
+       ⑥ 复制所有训练动作
 
-    const sourceExercises = await supabaseRequest(
-      "training_plan_exercises" +
-        "?select=*" +
-        "&plan_id=eq." +
-        encodeURIComponent(sourcePlan.id) +
-        "&order=exercise_order.asc",
-    );
+       完整复制：
 
-    /* =====================================================
-       复制动作
+       - 动作顺序
+       - 动作名称
+       - 器械
+       - 重量
+       - 次数
+       - 组数
+       - 动作备注
     ===================================================== */
 
     for (let i = 0; i < sourceExercises.length; i++) {
@@ -913,25 +990,39 @@ async function copyLastTrainingPlan() {
     }
 
     /* =====================================================
-       成功提示
+       ⑦ 成功提示
     ===================================================== */
 
     alert(
       `已经成功复制！💪\n\n` +
-        `第${currentNumber}次训练计划` +
+        `第${sourceWorkoutNumber}次训练计划` +
         ` → 第${newWorkoutNumber}次训练计划\n\n` +
-        `当前首页仍然显示第${currentNumber}次训练，` +
-        `完成后才会进入第${newWorkoutNumber}次。`,
+        `首页现在可以开始第${newWorkoutNumber}次训练。`,
     );
 
     /* =====================================================
-       刷新当前训练
+       ⑧ 重新读取首页训练计划
+
+       如果源计划已经完成：
+
+       第8次已完成
+       ↓
+       新建第9次
+       ↓
+       getCurrentWorkoutNumber()
+       ↓
+       第9次
+       ↓
+       首页显示第9次
     ===================================================== */
 
     await loadCurrentPlan();
 
     if (typeof setStatus === "function") {
-      setStatus("☁️ 已复制下一次训练计划", "ok");
+      setStatus(
+        `☁️ 已复制第${sourceWorkoutNumber}次训练计划 → 第${newWorkoutNumber}次`,
+        "ok",
+      );
     }
   } catch (error) {
     console.error("复制训练计划失败：", error);

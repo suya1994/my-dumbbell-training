@@ -55,8 +55,7 @@ body {
   margin: 0 auto;
 
   padding:
-    18px 16px
-    calc(30px + env(safe-area-inset-bottom));
+    18px 16px calc(30px + env(safe-area-inset-bottom));
 }
 
 
@@ -1047,7 +1046,7 @@ body {
 }
 
 
-.chart-block + .chart-block {
+.chart-block+.chart-block {
   padding-top: 20px;
 
   border-top: 1px solid #eee;
@@ -1068,19 +1067,24 @@ body {
 */
 
 .bottom-nav {
+
   position: fixed;
 
   z-index: 1000;
 
-  left: 50%;
+  left: 0;
+
+  right: 0;
 
   bottom: 0;
-
-  transform: translateX(-50%);
 
   width: 100%;
 
   max-width: 680px;
+
+  margin-left: auto;
+
+  margin-right: auto;
 
   display: grid;
 
@@ -1090,8 +1094,7 @@ body {
   align-items: stretch;
 
   padding:
-    6px 8px
-    calc(6px + env(safe-area-inset-bottom));
+    6px 8px calc(6px + env(safe-area-inset-bottom));
 
   background:
     rgba(255, 255, 255, .96);
@@ -1273,17 +1276,14 @@ body {
      保持并排
   */
 
-  .container:has(#trainingPlanActions:not(.hidden))
-    #copyPlanStatus,
-  .container:has(#trainingPlanActions:not(.hidden))
-    #trainingPlanActions {
+  .container:has(#trainingPlanActions:not(.hidden)) #copyPlanStatus,
+  .container:has(#trainingPlanActions:not(.hidden)) #trainingPlanActions {
 
     width: calc(50% - 4px);
   }
 
 
-  .container:has(#trainingPlanActions:not(.hidden))
-    #copyPlanStatus {
+  .container:has(#trainingPlanActions:not(.hidden)) #copyPlanStatus {
 
     margin-right: 8px;
   }
@@ -1357,6 +1357,20 @@ body {
   */
 
   .bottom-nav {
+    left: 0;
+
+    right: 0;
+
+    width: 100%;
+
+    max-width: none;
+
+    margin-left: 0;
+
+    margin-right: 0;
+
+    transform: none;
+
     padding-left: 5px;
 
     padding-right: 5px;
