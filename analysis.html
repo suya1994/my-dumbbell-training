@@ -12,166 +12,9 @@
     <title>训练统计 - 我的私人哑铃训练</title>
 
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/analysis.css">
 
-    <style>
-        /* =====================================================
-             统计页面顶部
-          ===================================================== */
 
-        .page-header {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 12px;
-
-            margin-bottom: 16px;
-
-        }
-
-
-        .back-btn {
-
-            flex-shrink: 0;
-
-            width: 42px;
-
-            height: 42px;
-
-            border: none;
-
-            border-radius: 12px;
-
-            background: #ffffff;
-
-            font-size: 20px;
-
-            cursor: pointer;
-
-            box-shadow:
-                0 2px 8px rgba(0, 0, 0, 0.08);
-
-            transition:
-                transform 0.15s ease,
-                box-shadow 0.15s ease;
-
-        }
-
-
-        .back-btn:active {
-
-            transform: scale(0.94);
-
-        }
-
-
-        .page-title {
-
-            flex: 1;
-
-        }
-
-
-        .page-title h1 {
-
-            margin: 0;
-
-            font-size: 22px;
-
-        }
-
-
-        .page-title p {
-
-            margin: 5px 0 0;
-
-        }
-
-
-        /* =====================================================
-             页面内部导航
-          ===================================================== */
-
-        .analysis-nav {
-
-            display: grid;
-
-            grid-template-columns: repeat(3, 1fr);
-
-            gap: 8px;
-
-            margin-bottom: 16px;
-
-        }
-
-
-        .analysis-nav button {
-
-            border: none;
-
-            border-radius: 10px;
-
-            padding: 11px 6px;
-
-            background: #ffffff;
-
-            font-size: 14px;
-
-            cursor: pointer;
-
-            box-shadow:
-                0 2px 8px rgba(0, 0, 0, 0.05);
-
-        }
-
-
-        .analysis-nav button.active {
-
-            font-weight: 600;
-
-        }
-
-
-        /* =====================================================
-             分析页面 section
-          ===================================================== */
-
-        .analysis-section {
-
-            display: block;
-
-        }
-
-
-        .analysis-section.hidden {
-
-            display: none;
-
-        }
-
-
-        /* =====================================================
-             手机端
-          ===================================================== */
-
-        @media (max-width: 480px) {
-
-            .page-title h1 {
-
-                font-size: 20px;
-
-            }
-
-
-            .analysis-nav button {
-
-                font-size: 13px;
-
-            }
-
-        }
-    </style>
 
 </head>
 
@@ -187,14 +30,6 @@
           ====================================================== -->
 
         <div class="page-header">
-
-
-            <button type="button" class="back-btn" onclick="window.location.href='index.html'" aria-label="返回首页"
-                title="返回首页">
-
-                ←
-
-            </button>
 
 
             <div class="page-title">
@@ -895,6 +730,65 @@
 
         </section>
 
+        <!-- =====================================================
+底部主导航
+====================================================== -->
+
+        <nav class="bottom-nav">
+
+            <a href="index.html" class="bottom-nav-item">
+
+                <span class="bottom-nav-icon">
+                    🏠
+                </span>
+
+                <span class="bottom-nav-label">
+                    首页
+                </span>
+
+            </a>
+
+
+            <a href="metrics.html" class="bottom-nav-item">
+
+                <span class="bottom-nav-icon">
+                    📏
+                </span>
+
+                <span class="bottom-nav-label">
+                    身体
+                </span>
+
+            </a>
+
+
+            <a href="analysis.html" class="bottom-nav-item active">
+
+                <span class="bottom-nav-icon">
+                    📊
+                </span>
+
+                <span class="bottom-nav-label">
+                    统计
+                </span>
+
+            </a>
+
+
+            <a href="history.html" class="bottom-nav-item">
+
+                <span class="bottom-nav-icon">
+                    📚
+                </span>
+
+                <span class="bottom-nav-label">
+                    历史
+                </span>
+
+            </a>
+
+        </nav>
+
 
 
         <!-- =====================================================
@@ -1026,32 +920,6 @@
         }
 
 
-        /* =====================================================
-           页面初始化
-        ===================================================== */
-
-        document.addEventListener("DOMContentLoaded", function () {
-
-            /*
-             * 默认显示每周
-             */
-
-            const weeklyButton =
-                document.querySelector(".analysis-nav button");
-
-            if (typeof updateWeeklyCharts === "function") {
-
-                updateWeeklyCharts();
-
-            }
-
-            if (weeklyButton) {
-
-                weeklyButton.classList.add("active");
-
-            }
-
-        });
 
     </script>
 

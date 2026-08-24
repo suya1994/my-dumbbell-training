@@ -13,165 +13,8 @@
 
     <link rel="stylesheet" href="css/style.css">
 
+    <link rel="stylesheet" href="css/history.css">
 
-    <style>
-        /* =====================================================
-           历史页面顶部
-           与 analysis.html 完全统一
-        ===================================================== */
-
-        .page-header {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 12px;
-
-            margin-bottom: 16px;
-
-        }
-
-
-        .back-btn {
-
-            flex-shrink: 0;
-
-            width: 42px;
-
-            height: 42px;
-
-            border: none;
-
-            border-radius: 12px;
-
-            background: #ffffff;
-
-            font-size: 20px;
-
-            cursor: pointer;
-
-            box-shadow:
-                0 2px 8px rgba(0, 0, 0, 0.08);
-
-            transition:
-                transform 0.15s ease,
-                box-shadow 0.15s ease;
-
-        }
-
-
-        .back-btn:active {
-
-            transform: scale(0.94);
-
-        }
-
-
-        .page-title {
-
-            flex: 1;
-
-        }
-
-
-        .page-title h1 {
-
-            margin: 0;
-
-            font-size: 22px;
-
-        }
-
-
-        .page-title p {
-
-            margin: 5px 0 0;
-
-        }
-
-
-        /* =====================================================
-           历史分类导航
-        ===================================================== */
-
-        .history-nav {
-
-            display: grid;
-
-            grid-template-columns: repeat(3, 1fr);
-
-            gap: 8px;
-
-            margin-bottom: 16px;
-
-        }
-
-
-        .history-nav button {
-
-            border: none;
-
-            border-radius: 10px;
-
-            padding: 11px 6px;
-
-            background: #ffffff;
-
-            font-size: 14px;
-
-            cursor: pointer;
-
-            box-shadow:
-                0 2px 8px rgba(0, 0, 0, 0.05);
-
-            font-family: inherit;
-
-        }
-
-
-        .history-nav button.active {
-
-            font-weight: 600;
-
-        }
-
-
-        .history-section {
-
-            display: block;
-
-        }
-
-
-        .history-section.hidden {
-
-            display: none;
-
-        }
-
-
-        /* =====================================================
-           手机端
-        ===================================================== */
-
-        @media (max-width: 480px) {
-
-            .page-title h1 {
-
-                font-size: 20px;
-
-            }
-
-
-            .history-nav button {
-
-                font-size: 13px;
-
-            }
-
-        }
-    </style>
 
 </head>
 
@@ -187,14 +30,6 @@
         ====================================================== -->
 
         <div class="page-header">
-
-
-            <button type="button" class="back-btn" onclick="window.location.href='index.html'" aria-label="返回首页"
-                title="返回首页">
-
-                ←
-
-            </button>
 
 
             <div class="page-title">
@@ -346,14 +181,95 @@
 
 
         <!-- =====================================================
-             页面底部
-        ====================================================== -->
+     底部主导航
+     与首页保持完全一致
+====================================================== -->
+
+        <nav class="bottom-nav">
+
+
+            <!-- ================================
+         首页
+    ================================= -->
+
+            <a href="index.html" class="bottom-nav-item">
+
+                <span class="bottom-nav-icon">
+                    🏠
+                </span>
+
+                <span class="bottom-nav-label">
+                    首页
+                </span>
+
+            </a>
+
+
+            <!-- ================================
+         身体数据
+    ================================= -->
+
+            <a href="metrics.html" class="bottom-nav-item">
+
+                <span class="bottom-nav-icon">
+                    📏
+                </span>
+
+                <span class="bottom-nav-label">
+                    身体
+                </span>
+
+            </a>
+
+
+            <!-- ================================
+         训练统计
+    ================================= -->
+
+            <a href="analysis.html" class="bottom-nav-item">
+
+                <span class="bottom-nav-icon">
+                    📊
+                </span>
+
+                <span class="bottom-nav-label">
+                    统计
+                </span>
+
+            </a>
+
+
+            <!-- ================================
+         历史记录
+    ================================= -->
+
+            <a href="history.html" class="bottom-nav-item active">
+
+                <span class="bottom-nav-icon">
+                    📚
+                </span>
+
+                <span class="bottom-nav-label">
+                    历史
+                </span>
+
+            </a>
+
+
+        </nav>
+
+
+        <!-- =====================================================
+     页面底部
+====================================================== -->
 
         <div class="footer">
 
             私人哑铃增肌 / 塑形训练系统
 
         </div>
+
+
 
 
     </div>

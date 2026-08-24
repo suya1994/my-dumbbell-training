@@ -1,0 +1,162 @@
+/* =====================================================
+   history.css
+   历史记录页面专用样式
+===================================================== */
+
+
+/* =====================================================
+   历史页面顶部
+   与 analysis.html / metrics.html 保持一致
+===================================================== */
+
+.page-header {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 16px;
+
+}
+
+
+.back-btn {
+
+    flex-shrink: 0;
+
+    width: 42px;
+
+    height: 42px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    font-size: 20px;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.08);
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+
+}
+
+
+.back-btn:active {
+
+    transform: scale(0.94);
+
+}
+
+
+.page-title {
+
+    flex: 1;
+
+}
+
+
+.page-title h1 {
+
+    margin: 0;
+
+    font-size: 22px;
+
+}
+
+
+.page-title p {
+
+    margin: 5px 0 0;
+
+}
+
+
+/* =====================================================
+   历史分类导航
+===================================================== */
+
+.history-nav {
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 8px;
+
+    margin-bottom: 16px;
+
+}
+
+
+.history-nav button {
+
+    border: none;
+
+    border-radius: 10px;
+
+    padding: 11px 6px;
+
+    background: #ffffff;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.05);
+
+    font-family: inherit;
+
+}
+
+
+.history-nav button.active {
+
+    font-weight: 600;
+
+}
+
+
+.history-section {
+
+    display: block;
+
+}
+
+
+.history-section.hidden {
+
+    display: none;
+
+}
+
+
+/* =====================================================
+   手机端
+===================================================== */
+
+@media (max-width: 480px) {
+
+    .page-title h1 {
+
+        font-size: 20px;
+
+    }
+
+
+    .history-nav button {
+
+        font-size: 13px;
+
+    }
+
+}

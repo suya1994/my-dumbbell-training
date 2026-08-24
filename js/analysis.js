@@ -45,7 +45,7 @@ let analysisDailySteps = [];
    不作为正常情况下的实际设置。
 ========================================================= */
 
-let analysisWeeklyStrengthTarget = 3;
+let analysisWeeklyStrengthTarget = 0;
 
 /* =========================================================
    日期工具
@@ -70,7 +70,20 @@ function parseLocalDate(dateString) {
     return null;
   }
 
-  const parts = String(dateString).split("-");
+  /*
+     Supabase 可能返回：
+
+     2026-08-24
+     或
+     2026-08-24T00:00:00+00:00
+
+     这里只取前 10 位 YYYY-MM-DD，
+     避免时间部分影响日期判断。
+  */
+
+  const datePart = String(dateString).slice(0, 10);
+
+  const parts = datePart.split("-");
 
   if (parts.length !== 3) {
     return null;
@@ -90,7 +103,19 @@ function parseLocalDate(dateString) {
     return null;
   }
 
-  return new Date(year, month - 1, day);
+  const date = new Date(year, month - 1, day);
+
+  /*
+     防止非法日期
+  */
+
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+
+  date.setHours(0, 0, 0, 0);
+
+  return date;
 }
 
 /* =========================================================
@@ -265,16 +290,6 @@ async function loadAnalysisData() {
     updateMonthlyOverview();
 
     updateYearSelector();
-
-    updateYearlyCharts();
-
-    /*
-       默认显示每周
-    */
-
-    if (typeof updateWeeklyCharts === "function") {
-      updateWeeklyCharts();
-    }
 
     console.log("✅ 统计页面数据更新完成");
   } catch (error) {
@@ -1260,21 +1275,16 @@ function updateYearlyCharts() {
    页面初始化
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded", function () {
-  /*
-       analysis.html 打开后：
+document.addEventListener("DOMContentLoaded", async function () {
+  const weeklyButton = document.querySelector(".analysis-nav button");
 
-       1. 读取 user_settings
-          → 获取最新每周训练目标
+  if (weeklyButton) {
+    weeklyButton.classList.add("active");
+  }
 
-       2. 读取 workouts
+  await loadAnalysisData();
 
-       3. 读取其它运动
+  updateWeeklyOverview();
 
-       4. 读取步数
-
-       5. 全部完成后更新统计
-    */
-
-  loadAnalysisData();
+  updateWeeklyCharts();
 });

@@ -40,6 +40,19 @@
 
                     </div>
 
+
+                    <!-- ================================
+                    设置
+                    首页右上角
+                    ================================= -->
+
+                    <button type="button" class="header-settings" onclick="window.location.href='settings.html'"
+                         aria-label="设置" title="设置">
+
+                         ⚙️
+
+                    </button>
+
                </div>
 
           </div>
@@ -64,7 +77,7 @@
 
           <div id="copyPlanStatus" class="status" onclick="copyLastTrainingPlan()" style="cursor:pointer;">
 
-               📋 复制上次训练计划
+               📋 复制此次训练计划
 
           </div>
 
@@ -72,12 +85,13 @@
 
           <!-- =====================================================
           删除当前训练计划
-          
+
           UI 放在 index.html
+
           plan.js 只负责：
           - 判断是否应该显示
           - 执行删除
-          
+
           默认隐藏。
           有当前训练计划时由 plan.js 显示。
           ====================================================== -->
@@ -90,50 +104,6 @@
                     🗑 删除这次训练计划
 
                </button>
-
-          </div>
-
-
-
-          <!-- =====================================================
-          独立页面快捷入口
-          ====================================================== -->
-
-          <div class="page-shortcuts">
-
-
-               <!-- ================================
-               训练统计
-               ================================= -->
-
-               <a href="analysis.html" class="page-shortcut">
-
-                    📊 训练统计
-
-               </a>
-
-
-               <!-- ================================
-               历史记录
-               ================================= -->
-
-               <a href="history.html" class="page-shortcut">
-
-                    📚 历史记录
-
-               </a>
-
-
-               <!-- ================================
-               设置
-               ================================= -->
-
-               <a href="settings.html" class="page-shortcut">
-
-                    ⚙️ 设置
-
-               </a>
-
 
           </div>
 
@@ -169,17 +139,6 @@
 
 
                <!-- ================================
-               身体数据
-               ================================= -->
-
-               <button class="tab" onclick="showTab('metricsTab',this)">
-
-                    身体数据
-
-               </button>
-
-
-               <!-- ================================
                AI教练
                ================================= -->
 
@@ -188,7 +147,6 @@
                     🤖 AI教练
 
                </button>
-
 
           </div>
 
@@ -288,6 +246,7 @@
 
                     <input id="otherActivityDate" class="note" type="date">
 
+
                     <label>
                          运动类型
                     </label>
@@ -308,12 +267,14 @@
 
                     </select>
 
+
                     <label>
                          运动时间（分钟）
                     </label>
 
                     <input id="otherActivityDuration" class="note" type="number" min="1" max="1440" step="1"
                          placeholder="例如 30">
+
 
                     <br>
                     <br>
@@ -353,12 +314,14 @@
 
                     <input id="dailyStepsDate" class="note" type="date">
 
+
                     <label>
                          今日步数
                     </label>
 
                     <input id="dailyStepsInput" class="note" type="number" min="0" max="200000" step="1"
                          placeholder="例如 8000">
+
 
                     <br>
                     <br>
@@ -370,159 +333,6 @@
                     </button>
 
                </div>
-
-          </section>
-
-
-
-          <!-- =====================================================
-          身体数据
-          ====================================================== -->
-
-          <section id="metricsTab" class="hidden">
-
-
-               <!-- ================================
-               身体数据录入
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         📏 身体数据
-                    </h2>
-
-                    <div class="muted">
-
-                         建议每周固定一天，
-                         早晨空腹记录，方便观察真实变化。
-
-                    </div>
-
-                    <br>
-
-                    <label>
-                         体重 kg
-                    </label>
-
-                    <input id="metricWeight" class="note" type="number" step="0.1" min="0" placeholder="例如 52.0">
-
-                    <label>
-                         腰围 cm
-                    </label>
-
-                    <input id="metricWaist" class="note" type="number" step="0.1" min="0" placeholder="例如 68.0">
-
-                    <label>
-                         臀围 cm
-                    </label>
-
-                    <input id="metricHip" class="note" type="number" step="0.1" min="0" placeholder="例如 90.0">
-
-                    <label>
-                         身体备注
-                    </label>
-
-                    <textarea id="metricNote" class="note" placeholder="例如：腰腹感觉更紧实，臀部训练后有酸胀感……"></textarea>
-
-                    <br>
-                    <br>
-
-                    <button class="primary-btn" onclick="saveBodyMetrics()">
-
-                         保存今天身体数据
-
-                    </button>
-
-               </div>
-
-
-
-               <!-- ================================
-               最近变化
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         📈 最近变化
-                    </h2>
-
-                    <div id="metricsTrend" class="analysis">
-
-                         记录身体数据后，
-                         这里会显示你的变化趋势。
-
-                    </div>
-
-               </div>
-
-
-
-               <!-- ================================
-               本月变化
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         📅 本月变化
-                    </h2>
-
-                    <div id="metricsMonthly" class="analysis">
-
-                         本月身体数据积累后，
-                         这里会显示月度变化。
-
-                    </div>
-
-               </div>
-
-
-
-               <!-- ================================
-               长期变化
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         📊 长期变化
-                    </h2>
-
-                    <div id="metricsLongTerm" class="analysis">
-
-                         身体数据积累后，
-                         这里会显示长期变化。
-
-                    </div>
-
-               </div>
-
-
-
-               <!-- ================================
-               身体数据历史
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         📚 最近身体记录
-                    </h2>
-
-                    <div id="metricsHistory">
-
-                         <div class="muted">
-
-                              正在读取身体数据……
-
-                         </div>
-
-                    </div>
-
-               </div>
-
 
           </section>
 
@@ -589,6 +399,7 @@
 
                          <br>
                          <br>
+
 
                          <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer;">
 
@@ -703,6 +514,7 @@
 
                     <div class="analysis">
 
+
                          <strong>
                               ① 完成训练
                          </strong>
@@ -810,22 +622,99 @@
 
                </div>
 
-
           </section>
 
 
 
+     </div>
 
-          <!-- =====================================================
-          底部
-          ====================================================== -->
 
-          <div class="footer">
 
-               私人哑铃增肌 / 塑形训练系统
+     <!-- =====================================================
+     底部主导航
+     ====================================================== -->
 
-          </div>
+     <nav class="bottom-nav">
 
+
+          <!-- ================================
+          首页
+          ================================= -->
+
+          <a href="index.html" class="bottom-nav-item active">
+
+               <span class="bottom-nav-icon">
+                    🏠
+               </span>
+
+               <span class="bottom-nav-label">
+                    首页
+               </span>
+
+          </a>
+
+
+          <!-- ================================
+          身体数据
+          ================================= -->
+
+          <a href="metrics.html" class="bottom-nav-item">
+
+               <span class="bottom-nav-icon">
+                    📏
+               </span>
+
+               <span class="bottom-nav-label">
+                    身体
+               </span>
+
+          </a>
+
+
+          <!-- ================================
+          训练统计
+          ================================= -->
+
+          <a href="analysis.html" class="bottom-nav-item">
+
+               <span class="bottom-nav-icon">
+                    📊
+               </span>
+
+               <span class="bottom-nav-label">
+                    统计
+               </span>
+
+          </a>
+
+
+          <!-- ================================
+          历史记录
+          ================================= -->
+
+          <a href="history.html" class="bottom-nav-item">
+
+               <span class="bottom-nav-icon">
+                    📚
+               </span>
+
+               <span class="bottom-nav-label">
+                    历史
+               </span>
+
+          </a>
+
+     </nav>
+
+
+
+     <!-- =====================================================
+     底部
+     ====================================================== -->
+
+     <div class="footer">
+
+          私人哑铃增肌 / 塑形训练系统
 
      </div>
 
@@ -843,7 +732,6 @@
 
      <script src="js/workout.js"></script>
 
-     <script src="js/metrics.js"></script>
 
      <!-- 图表 -->
 

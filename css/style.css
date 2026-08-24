@@ -1,15 +1,26 @@
-/* v1.4
+/* v1.5
    私人哑铃训练系统
    全局样式
+
+   本版本：
+   ① 首页顶部简化
+   ② 复制 / 删除训练计划并排
+   ③ 底部主导航固定
+   ④ 首页 / 身体 / 统计 / 历史四大入口
 */
 
 
-/* ================================
+/* =========================================================
    全局
-================================ */
+========================================================= */
 
 * {
   box-sizing: border-box;
+}
+
+
+html {
+  min-height: 100%;
 }
 
 
@@ -17,6 +28,7 @@ body {
   margin: 0;
 
   background: #f5f5f5;
+
   color: #222;
 
   font-family:
@@ -26,28 +38,36 @@ body {
     "PingFang SC",
     "Microsoft YaHei",
     sans-serif;
+
+  padding-bottom: calc(82px + env(safe-area-inset-bottom));
 }
 
+
+/* =========================================================
+   主容器
+========================================================= */
 
 .container {
+  width: 100%;
+
   max-width: 680px;
-  margin: auto;
-  padding: 18px 16px 45px;
+
+  margin: 0 auto;
+
+  padding:
+    18px 16px
+    calc(30px + env(safe-area-inset-bottom));
 }
 
 
-/* ================================
+/* =========================================================
    顶部
-================================ */
+========================================================= */
 
 .header {
-  padding: 10px 4px 18px;
+  padding: 8px 4px 18px;
 }
 
-
-/* ================================
-   首页顶部标题 + 设置按钮
-================================ */
 
 .header-top {
   display: flex;
@@ -71,6 +91,10 @@ body {
   margin: 0 0 6px;
 
   font-size: 26px;
+
+  line-height: 1.3;
+
+  font-weight: 700;
 }
 
 
@@ -80,122 +104,74 @@ body {
   color: #777;
 
   font-size: 14px;
+
+  line-height: 1.5;
 }
 
 
-/* ================================
-   设置按钮
-================================ */
+/* =========================================================
+   首页右上角设置按钮
+========================================================= */
 
-.settings-btn {
+.header-settings {
   flex-shrink: 0;
 
-  width: 42px;
-
-  height: 42px;
-
-  border: none;
-
-  border-radius: 12px;
-
-  background: #ffffff;
-
-  font-size: 20px;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.08);
-
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-
-.settings-btn:active {
-  transform: scale(.94);
-}
-
-
-/* ================================
-   独立页面快捷入口
-================================ */
-
-.page-shortcuts {
-  display: grid;
-
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-
-  gap: 12px;
-
-  margin: 14px 0;
-}
-
-
-.page-shortcut {
   display: flex;
 
   align-items: center;
 
   justify-content: center;
 
-  min-height: 48px;
+  width: 42px;
 
-  padding: 10px 8px;
+  height: 42px;
 
-  border: none;
+  padding: 0;
 
-  border-radius: 12px;
+  border: 0;
 
-  background: #ffffff;
+  border-radius: 13px;
 
-  color: inherit;
+  background: #fff;
 
-  text-decoration: none;
+  color: #333;
 
-  font-size: 14px;
-
-  font-weight: 600;
-
-  text-align: center;
-
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.06);
+  font-size: 20px;
 
   cursor: pointer;
 
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-
-.page-shortcut:active {
-  transform: scale(.97);
-}
-
-
-.page-shortcut:hover {
   box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.09);
+    0 2px 8px rgba(0, 0, 0, .07);
+
+  transition:
+    transform .15s ease,
+    background .15s ease;
 }
 
 
-/* ================================
-   状态
-================================ */
+.header-settings:active {
+  transform: scale(.94);
+
+  background: #eee;
+}
+
+
+/* =========================================================
+   数据库连接状态
+========================================================= */
 
 .status {
-  background: white;
+  background: #fff;
 
   border-radius: 12px;
 
   padding: 10px 13px;
 
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 
   font-size: 13px;
+
+  line-height: 1.5;
 
   color: #777;
 }
@@ -211,53 +187,233 @@ body {
 }
 
 
-/* ================================
-   Tab
-================================ */
+/* =========================================================
+   复制 / 删除训练计划
+========================================================= */
+
+/*
+   默认：
+
+   复制按钮没有删除按钮时
+   → 占满整行
+*/
+
+#copyPlanStatus {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-height: 46px;
+
+  margin-bottom: 12px;
+
+  padding: 10px 12px;
+
+  text-align: center;
+
+  font-weight: 600;
+
+  color: #333;
+
+  cursor: pointer;
+
+  transition:
+    transform .12s ease,
+    background .15s ease;
+}
+
+
+#copyPlanStatus:active {
+  transform: scale(.98);
+
+  background: #eee;
+}
+
+
+/*
+   删除按钮容器
+
+   默认隐藏。
+
+   plan.js 去掉 hidden 后才显示。
+*/
+
+#trainingPlanActions {
+  display: flex;
+
+  align-items: stretch;
+
+  justify-content: center;
+
+  min-height: 46px;
+
+  margin-bottom: 12px;
+
+  padding: 0;
+
+  background: transparent;
+
+  box-shadow: none;
+}
+
+
+/*
+   删除按钮
+*/
+
+#deleteTrainingPlanButton {
+  width: 100%;
+
+  min-height: 46px;
+
+  padding: 10px 8px;
+
+  border: 0;
+
+  border-radius: 12px;
+
+  background: #fff;
+
+  color: #888;
+
+  font-family: inherit;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, .05);
+
+  transition:
+    background .15s ease,
+    color .15s ease,
+    transform .12s ease;
+}
+
+
+#deleteTrainingPlanButton:active {
+  transform: scale(.97);
+
+  background: #f0f0f0;
+
+  color: #a00;
+}
+
+
+/*
+   当删除按钮出现时：
+
+   复制 + 删除
+   → 两个并排
+*/
+
+.container:has(#trainingPlanActions:not(.hidden)) {
+  display: flow-root;
+}
+
+
+.container:has(#trainingPlanActions:not(.hidden)) #copyPlanStatus,
+.container:has(#trainingPlanActions:not(.hidden)) #trainingPlanActions {
+  width: calc(50% - 5px);
+
+  float: left;
+}
+
+
+.container:has(#trainingPlanActions:not(.hidden)) #copyPlanStatus {
+  margin-right: 10px;
+}
+
+
+/*
+   防止后面的内容被 float 影响
+*/
+
+.container:has(#trainingPlanActions:not(.hidden)) .tabs {
+  clear: both;
+}
+
+
+/* =========================================================
+   首页内部 Tab
+   今日 / 其它运动 / AI教练
+========================================================= */
 
 .tabs {
   display: flex;
 
-  gap: 8px;
+  width: 100%;
+
+  gap: 7px;
+
+  margin: 4px 0 16px;
 
   overflow-x: auto;
 
-  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 
 .tab {
+  flex: 1;
+
+  min-width: 0;
+
   border: 0;
 
-  background: white;
+  background: #fff;
+
+  color: #555;
 
   border-radius: 12px;
 
-  padding: 10px 15px;
+  padding: 10px 8px;
 
   font-size: 14px;
+
+  font-weight: 600;
 
   white-space: nowrap;
 
   cursor: pointer;
 
   font-family: inherit;
+
+  transition:
+    background .15s ease,
+    color .15s ease,
+    transform .12s ease;
+}
+
+
+.tab:active {
+  transform: scale(.97);
 }
 
 
 .tab.active {
   background: #222;
 
-  color: white;
+  color: #fff;
 }
 
 
-/* ================================
+/* =========================================================
    卡片
-================================ */
+========================================================= */
 
 .card {
-  background: white;
+  background: #fff;
 
   border-radius: 18px;
 
@@ -274,12 +430,14 @@ body {
   margin: 0 0 8px;
 
   font-size: 19px;
+
+  line-height: 1.4;
 }
 
 
-/* ================================
+/* =========================================================
    辅助文字
-================================ */
+========================================================= */
 
 .muted {
   color: #888;
@@ -290,9 +448,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    训练进度
-================================ */
+========================================================= */
 
 .progress {
   height: 8px;
@@ -318,9 +476,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    动作
-================================ */
+========================================================= */
 
 .exercise {
   border-top: 1px solid #eee;
@@ -339,9 +497,9 @@ body {
 
   justify-content: space-between;
 
-  gap: 12px;
-
   align-items: center;
+
+  gap: 12px;
 }
 
 
@@ -353,9 +511,9 @@ body {
 
 
 .exercise-name {
-  font-weight: 600;
-
   margin-bottom: 5px;
+
+  font-weight: 600;
 
   line-height: 1.5;
 }
@@ -370,9 +528,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    完成情况标题
-================================ */
+========================================================= */
 
 .difficulty-label {
   margin-top: 14px;
@@ -459,9 +617,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    轻松
-================================ */
+========================================================= */
 
 .difficulty-easy {
   background: #f1f8f3;
@@ -477,9 +635,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    正常
-================================ */
+========================================================= */
 
 .difficulty-normal {
   background: #f1f5fa;
@@ -495,9 +653,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    吃力
-================================ */
+========================================================= */
 
 .difficulty-hard {
   background: #fff7ed;
@@ -513,9 +671,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    未完成
-================================ */
+========================================================= */
 
 .difficulty-incomplete {
   background: #f5f5f5;
@@ -527,13 +685,13 @@ body {
 
 
 .difficulty-incomplete:hover {
-  background: #eeeeee;
+  background: #eee;
 }
 
 
-/* ================================
-   选中状态
-================================ */
+/* =========================================================
+   选中
+========================================================= */
 
 .difficulty-btn.selected {
   font-weight: 700;
@@ -545,10 +703,6 @@ body {
 }
 
 
-/* ================================
-   轻松 - 选中
-================================ */
-
 .difficulty-easy.selected {
   background: #dff0e3;
 
@@ -557,10 +711,6 @@ body {
   color: #356443;
 }
 
-
-/* ================================
-   正常 - 选中
-================================ */
 
 .difficulty-normal.selected {
   background: #dfeaf6;
@@ -571,10 +721,6 @@ body {
 }
 
 
-/* ================================
-   吃力 - 选中
-================================ */
-
 .difficulty-hard.selected {
   background: #ffead0;
 
@@ -583,10 +729,6 @@ body {
   color: #85551f;
 }
 
-
-/* ================================
-   未完成 - 选中
-================================ */
 
 .difficulty-incomplete.selected {
   background: #e5e5e5;
@@ -597,10 +739,6 @@ body {
 }
 
 
-/* ================================
-   选中状态的 ✓
-================================ */
-
 .difficulty-btn.selected::before {
   content: "✓ ";
 
@@ -608,9 +746,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    兼容旧 class
-================================ */
+========================================================= */
 
 .exercise-difficulty {
   width: 100%;
@@ -619,9 +757,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    主要按钮
-================================ */
+========================================================= */
 
 .primary-btn {
   width: 100%;
@@ -630,13 +768,15 @@ body {
 
   background: #222;
 
-  color: white;
+  color: #fff;
 
   padding: 13px;
 
   border-radius: 13px;
 
   font-size: 15px;
+
+  font-weight: 600;
 
   font-family: inherit;
 
@@ -660,9 +800,47 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
+   次要按钮
+========================================================= */
+
+.secondary-btn {
+  width: 100%;
+
+  border: 0;
+
+  background: #f1f1f1;
+
+  color: #555;
+
+  padding: 12px;
+
+  border-radius: 12px;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+  transition:
+    background .15s ease,
+    transform .12s ease;
+}
+
+
+.secondary-btn:active {
+  transform: scale(.98);
+
+  background: #e7e7e7;
+}
+
+
+/* =========================================================
    输入框
-================================ */
+========================================================= */
 
 .note {
   width: 100%;
@@ -677,9 +855,11 @@ body {
 
   font-family: inherit;
 
+  font-size: 14px;
+
   resize: vertical;
 
-  background: white;
+  background: #fff;
 }
 
 
@@ -690,9 +870,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    统计
-================================ */
+========================================================= */
 
 .stats {
   display: grid;
@@ -733,9 +913,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    分析
-================================ */
+========================================================= */
 
 .analysis {
   line-height: 1.75;
@@ -746,9 +926,9 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    历史
-================================ */
+========================================================= */
 
 .history-item {
   border-bottom: 1px solid #eee;
@@ -763,9 +943,9 @@ body {
 
 
 .history-title {
-  font-weight: 600;
-
   margin-bottom: 4px;
+
+  font-weight: 600;
 }
 
 
@@ -784,18 +964,18 @@ body {
 }
 
 
-/* ================================
+/* =========================================================
    隐藏
-================================ */
+========================================================= */
 
 .hidden {
   display: none !important;
 }
 
 
-/* ================================
+/* =========================================================
    趋势
-================================ */
+========================================================= */
 
 .trend-row {
   display: flex;
@@ -815,24 +995,9 @@ body {
 }
 
 
-/* ================================
-   底部
-================================ */
-
-.footer {
-  text-align: center;
-
-  color: #aaa;
-
-  font-size: 11px;
-
-  margin-top: 25px;
-}
-
-
-/* ================================
+/* =========================================================
    Loading
-================================ */
+========================================================= */
 
 .loading {
   text-align: center;
@@ -844,113 +1009,7 @@ body {
 
 
 /* =========================================================
-   手机端
-========================================================= */
-
-@media (max-width: 420px) {
-
-  .container {
-    padding-left: 14px;
-
-    padding-right: 14px;
-  }
-
-
-  .card {
-    padding: 16px;
-  }
-
-
-  .difficulty-buttons {
-    grid-template-columns:
-      repeat(4, minmax(0, 1fr));
-
-    gap: 5px;
-  }
-
-
-  .difficulty-btn {
-    min-height: 42px;
-
-    padding: 7px 2px;
-
-    font-size: 12px;
-
-    border-radius: 10px;
-  }
-
-
-  .page-shortcuts {
-    grid-template-columns:
-      repeat(3, minmax(0, 1fr));
-
-    gap: 8px;
-  }
-
-
-  .page-shortcut {
-    min-height: 46px;
-
-    padding: 8px 4px;
-
-    font-size: 13px;
-  }
-
-
-  .settings-btn {
-    width: 40px;
-
-    height: 40px;
-
-    font-size: 19px;
-  }
-
-}
-
-
-/* =========================================================
-   很小的手机
-========================================================= */
-
-@media (max-width: 350px) {
-
-  .difficulty-buttons {
-    grid-template-columns:
-      repeat(4, minmax(0, 1fr));
-
-    gap: 3px;
-  }
-
-
-  .difficulty-btn {
-    min-height: 40px;
-
-    padding: 6px 1px;
-
-    font-size: 11px;
-
-    border-radius: 9px;
-  }
-
-
-  .page-shortcuts {
-    gap: 5px;
-  }
-
-
-  .page-shortcut {
-    min-height: 44px;
-
-    padding: 7px 2px;
-
-    font-size: 12px;
-  }
-
-}
-
-
-/* =========================================================
-   趋势图
+   图表
 ========================================================= */
 
 .chart-block {
@@ -983,18 +1042,10 @@ body {
 }
 
 
-/* ================================
-   年度图表稍微高一点
-================================ */
-
 #trendTab .chart-container {
   height: 240px;
 }
 
-
-/* ================================
-   图表之间的分隔
-================================ */
 
 .chart-block + .chart-block {
   padding-top: 20px;
@@ -1004,10 +1055,290 @@ body {
 
 
 /* =========================================================
-   手机端图表
+   底部主导航
+========================================================= */
+
+/*
+   ★ 核心
+
+   position: fixed
+   → 永远固定在屏幕底部
+
+   不需要滑到页面最下面。
+*/
+
+.bottom-nav {
+  position: fixed;
+
+  z-index: 1000;
+
+  left: 50%;
+
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  width: 100%;
+
+  max-width: 680px;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  align-items: stretch;
+
+  padding:
+    6px 8px
+    calc(6px + env(safe-area-inset-bottom));
+
+  background:
+    rgba(255, 255, 255, .96);
+
+  border-top: 1px solid #e8e8e8;
+
+  box-shadow:
+    0 -2px 12px rgba(0, 0, 0, .06);
+
+  backdrop-filter: blur(14px);
+
+  -webkit-backdrop-filter: blur(14px);
+}
+
+
+/* =========================================================
+   底部导航项目
+========================================================= */
+
+.bottom-nav-item {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-width: 0;
+
+  min-height: 58px;
+
+  padding: 5px 4px;
+
+  border-radius: 12px;
+
+  color: #888;
+
+  text-decoration: none;
+
+  font-size: 11px;
+
+  font-weight: 500;
+
+  transition:
+    background .15s ease,
+    color .15s ease,
+    transform .12s ease;
+}
+
+
+.bottom-nav-item:active {
+  transform: scale(.95);
+}
+
+
+/* =========================================================
+   底部导航图标
+========================================================= */
+
+.bottom-nav-icon {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 30px;
+
+  height: 27px;
+
+  margin-bottom: 2px;
+
+  font-size: 21px;
+
+  line-height: 1;
+}
+
+
+/* =========================================================
+   底部导航文字
+========================================================= */
+
+.bottom-nav-label {
+  line-height: 1.2;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   当前页面
+========================================================= */
+
+.bottom-nav-item.active {
+  background: #f1f1f1;
+
+  color: #222;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   当前页面图标稍微突出
+========================================================= */
+
+.bottom-nav-item.active .bottom-nav-icon {
+  transform: scale(1.05);
+}
+
+
+/* =========================================================
+   Footer
+
+   因为底部导航已经固定，
+   Footer 不再承担导航作用。
+========================================================= */
+
+.footer {
+  text-align: center;
+
+  color: #aaa;
+
+  font-size: 11px;
+
+  margin-top: 25px;
+
+  padding-bottom: 10px;
+}
+
+
+/* =========================================================
+   手机端
 ========================================================= */
 
 @media (max-width: 420px) {
+
+  .container {
+    padding-left: 14px;
+
+    padding-right: 14px;
+
+    padding-bottom:
+      calc(28px + env(safe-area-inset-bottom));
+  }
+
+
+  .header {
+    padding-top: 6px;
+
+    padding-bottom: 15px;
+  }
+
+
+  .header-title h1 {
+    font-size: 23px;
+  }
+
+
+  .header-settings {
+    width: 40px;
+
+    height: 40px;
+
+    border-radius: 12px;
+
+    font-size: 19px;
+  }
+
+
+  .card {
+    padding: 16px;
+  }
+
+
+  /*
+     手机端复制 / 删除
+     保持并排
+  */
+
+  .container:has(#trainingPlanActions:not(.hidden))
+    #copyPlanStatus,
+  .container:has(#trainingPlanActions:not(.hidden))
+    #trainingPlanActions {
+
+    width: calc(50% - 4px);
+  }
+
+
+  .container:has(#trainingPlanActions:not(.hidden))
+    #copyPlanStatus {
+
+    margin-right: 8px;
+  }
+
+
+  #copyPlanStatus,
+  #trainingPlanActions,
+  #deleteTrainingPlanButton {
+
+    min-height: 44px;
+  }
+
+
+  /*
+     首页内部三个 Tab
+  */
+
+  .tabs {
+    gap: 6px;
+  }
+
+
+  .tab {
+    padding: 10px 6px;
+
+    font-size: 13px;
+  }
+
+
+  /*
+     难度按钮
+  */
+
+  .difficulty-buttons {
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
+
+    gap: 5px;
+  }
+
+
+  .difficulty-btn {
+    min-height: 42px;
+
+    padding: 7px 2px;
+
+    font-size: 12px;
+
+    border-radius: 10px;
+  }
+
+
+  /*
+     图表
+  */
 
   .chart-container {
     height: 210px;
@@ -1018,10 +1349,72 @@ body {
     height: 220px;
   }
 
+
+  /*
+     底部导航
+
+     4 个平均铺满
+  */
+
+  .bottom-nav {
+    padding-left: 5px;
+
+    padding-right: 5px;
+  }
+
+
+  .bottom-nav-item {
+    min-height: 56px;
+
+    border-radius: 11px;
+  }
+
+
+  .bottom-nav-icon {
+    font-size: 20px;
+  }
+
+
+  .bottom-nav-label {
+    font-size: 10px;
+  }
+
 }
 
 
+/* =========================================================
+   很小的手机
+========================================================= */
+
 @media (max-width: 350px) {
+
+  .container {
+    padding-left: 12px;
+
+    padding-right: 12px;
+  }
+
+
+  .header-title h1 {
+    font-size: 21px;
+  }
+
+
+  .difficulty-buttons {
+    gap: 3px;
+  }
+
+
+  .difficulty-btn {
+    min-height: 40px;
+
+    padding: 6px 1px;
+
+    font-size: 11px;
+
+    border-radius: 9px;
+  }
+
 
   .chart-container {
     height: 195px;
@@ -1030,6 +1423,48 @@ body {
 
   #trendTab .chart-container {
     height: 205px;
+  }
+
+
+  .bottom-nav {
+    padding-left: 3px;
+
+    padding-right: 3px;
+  }
+
+
+  .bottom-nav-item {
+    min-height: 54px;
+
+    padding-left: 2px;
+
+    padding-right: 2px;
+  }
+
+
+  .bottom-nav-icon {
+    font-size: 19px;
+  }
+
+
+  .bottom-nav-label {
+    font-size: 10px;
+  }
+
+}
+
+
+/* =========================================================
+   安全区域
+
+   iPhone 底部 Home Indicator
+========================================================= */
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+
+  .bottom-nav {
+    padding-bottom:
+      calc(6px + env(safe-area-inset-bottom));
   }
 
 }
