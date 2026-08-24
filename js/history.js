@@ -7,21 +7,37 @@
    ② 其它运动历史
    ③ 每日步数历史
 
-   本文件完全独立于：
-   app.js
-   analysis.js
-   workout.js
-   plan.js
-   metrics.js
-   ai-plan.js
-
-   唯一依赖：
-   config.js
-   api.js
-
    =========================================================
 
-   重要：
+   当前历史记录采用分页加载：
+
+   第一次：
+   → 显示 20 条
+
+   每次点击「加载更多」：
+   → 再增加 20 条
+
+   数据库实际每次读取：
+
+   limit = 21
+
+   其中：
+
+   前 20 条
+   → 真正显示
+
+   第 21 条
+   → 只用于判断是否还有更多数据
+
+   这样可以准确判断：
+
+   20 条
+   → 不显示「加载更多」
+
+   21 条以上
+   → 显示「加载更多」
+
+   =========================================================
 
    workouts 表：
 
@@ -34,6 +50,7 @@
    历史页面显示训练时间时：
 
    优先显示 actual_duration_minutes
+
    如果旧数据没有 actual_duration_minutes，
    再回退显示 duration_minutes。
 
@@ -44,24 +61,28 @@
    workout_exercise_records
    的读取
 
-   历史页面不再提供：
-
-   - 查看动作详情
-   - 查看动作完成情况
-   - 查看动作难度
-   - 查看动作组数 / 次数 / 重量
-   - 动作记录数量
-
-   删除 workouts 时：
-
-   workouts
-       ↓
-   workout_exercise_records
-
-   由数据库 ON DELETE CASCADE
-   自动删除动作记录。
+   历史页面不再读取动作记录。
 
 ================================ */
+
+/* =========================================================
+   分页设置
+========================================================= */
+
+/*
+   页面每次真正显示 20 条。
+*/
+
+const HISTORY_PAGE_SIZE = 20;
+
+/*
+   数据库每次多读取 1 条。
+
+   第 21 条只用于判断：
+   是否还有下一页。
+*/
+
+const HISTORY_FETCH_SIZE = HISTORY_PAGE_SIZE + 1;
 
 /* =========================================================
    全局数据
@@ -72,6 +93,26 @@ let historyWorkouts = [];
 let historyOtherActivities = [];
 
 let historyDailySteps = [];
+
+/* =========================================================
+   当前分页位置
+========================================================= */
+
+let historyWorkoutOffset = 0;
+
+let historyOtherActivityOffset = 0;
+
+let historyDailyStepsOffset = 0;
+
+/* =========================================================
+   是否还有更多数据
+========================================================= */
+
+let historyHasMoreWorkouts = false;
+
+let historyHasMoreOtherActivities = false;
+
+let historyHasMoreDailySteps = false;
 
 /* =========================================================
    DOM 工具
@@ -126,8 +167,11 @@ function updateHistoryToday() {
 
   todayBox.textContent = new Date().toLocaleDateString("zh-CN", {
     year: "numeric",
+
     month: "long",
+
     day: "numeric",
+
     weekday: "long",
   });
 }
@@ -161,28 +205,62 @@ function showHistorySection(sectionId, button) {
 }
 
 /* =========================================================
-   读取全部历史数据
+   创建分页查询参数
+========================================================= */
+
+function historyPaginationQuery(baseQuery, offset) {
+  return baseQuery + `&limit=${HISTORY_FETCH_SIZE}` + `&offset=${offset}`;
+}
+
+/* =========================================================
+   读取历史数据
 ========================================================= */
 
 async function loadHistoryPage() {
   console.log("📚 开始读取历史数据……");
 
   /*
-     现在只读取三类数据：
+     第一次进入页面：
 
-     ① 力量训练
-     ② 其它运动
-     ③ 每日步数
+     三种历史全部从第 0 条开始。
+  */
 
-     不再读取：
+  historyWorkoutOffset = 0;
 
-     workout_exercise_records
+  historyOtherActivityOffset = 0;
+
+  historyDailyStepsOffset = 0;
+
+  /*
+     重置数据。
+  */
+
+  historyWorkouts = [];
+
+  historyOtherActivities = [];
+
+  historyDailySteps = [];
+
+  /*
+     重置分页状态。
+  */
+
+  historyHasMoreWorkouts = false;
+
+  historyHasMoreOtherActivities = false;
+
+  historyHasMoreDailySteps = false;
+
+  /*
+     三种数据并行读取。
   */
 
   await Promise.all([
-    loadHistoryWorkouts(),
-    loadHistoryOtherActivities(),
-    loadHistoryDailySteps(),
+    loadHistoryWorkouts(true),
+
+    loadHistoryOtherActivities(true),
+
+    loadHistoryDailySteps(true),
   ]);
 
   /*
@@ -195,37 +273,99 @@ async function loadHistoryPage() {
 
   renderDailyStepsHistory();
 
-  console.log("✅ 历史页面数据读取完成");
+  console.log("✅ History 页面第一次加载完成");
 }
 
 /* =========================================================
    ① 力量训练
 ========================================================= */
 
-async function loadHistoryWorkouts() {
+async function loadHistoryWorkouts(reset = false) {
   try {
+    if (reset) {
+      historyWorkoutOffset = 0;
+
+      historyWorkouts = [];
+
+      historyHasMoreWorkouts = false;
+    }
+
     /*
-       直接读取 workouts 全部字段。
-
-       其中包括：
-
-       duration_minutes
-       actual_duration_minutes
-
-       历史页面会优先使用实际训练时间。
+       如果已经没有更多数据，
+       不再请求数据库。
     */
 
-    const data = await supabaseRequest(
+    if (!reset && historyWorkoutOffset < 0) {
+      return;
+    }
+
+    console.log(`🏋️ 正在读取力量训练：offset=${historyWorkoutOffset}`);
+
+    const query = historyPaginationQuery(
       "workouts" + "?select=*" + "&order=workout_date.desc,workout_number.desc",
+      historyWorkoutOffset,
     );
 
-    historyWorkouts = Array.isArray(data) ? data : [];
+    const data = await supabaseRequest(query);
 
-    console.log("🏋️ 力量训练历史读取成功：", historyWorkouts.length, "条");
+    const records = Array.isArray(data) ? data : [];
+
+    /*
+       判断是否还有下一页。
+
+       如果数据库返回 21 条：
+
+       前 20 条 → 显示
+
+       第 21 条 → 说明后面还有数据
+    */
+
+    historyHasMoreWorkouts = records.length > HISTORY_PAGE_SIZE;
+
+    /*
+       真正加入页面的数据：
+
+       只加入前 20 条。
+
+       第 21 条不加入。
+    */
+
+    const visibleRecords = records.slice(0, HISTORY_PAGE_SIZE);
+
+    historyWorkouts = historyWorkouts.concat(visibleRecords);
+
+    /*
+       offset 必须按照真正已经消耗的数据库记录数量移动。
+
+       正常情况下：
+
+       第一次：
+       offset 0
+
+       第二次：
+       offset 20
+
+       第三次：
+       offset 40
+    */
+
+    historyWorkoutOffset += visibleRecords.length;
+
+    console.log(
+      "🏋️ 力量训练当前已加载：",
+      historyWorkouts.length,
+      "条",
+      "，还有更多：",
+      historyHasMoreWorkouts,
+    );
   } catch (error) {
     console.error("❌ 力量训练历史读取失败：", error);
 
-    historyWorkouts = [];
+    if (reset) {
+      historyWorkouts = [];
+
+      historyHasMoreWorkouts = false;
+    }
   }
 }
 
@@ -233,23 +373,61 @@ async function loadHistoryWorkouts() {
    ② 其它运动
 ========================================================= */
 
-async function loadHistoryOtherActivities() {
+async function loadHistoryOtherActivities(reset = false) {
   try {
-    const data = await supabaseRequest(
+    if (reset) {
+      historyOtherActivityOffset = 0;
+
+      historyOtherActivities = [];
+
+      historyHasMoreOtherActivities = false;
+    }
+
+    if (!reset && historyOtherActivityOffset < 0) {
+      return;
+    }
+
+    console.log(`🏃 正在读取其它运动：offset=${historyOtherActivityOffset}`);
+
+    const query = historyPaginationQuery(
       "other_activities" + "?select=*" + "&order=activity_date.desc,id.desc",
+      historyOtherActivityOffset,
     );
 
-    historyOtherActivities = Array.isArray(data) ? data : [];
+    const data = await supabaseRequest(query);
+
+    const records = Array.isArray(data) ? data : [];
+
+    /*
+       21 条：
+
+       → 前 20 条显示
+       → 第 21 条说明还有下一页
+    */
+
+    historyHasMoreOtherActivities = records.length > HISTORY_PAGE_SIZE;
+
+    const visibleRecords = records.slice(0, HISTORY_PAGE_SIZE);
+
+    historyOtherActivities = historyOtherActivities.concat(visibleRecords);
+
+    historyOtherActivityOffset += visibleRecords.length;
 
     console.log(
-      "🏃 其它运动历史读取成功：",
+      "🏃 其它运动当前已加载：",
       historyOtherActivities.length,
       "条",
+      "，还有更多：",
+      historyHasMoreOtherActivities,
     );
   } catch (error) {
     console.error("❌ 其它运动历史读取失败：", error);
 
-    historyOtherActivities = [];
+    if (reset) {
+      historyOtherActivities = [];
+
+      historyHasMoreOtherActivities = false;
+    }
   }
 }
 
@@ -257,19 +435,62 @@ async function loadHistoryOtherActivities() {
    ③ 每日步数
 ========================================================= */
 
-async function loadHistoryDailySteps() {
+async function loadHistoryDailySteps(reset = false) {
   try {
-    const data = await supabaseRequest(
-      "daily_steps" + "?select=*" + "&order=record_date.desc",
+    if (reset) {
+      historyDailyStepsOffset = 0;
+
+      historyDailySteps = [];
+
+      historyHasMoreDailySteps = false;
+    }
+
+    if (!reset && historyDailyStepsOffset < 0) {
+      return;
+    }
+
+    console.log(`👟 正在读取步数：offset=${historyDailyStepsOffset}`);
+
+    const query = historyPaginationQuery(
+      "daily_steps" + "?select=*" + "&order=record_date.desc,id.desc",
+      historyDailyStepsOffset,
     );
 
-    historyDailySteps = Array.isArray(data) ? data : [];
+    const data = await supabaseRequest(query);
 
-    console.log("👟 步数历史读取成功：", historyDailySteps.length, "条");
+    const records = Array.isArray(data) ? data : [];
+
+    /*
+       判断是否还有下一页。
+    */
+
+    historyHasMoreDailySteps = records.length > HISTORY_PAGE_SIZE;
+
+    /*
+       只显示前 20 条。
+    */
+
+    const visibleRecords = records.slice(0, HISTORY_PAGE_SIZE);
+
+    historyDailySteps = historyDailySteps.concat(visibleRecords);
+
+    historyDailyStepsOffset += visibleRecords.length;
+
+    console.log(
+      "👟 步数当前已加载：",
+      historyDailySteps.length,
+      "条",
+      "，还有更多：",
+      historyHasMoreDailySteps,
+    );
   } catch (error) {
     console.error("❌ 步数历史读取失败：", error);
 
-    historyDailySteps = [];
+    if (reset) {
+      historyDailySteps = [];
+
+      historyHasMoreDailySteps = false;
+    }
   }
 }
 
@@ -277,22 +498,11 @@ async function loadHistoryDailySteps() {
    获取历史训练实际时间
 ========================================================= */
 
-/*
-   时间显示规则：
-
-   ① 有 actual_duration_minutes
-      → 显示实际训练时间
-
-   ② 没有实际训练时间
-      → 回退到 duration_minutes
-
-   这样可以兼容以前已经保存的训练记录。
-*/
-
 function getHistoryWorkoutDuration(record) {
   if (!record || typeof record !== "object") {
     return {
       minutes: null,
+
       isActual: false,
     };
   }
@@ -306,12 +516,14 @@ function getHistoryWorkoutDuration(record) {
   if (Number.isFinite(actual) && actual > 0) {
     return {
       minutes: actual,
+
       isActual: true,
     };
   }
 
   /*
-     如果没有实际时间，
+     没有实际时间：
+
      回退到计划时间。
   */
 
@@ -320,12 +532,14 @@ function getHistoryWorkoutDuration(record) {
   if (Number.isFinite(planned) && planned > 0) {
     return {
       minutes: planned,
+
       isActual: false,
     };
   }
 
   return {
     minutes: null,
+
     isActual: false,
   };
 }
@@ -347,6 +561,8 @@ function renderWorkoutHistory() {
         目前还没有力量训练记录。
       </div>
     `;
+
+    renderWorkoutLoadMoreButton();
 
     return;
   }
@@ -371,16 +587,12 @@ function renderWorkoutHistory() {
           : "—";
 
       /*
-         =====================================================
-         训练时间
+           训练时间：
 
-         actual_duration_minutes
-         ↓
-         duration_minutes
-
-         优先显示实际训练时间。
-         =====================================================
-      */
+           actual_duration_minutes
+           ↓
+           duration_minutes
+        */
 
       const durationInfo = getHistoryWorkoutDuration(record);
 
@@ -390,81 +602,107 @@ function renderWorkoutHistory() {
         if (durationInfo.isActual) {
           durationText = `${historyEscapeHtml(durationInfo.minutes)} 分钟`;
         } else {
-          /*
-             旧记录没有实际训练时间，
-             明确标记为计划时间。
-          */
-
-          durationText = `${historyEscapeHtml(durationInfo.minutes)} 分钟（计划）`;
+          durationText = `${historyEscapeHtml(
+            durationInfo.minutes,
+          )} 分钟（计划）`;
         }
       }
 
       return `
-        <div class="history-item">
+          <div class="history-item">
 
-          <div class="history-title">
-            ${title}
+            <div class="history-title">
+              ${title}
+            </div>
+
+            <div class="muted">
+              ${workoutNumber}
+            </div>
+
+            <div class="muted">
+              📅 ${date}
+            </div>
+
+            <div class="muted">
+              完成度：${completion}
+            </div>
+
+            <div class="muted">
+              训练时间：${durationText}
+            </div>
+
+            <br>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="handleDeleteWorkoutFromHistory(
+                '${historyEscapeHtml(workoutId)}',
+                '${historyEscapeHtml(record.workout_number ?? "")}'
+              )"
+            >
+              🗑 删除这次训练
+            </button>
+
           </div>
-
-          <div class="muted">
-            ${workoutNumber}
-          </div>
-
-          <div class="muted">
-            📅 ${date}
-          </div>
-
-          <div class="muted">
-            完成度：${completion}
-          </div>
-
-          <div class="muted">
-            训练时间：${durationText}
-          </div>
-
-          <br>
-
-          <button
-            type="button"
-            class="secondary-btn"
-            onclick="handleDeleteWorkoutFromHistory('${historyEscapeHtml(
-              workoutId,
-            )}','${historyEscapeHtml(record.workout_number ?? "")}')"
-          >
-            🗑 删除这次训练
-          </button>
-
-        </div>
-      `;
+        `;
     })
     .join("");
+
+  renderWorkoutLoadMoreButton();
+}
+
+/* =========================================================
+   力量训练：加载更多按钮
+========================================================= */
+
+function renderWorkoutLoadMoreButton() {
+  const button = document.getElementById("loadMoreWorkoutsButton");
+
+  if (!button) {
+    return;
+  }
+
+  /*
+     没有更多：
+
+     隐藏按钮。
+  */
+
+  if (!historyHasMoreWorkouts) {
+    button.classList.add("hidden");
+
+    return;
+  }
+
+  button.classList.remove("hidden");
+
+  button.disabled = false;
+
+  button.textContent = "加载更多";
+}
+
+/* =========================================================
+   加载更多力量训练
+========================================================= */
+
+async function loadMoreWorkouts() {
+  const button = document.getElementById("loadMoreWorkoutsButton");
+
+  if (button) {
+    button.disabled = true;
+
+    button.textContent = "正在加载……";
+  }
+
+  await loadHistoryWorkouts(false);
+
+  renderWorkoutHistory();
 }
 
 /* =========================================================
    删除训练
 ========================================================= */
-
-/*
-   现在只删除：
-
-   workouts
-
-   数据库负责：
-
-   workouts
-       ↓
-   workout_exercise_records
-
-   ON DELETE CASCADE
-   ↓
-   自动删除动作记录
-
-   因此这里不再：
-
-   - 手动删除 workout_exercise_records
-   - 查询 workout_exercise_records
-   - 修改 historyExerciseRecords
-*/
 
 async function handleDeleteWorkoutFromHistory(workoutId, workoutNumber) {
   if (!workoutId) {
@@ -495,7 +733,8 @@ async function handleDeleteWorkoutFromHistory(workoutId, workoutNumber) {
        只删除 workouts。
 
        workout_exercise_records
-       由数据库 ON DELETE CASCADE 自动删除。
+       由数据库 ON DELETE CASCADE
+       自动删除。
     */
 
     await supabaseRequest(`workouts?id=eq.${encodeURIComponent(workoutId)}`, {
@@ -503,16 +742,20 @@ async function handleDeleteWorkoutFromHistory(workoutId, workoutNumber) {
     });
 
     /*
-       更新本地力量训练数据。
+       删除成功后：
+
+       不直接修改 offset。
+
+       而是重新读取当前力量训练历史。
+
+       这样可以避免：
+
+       offset 错位
+       ↓
+       漏掉下一条记录
     */
 
-    historyWorkouts = historyWorkouts.filter(
-      (record) => String(record.id) !== String(workoutId),
-    );
-
-    /*
-       重新渲染力量训练历史。
-    */
+    await loadHistoryWorkouts(true);
 
     renderWorkoutHistory();
 
@@ -542,6 +785,8 @@ function renderOtherActivityHistory() {
       </div>
     `;
 
+    renderOtherActivityLoadMoreButton();
+
     return;
   }
 
@@ -554,25 +799,69 @@ function renderOtherActivityHistory() {
       const minutes = Number(activity.duration_minutes) || 0;
 
       return `
-        <div class="history-item">
+          <div class="history-item">
 
-          <div class="history-title">
-            🏃 ${historyEscapeHtml(type)}
+            <div class="history-title">
+              🏃 ${historyEscapeHtml(type)}
+            </div>
+
+            <div class="muted">
+              📅 ${historyEscapeHtml(date)}
+            </div>
+
+            <div class="muted">
+              运动时间：
+              ${minutes} 分钟
+            </div>
+
           </div>
-
-          <div class="muted">
-            📅 ${historyEscapeHtml(date)}
-          </div>
-
-          <div class="muted">
-            运动时间：
-            ${minutes} 分钟
-          </div>
-
-        </div>
-      `;
+        `;
     })
     .join("");
+
+  renderOtherActivityLoadMoreButton();
+}
+
+/* =========================================================
+   其它运动：加载更多按钮
+========================================================= */
+
+function renderOtherActivityLoadMoreButton() {
+  const button = document.getElementById("loadMoreOtherActivitiesButton");
+
+  if (!button) {
+    return;
+  }
+
+  if (!historyHasMoreOtherActivities) {
+    button.classList.add("hidden");
+
+    return;
+  }
+
+  button.classList.remove("hidden");
+
+  button.disabled = false;
+
+  button.textContent = "加载更多";
+}
+
+/* =========================================================
+   加载更多其它运动
+========================================================= */
+
+async function loadMoreOtherActivities() {
+  const button = document.getElementById("loadMoreOtherActivitiesButton");
+
+  if (button) {
+    button.disabled = true;
+
+    button.textContent = "正在加载……";
+  }
+
+  await loadHistoryOtherActivities(false);
+
+  renderOtherActivityHistory();
 }
 
 /* =========================================================
@@ -593,6 +882,8 @@ function renderDailyStepsHistory() {
       </div>
     `;
 
+    renderDailyStepsLoadMoreButton();
+
     return;
   }
 
@@ -603,20 +894,64 @@ function renderDailyStepsHistory() {
       const steps = Number(record.steps) || 0;
 
       return `
-        <div class="history-item">
+          <div class="history-item">
 
-          <div class="history-title">
-            👟 ${steps.toLocaleString()} 步
+            <div class="history-title">
+              👟 ${steps.toLocaleString()} 步
+            </div>
+
+            <div class="muted">
+              📅 ${historyEscapeHtml(date)}
+            </div>
+
           </div>
-
-          <div class="muted">
-            📅 ${historyEscapeHtml(date)}
-          </div>
-
-        </div>
-      `;
+        `;
     })
     .join("");
+
+  renderDailyStepsLoadMoreButton();
+}
+
+/* =========================================================
+   步数：加载更多按钮
+========================================================= */
+
+function renderDailyStepsLoadMoreButton() {
+  const button = document.getElementById("loadMoreDailyStepsButton");
+
+  if (!button) {
+    return;
+  }
+
+  if (!historyHasMoreDailySteps) {
+    button.classList.add("hidden");
+
+    return;
+  }
+
+  button.classList.remove("hidden");
+
+  button.disabled = false;
+
+  button.textContent = "加载更多";
+}
+
+/* =========================================================
+   加载更多步数
+========================================================= */
+
+async function loadMoreDailySteps() {
+  const button = document.getElementById("loadMoreDailyStepsButton");
+
+  if (button) {
+    button.disabled = true;
+
+    button.textContent = "正在加载……";
+  }
+
+  await loadHistoryDailySteps(false);
+
+  renderDailyStepsHistory();
 }
 
 /* =========================================================
@@ -639,7 +974,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   /*
-       加载全部历史数据。
+       第一次加载：
+
+       每个分类最多显示 20 条。
     */
 
   await loadHistoryPage();
