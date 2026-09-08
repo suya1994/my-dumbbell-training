@@ -1749,14 +1749,14 @@ async function generateAITrainingPrompt() {
       formatExercisePerformanceHistoryForPrompt(exerciseHistory);
 
     /* ========================================================
-   最近7天其它运动 + 每日步数
+   最近7天其它运动
 ======================================================== */
 
-    const recent7DayActivity = getRecent7DayOtherExerciseAndStepsForAI();
+    const recent7DayActivity = getRecent7DayOtherExerciseForAI();
 
     const recent7DayActivityText = recent7DayActivity
       .map((day) => {
-        return `${day.date}：其它运动：${day.otherExercise}；步数：${day.steps}`;
+        return `${day.date}：其它运动：${day.otherExercise}`;
       })
       .join("\n");
 
@@ -1769,12 +1769,11 @@ async function generateAITrainingPrompt() {
 ${recent7DayActivityText}
 
 说明：
-- 步数是每天实际记录的步数。 “无”表示当天没有记录。
 - 应结合最近一次力量训练、历史动作表现、身体数据和训练目标综合判断。
 `.trim();
 
     /* =========================================================
-   最近 7 天其它运动 + 每日步数
+   最近 7 天其它运动
 ========================================================= */
 
     /* ========================================================
@@ -2743,11 +2742,11 @@ async function importAITrainingPlan() {
 }
 
 /* =========================================================
-   获取最近 7 天其它运动 + 每日步数
+   获取最近 7 天其它运动
    提供给 AI 教练参考
 ========================================================= */
 
-function getRecent7DayOtherExerciseAndStepsForAI() {
+function getRecent7DayOtherExerciseForAI() {
   const result = [];
 
   const today = new Date();
@@ -2767,7 +2766,7 @@ function getRecent7DayOtherExerciseAndStepsForAI() {
 
     /* ================================
        其它运动
-    ================================= */
+    ================================ */
 
     const dayOtherActivities = Array.isArray(otherActivities)
       ? otherActivities.filter(
@@ -2789,22 +2788,9 @@ function getRecent7DayOtherExerciseAndStepsForAI() {
         .join("、");
     }
 
-    /* ================================
-       每日步数
-    ================================= */
-
-    const stepRecord = Array.isArray(dailySteps)
-      ? dailySteps.find((record) => record.record_date === dateString)
-      : null;
-
-    const stepsText = stepRecord
-      ? `${(Number(stepRecord.steps) || 0).toLocaleString()} 步`
-      : "无";
-
     result.push({
       date: dateString,
       otherExercise: otherExerciseText,
-      steps: stepsText,
     });
   }
 

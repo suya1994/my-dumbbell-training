@@ -32,8 +32,6 @@ let analysisRecords = [];
 
 let analysisOtherActivities = [];
 
-let analysisDailySteps = [];
-
 /* =========================================================
    每周力量训练目标
 
@@ -270,18 +268,6 @@ async function loadAnalysisData() {
     console.log("🏃 其它运动读取完成：", analysisOtherActivities.length);
 
     /* =====================================================
-       ④ 每日步数
-    ===================================================== */
-
-    const dailySteps = await supabaseRequest(
-      "daily_steps" + "?select=*" + "&order=record_date.desc",
-    );
-
-    analysisDailySteps = Array.isArray(dailySteps) ? dailySteps : [];
-
-    console.log("👟 步数读取完成：", analysisDailySteps.length);
-
-    /* =====================================================
        数据全部读取完成之后再更新页面
     ===================================================== */
 
@@ -365,20 +351,6 @@ function updateWeeklyOverview() {
   });
 
   /* =====================================================
-       步数
-  ===================================================== */
-
-  const stepList = analysisDailySteps.filter((record) => {
-    const date = parseLocalDate(record.record_date);
-
-    if (!date) {
-      return false;
-    }
-
-    return date >= monday && date <= now;
-  });
-
-  /* =====================================================
        基础统计
   ===================================================== */
 
@@ -401,18 +373,6 @@ function updateWeeklyOverview() {
   const strengthMinutes = list.reduce((sum, record) => {
     return sum + (Number(record.actual_duration_minutes) || 0);
   }, 0);
-
-  /* =====================================================
-       平均步数
-  ===================================================== */
-
-  const averageSteps = stepList.length
-    ? Math.round(
-        stepList.reduce((sum, record) => {
-          return sum + (Number(record.steps) || 0);
-        }, 0) / stepList.length,
-      )
-    : 0;
 
   /* =====================================================
        平均完成度
@@ -453,11 +413,6 @@ function updateWeeklyOverview() {
   setText("weeklyOverviewStrengthMinutes", `${strengthMinutes} 分钟`);
 
   setText("weeklyOverviewOtherMinutes", `${otherMinutes} 分钟`);
-
-  setText(
-    "weeklyOverviewAverageSteps",
-    averageSteps ? averageSteps.toLocaleString() : "—",
-  );
 
   setText(
     "weeklyOverviewAverageCompletion",
@@ -512,14 +467,6 @@ function updateMonthlyOverview() {
     );
   });
 
-  /* =====================================================
-       步数
-  ===================================================== */
-
-  const stepList = analysisDailySteps.filter((record) => {
-    return record.record_date && String(record.record_date).startsWith(prefix);
-  });
-
   const workoutCount = list.length;
 
   const otherMinutes = otherList.reduce((sum, activity) => {
@@ -529,18 +476,6 @@ function updateMonthlyOverview() {
   const strengthMinutes = list.reduce((sum, record) => {
     return sum + (Number(record.actual_duration_minutes) || 0);
   }, 0);
-
-  /* =====================================================
-       平均步数
-  ===================================================== */
-
-  const averageSteps = stepList.length
-    ? Math.round(
-        stepList.reduce((sum, record) => {
-          return sum + (Number(record.steps) || 0);
-        }, 0) / stepList.length,
-      )
-    : 0;
 
   /* =====================================================
        完成度
@@ -575,11 +510,6 @@ function updateMonthlyOverview() {
   setText("monthlyOverviewStrengthMinutes", `${strengthMinutes} 分钟`);
 
   setText("monthlyOverviewOtherMinutes", `${otherMinutes} 分钟`);
-
-  setText(
-    "monthlyOverviewAverageSteps",
-    averageSteps ? averageSteps.toLocaleString() : "—",
-  );
 
   setText(
     "monthlyOverviewAverageCompletion",
@@ -618,19 +548,16 @@ let weeklyStrengthChart = null;
 
 let weeklyOtherChart = null;
 
-let weeklyStepsChart = null;
 
 let monthlyStrengthChart = null;
 
 let monthlyOtherChart = null;
 
-let monthlyStepsChart = null;
 
 let yearlyStrengthChart = null;
 
 let yearlyOtherChart = null;
 
-let yearlyStepsChart = null;
 
 /* =========================================================
    本周日期
@@ -698,18 +625,6 @@ function getOtherMinutesByDate(dateString) {
     .reduce((sum, activity) => {
       return sum + (Number(activity.duration_minutes) || 0);
     }, 0);
-}
-
-/* =========================================================
-   某天步数
-========================================================= */
-
-function getStepsByDate(dateString) {
-  const record = analysisDailySteps.find((item) => {
-    return String(item.record_date) === dateString;
-  });
-
-  return record ? Number(record.steps) || 0 : 0;
 }
 
 /* =========================================================
@@ -866,10 +781,6 @@ function updateWeeklyCharts() {
     return getOtherMinutesByDate(date);
   });
 
-  const stepsData = dates.map((date) => {
-    return getStepsByDate(date);
-  });
-
   weeklyStrengthChart = createTrendChart(
     "weeklyStrengthChart",
     weeklyStrengthChart,
@@ -888,16 +799,6 @@ function updateWeeklyCharts() {
     otherData,
     "分钟",
     "其它运动",
-  );
-
-  weeklyStepsChart = createTrendChart(
-    "weeklyStepsChart",
-    weeklyStepsChart,
-    "bar",
-    labels,
-    stepsData,
-    "步数",
-    "步数",
   );
 }
 
@@ -922,10 +823,6 @@ function updateMonthlyCharts() {
     return getOtherMinutesByDate(date);
   });
 
-  const stepsData = dates.map((date) => {
-    return getStepsByDate(date);
-  });
-
   monthlyStrengthChart = createTrendChart(
     "monthlyStrengthChart",
     monthlyStrengthChart,
@@ -944,16 +841,6 @@ function updateMonthlyCharts() {
     otherData,
     "分钟",
     "其它运动",
-  );
-
-  monthlyStepsChart = createTrendChart(
-    "monthlyStepsChart",
-    monthlyStepsChart,
-    "bar",
-    labels,
-    stepsData,
-    "步数",
-    "步数",
   );
 }
 
@@ -977,16 +864,6 @@ function getAvailableYears() {
   analysisOtherActivities.forEach((activity) => {
     if (activity.activity_date) {
       const year = Number(String(activity.activity_date).slice(0, 4));
-
-      if (Number.isFinite(year)) {
-        years.add(year);
-      }
-    }
-  });
-
-  analysisDailySteps.forEach((record) => {
-    if (record.record_date) {
-      const year = Number(String(record.record_date).slice(0, 4));
 
       if (Number.isFinite(year)) {
         years.add(year);
@@ -1044,8 +921,6 @@ function getYearlyData(year) {
 
   const other = [];
 
-  const steps = [];
-
   const yearPrefix = String(year);
 
   const yearRecords = analysisRecords.filter((record) => {
@@ -1058,12 +933,6 @@ function getYearlyData(year) {
     return (
       activity.activity_date &&
       String(activity.activity_date).startsWith(yearPrefix)
-    );
-  });
-
-  const yearStepRecords = analysisDailySteps.filter((record) => {
-    return (
-      record.record_date && String(record.record_date).startsWith(yearPrefix)
     );
   });
 
@@ -1086,33 +955,15 @@ function getYearlyData(year) {
         return sum + (Number(activity.duration_minutes) || 0);
       }, 0);
 
-    /* 步数 */
-
-    const monthStepRecords = yearStepRecords.filter((record) => {
-      return String(record.record_date).startsWith(prefix);
-    });
-
-    const stepTotal = monthStepRecords.reduce((sum, record) => {
-      return sum + (Number(record.steps) || 0);
-    }, 0);
-
-    const averageSteps = monthStepRecords.length
-      ? Math.round(stepTotal / monthStepRecords.length)
-      : 0;
-
     strength.push(monthStrength);
 
     other.push(monthOther);
-
-    steps.push(averageSteps);
   }
 
   return {
     strength,
 
     other,
-
-    steps,
   };
 }
 
@@ -1168,16 +1019,6 @@ function updateYearlyCharts() {
     "其它运动",
   );
 
-  yearlyStepsChart = createTrendChart(
-    "yearlyStepsChart",
-    yearlyStepsChart,
-    "line",
-    labels,
-    data.steps,
-    "平均步数",
-    "平均每日步数",
-  );
-
   /* =====================================================
        年度统计数据
   ===================================================== */
@@ -1197,12 +1038,6 @@ function updateYearlyCharts() {
     );
   });
 
-  const yearSteps = analysisDailySteps.filter((record) => {
-    return (
-      record.record_date && String(record.record_date).startsWith(yearPrefix)
-    );
-  });
-
   const totalWorkouts = yearRecords.length;
 
   const totalMinutes = yearRecords.reduce((sum, record) => {
@@ -1212,14 +1047,6 @@ function updateYearlyCharts() {
   const otherMinutes = yearOther.reduce((sum, activity) => {
     return sum + (Number(activity.duration_minutes) || 0);
   }, 0);
-
-  const averageSteps = yearSteps.length
-    ? Math.round(
-        yearSteps.reduce((sum, record) => {
-          return sum + (Number(record.steps) || 0);
-        }, 0) / yearSteps.length,
-      )
-    : 0;
 
   /* =====================================================
        年度完成度
@@ -1254,11 +1081,6 @@ function updateYearlyCharts() {
   setText("totalMinutes", `${totalMinutes} 分钟`);
 
   setText("yearOtherMinutes", `${otherMinutes} 分钟`);
-
-  setText(
-    "yearAverageSteps",
-    averageSteps ? averageSteps.toLocaleString() : "—",
-  );
 
   setText(
     "totalAverage",

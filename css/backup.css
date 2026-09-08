@@ -1,0 +1,88 @@
+/* 数据备份页面 */
+.backup-page { padding-bottom: 34px; }
+
+.backup-hero {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 15px;
+    margin: 0 0 16px;
+    border: 1px solid #dbe9ff;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #eef6ff, #f8fbff);
+}
+
+.backup-hero-icon { font-size: 24px; }
+.backup-hero strong { display: block; font-size: 14px; color: #285b97; }
+.backup-hero p { margin: 4px 0 0; color: #5d7187; font-size: 13px; line-height: 1.55; }
+
+.backup-card { margin-bottom: 16px; }
+.backup-card-heading { display: flex; align-items: flex-start; gap: 12px; }
+.backup-card-heading h2 { margin: 1px 0 5px; font-size: 18px; }
+.backup-card-heading p { margin: 0; line-height: 1.6; }
+
+.backup-icon {
+    display: grid;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 21px;
+    font-weight: 700;
+}
+.export-icon { background: linear-gradient(135deg, #5799e8, #3771cf); }
+.import-icon { background: linear-gradient(135deg, #62b894, #338867); }
+
+.backup-action { width: 100%; box-sizing: border-box; margin-top: 18px; }
+.backup-status { min-height: 20px; margin: 10px 0 0; color: #6d7886; font-size: 13px; line-height: 1.5; }
+.backup-status.is-error { color: #bd3e3e; }
+.backup-status.is-success { color: #257457; }
+
+.file-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 18px;
+    padding: 15px;
+    border: 1.5px dashed #9bb9db;
+    border-radius: 12px;
+    background: #f9fcff;
+    color: #2b639e;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+}
+.file-picker:hover { background: #f0f7ff; border-color: #4b88ca; }
+.file-picker span { font-weight: 600; font-size: 14px; }
+.file-picker small { color: #7b8998; font-size: 12px; }
+
+.import-preview {
+    margin-top: 14px;
+    padding: 13px;
+    border-radius: 12px;
+    background: #f3faf6;
+    color: #376b53;
+    font-size: 13px;
+    line-height: 1.65;
+}
+.import-preview strong { color: #24563f; }
+.preview-counts { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 7px; color: #557365; }
+
+.confirm-row {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    margin: 16px 0 0;
+    color: #576372;
+    font-size: 13px;
+    line-height: 1.55;
+    cursor: pointer;
+}
+.confirm-row input { margin: 3px 0 0; accent-color: #3b7dcd; }
+
+.backup-note { display: flex; gap: 9px; padding: 3px 7px; color: #788491; font-size: 12px; line-height: 1.6; }
+.backup-note p { margin: 0; }
+.backup-note strong { color: #586775; }
+
+@media (max-width: 480px) { .backup-card-heading h2 { font-size: 17px; } }

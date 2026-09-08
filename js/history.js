@@ -5,7 +5,6 @@
    负责：
    ① 力量训练历史
    ② 其它运动历史
-   ③ 每日步数历史
 
    =========================================================
 
@@ -92,27 +91,21 @@ let historyWorkouts = [];
 
 let historyOtherActivities = [];
 
-let historyDailySteps = [];
-
 /* =========================================================
    当前分页位置
-========================================================= */
+=============================== */
 
 let historyWorkoutOffset = 0;
 
 let historyOtherActivityOffset = 0;
 
-let historyDailyStepsOffset = 0;
-
 /* =========================================================
    是否还有更多数据
-========================================================= */
+=============================== */
 
 let historyHasMoreWorkouts = false;
 
 let historyHasMoreOtherActivities = false;
-
-let historyHasMoreDailySteps = false;
 
 /* =========================================================
    DOM 工具
@@ -229,8 +222,6 @@ async function loadHistoryPage() {
 
   historyOtherActivityOffset = 0;
 
-  historyDailyStepsOffset = 0;
-
   /*
      重置数据。
   */
@@ -238,8 +229,6 @@ async function loadHistoryPage() {
   historyWorkouts = [];
 
   historyOtherActivities = [];
-
-  historyDailySteps = [];
 
   /*
      重置分页状态。
@@ -249,18 +238,14 @@ async function loadHistoryPage() {
 
   historyHasMoreOtherActivities = false;
 
-  historyHasMoreDailySteps = false;
-
   /*
-     三种数据并行读取。
+     数据并行读取。
   */
 
   await Promise.all([
     loadHistoryWorkouts(true),
 
     loadHistoryOtherActivities(true),
-
-    loadHistoryDailySteps(true),
   ]);
 
   /*
@@ -270,8 +255,6 @@ async function loadHistoryPage() {
   renderWorkoutHistory();
 
   renderOtherActivityHistory();
-
-  renderDailyStepsHistory();
 
   console.log("✅ History 页面第一次加载完成");
 }
@@ -427,69 +410,6 @@ async function loadHistoryOtherActivities(reset = false) {
       historyOtherActivities = [];
 
       historyHasMoreOtherActivities = false;
-    }
-  }
-}
-
-/* =========================================================
-   ③ 每日步数
-========================================================= */
-
-async function loadHistoryDailySteps(reset = false) {
-  try {
-    if (reset) {
-      historyDailyStepsOffset = 0;
-
-      historyDailySteps = [];
-
-      historyHasMoreDailySteps = false;
-    }
-
-    if (!reset && historyDailyStepsOffset < 0) {
-      return;
-    }
-
-    console.log(`👟 正在读取步数：offset=${historyDailyStepsOffset}`);
-
-    const query = historyPaginationQuery(
-      "daily_steps" + "?select=*" + "&order=record_date.desc,id.desc",
-      historyDailyStepsOffset,
-    );
-
-    const data = await supabaseRequest(query);
-
-    const records = Array.isArray(data) ? data : [];
-
-    /*
-       判断是否还有下一页。
-    */
-
-    historyHasMoreDailySteps = records.length > HISTORY_PAGE_SIZE;
-
-    /*
-       只显示前 20 条。
-    */
-
-    const visibleRecords = records.slice(0, HISTORY_PAGE_SIZE);
-
-    historyDailySteps = historyDailySteps.concat(visibleRecords);
-
-    historyDailyStepsOffset += visibleRecords.length;
-
-    console.log(
-      "👟 步数当前已加载：",
-      historyDailySteps.length,
-      "条",
-      "，还有更多：",
-      historyHasMoreDailySteps,
-    );
-  } catch (error) {
-    console.error("❌ 步数历史读取失败：", error);
-
-    if (reset) {
-      historyDailySteps = [];
-
-      historyHasMoreDailySteps = false;
     }
   }
 }
@@ -862,96 +782,6 @@ async function loadMoreOtherActivities() {
   await loadHistoryOtherActivities(false);
 
   renderOtherActivityHistory();
-}
-
-/* =========================================================
-   步数历史
-========================================================= */
-
-function renderDailyStepsHistory() {
-  const box = document.getElementById("dailyStepsHistory");
-
-  if (!box) {
-    return;
-  }
-
-  if (!historyDailySteps.length) {
-    box.innerHTML = `
-      <div class="muted">
-        目前还没有步数记录。
-      </div>
-    `;
-
-    renderDailyStepsLoadMoreButton();
-
-    return;
-  }
-
-  box.innerHTML = historyDailySteps
-    .map((record) => {
-      const date = record.record_date || "";
-
-      const steps = Number(record.steps) || 0;
-
-      return `
-          <div class="history-item">
-
-            <div class="history-title">
-              👟 ${steps.toLocaleString()} 步
-            </div>
-
-            <div class="muted">
-              📅 ${historyEscapeHtml(date)}
-            </div>
-
-          </div>
-        `;
-    })
-    .join("");
-
-  renderDailyStepsLoadMoreButton();
-}
-
-/* =========================================================
-   步数：加载更多按钮
-========================================================= */
-
-function renderDailyStepsLoadMoreButton() {
-  const button = document.getElementById("loadMoreDailyStepsButton");
-
-  if (!button) {
-    return;
-  }
-
-  if (!historyHasMoreDailySteps) {
-    button.classList.add("hidden");
-
-    return;
-  }
-
-  button.classList.remove("hidden");
-
-  button.disabled = false;
-
-  button.textContent = "加载更多";
-}
-
-/* =========================================================
-   加载更多步数
-========================================================= */
-
-async function loadMoreDailySteps() {
-  const button = document.getElementById("loadMoreDailyStepsButton");
-
-  if (button) {
-    button.disabled = true;
-
-    button.textContent = "正在加载……";
-  }
-
-  await loadHistoryDailySteps(false);
-
-  renderDailyStepsHistory();
 }
 
 /* =========================================================

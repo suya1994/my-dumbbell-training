@@ -53,6 +53,13 @@
 
                     </button>
 
+                    <button type="button" class="header-settings header-backup"
+                         onclick="window.location.href='backup.html'" aria-label="数据备份" title="数据备份">
+
+                         💾
+
+                    </button>
+
                </div>
 
           </div>
@@ -288,51 +295,6 @@
                </div>
 
 
-
-               <!-- ================================
-               每日步数
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         👟 每日步数
-                    </h2>
-
-                    <div class="muted">
-
-                         每天记录一次步数。
-                         如果当天已经记录，再次保存会自动更新当天数据。
-
-                    </div>
-
-                    <br>
-
-                    <label>
-                         日期
-                    </label>
-
-                    <input id="dailyStepsDate" class="note" type="date">
-
-
-                    <label>
-                         今日步数
-                    </label>
-
-                    <input id="dailyStepsInput" class="note" type="number" min="0" max="200000" step="1"
-                         placeholder="例如 8000">
-
-
-                    <br>
-                    <br>
-
-                    <button type="button" class="primary-btn" onclick="saveDailySteps()">
-
-                         👟 保存步数
-
-                    </button>
-
-               </div>
 
           </section>
 

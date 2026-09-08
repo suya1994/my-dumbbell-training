@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#f5f5f5">
+    <title>数据备份 - 我的私人哑铃训练</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/backup.css">
+</head>
+
+<body>
+    <main class="container backup-page">
+        <header class="page-header">
+            <button type="button" class="back-btn" onclick="window.location.href='index.html'" aria-label="返回首页"
+                title="返回首页">←</button>
+            <div class="page-title">
+                <h1>💾 数据备份</h1>
+                <p class="muted">把训练数据保存在自己手里</p>
+            </div>
+        </header>
+
+        <section class="backup-hero" aria-label="数据安全提示">
+            <span class="backup-hero-icon">☁️</span>
+            <div>
+                <strong>数据保存在 Supabase 云端</strong>
+                <p>备份时只读取数据；不会修改或删除任何训练记录。</p>
+            </div>
+        </section>
+
+        <section class="card backup-card">
+            <div class="backup-card-heading">
+                <span class="backup-icon export-icon">↓</span>
+                <div>
+                    <h2>数据备份</h2>
+                    <p class="muted">导出训练记录、计划、身体数据与设置为 JSON 文件。</p>
+                </div>
+            </div>
+            <button id="exportButton" class="primary-btn backup-action" type="button">下载备份文件</button>
+            <p id="exportStatus" class="backup-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card backup-card">
+            <div class="backup-card-heading">
+                <span class="backup-icon import-icon">↑</span>
+                <div>
+                    <h2>导入数据</h2>
+                    <p class="muted">先在本地校验备份文件，再由你确认后导入。</p>
+                </div>
+            </div>
+
+            <label class="file-picker" for="backupFile">
+                <span>选择备份文件</span>
+                <small>仅支持本应用导出的 JSON 文件</small>
+            </label>
+            <input id="backupFile" type="file" accept="application/json,.json" hidden>
+
+            <div id="importPreview" class="import-preview hidden" aria-live="polite"></div>
+
+            <label id="importConfirmRow" class="confirm-row hidden" for="importConfirmed">
+                <input id="importConfirmed" type="checkbox">
+                <span>我已了解：将只新增缺少的数据，相同 ID 的现有数据会被保留。</span>
+            </label>
+
+            <button id="importButton" class="secondary-btn backup-action" type="button" disabled>确认导入</button>
+            <p id="importStatus" class="backup-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <aside class="backup-note">
+            <span>🛡️</span>
+            <p><strong>安全导入：</strong>不会执行删除或更新操作。若备份中存在同 ID 数据，系统将跳过该行，保留云端原有内容。</p>
+        </aside>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/backup.js"></script>
+</body>
+
+</html>
