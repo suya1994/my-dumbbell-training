@@ -566,21 +566,6 @@ async function deleteCurrentTrainingPlan() {
     plansToCheck = [];
   }
 
-  /* =====================================================
-     第一次确认
-  ===================================================== */
-
-  const confirmed = window.confirm(
-    `确定要删除第 ${startNumber} 次及之后尚未产生训练历史的训练计划吗？\n\n` +
-      `系统会从第 ${startNumber} 次开始检查。\n\n` +
-      `已经产生训练历史的训练计划不会删除。\n\n` +
-      `此操作无法恢复。`,
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
   try {
     const plansToDelete = [];
 
