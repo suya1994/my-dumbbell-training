@@ -38,52 +38,61 @@ async function supabaseRequest(path, options = {}) {
 
   /* ========================================================
      3. 发起请求
+
+     所有请求自动显示全局 Loading，
+     请求完成后自动关闭。
   ======================================================== */
 
-  const response = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
-    method: options.method || "GET",
-
-    headers: {
-      apikey: SUPABASE_KEY,
-
-      Authorization: "Bearer " + accessToken,
-
-      "Content-Type": "application/json",
-
-      Prefer: options.prefer || "return=representation",
-    },
-
-    body:
-      options.body !== undefined && options.body !== null
-        ? JSON.stringify(options.body)
-        : undefined,
-  });
-
-  /* ========================================================
-     4. Supabase 返回错误
-  ======================================================== */
-
-  if (!response.ok) {
-    const text = await response.text();
-
-    throw new Error("HTTP " + response.status + "：" + text);
-  }
-
-  /* ========================================================
-     5. 读取返回内容
-  ======================================================== */
-
-  const text = await response.text();
-
-  if (!text) {
-    return [];
-  }
+  showPageLoading();
 
   try {
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Supabase 返回的数据不是有效 JSON：", text);
+    const response = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+      method: options.method || "GET",
 
-    throw new Error("Supabase 返回数据解析失败。");
+      headers: {
+        apikey: SUPABASE_KEY,
+
+        Authorization: "Bearer " + accessToken,
+
+        "Content-Type": "application/json",
+
+        Prefer: options.prefer || "return=representation",
+      },
+
+      body:
+        options.body !== undefined && options.body !== null
+          ? JSON.stringify(options.body)
+          : undefined,
+    });
+
+    /* ====================================================
+       4. Supabase 返回错误
+    ==================================================== */
+
+    if (!response.ok) {
+      const text = await response.text();
+
+      throw new Error("HTTP " + response.status + "：" + text);
+    }
+
+    /* ====================================================
+       5. 读取返回内容
+    ==================================================== */
+
+    const text = await response.text();
+
+    if (!text) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      console.error("Supabase 返回的数据不是有效 JSON：", text);
+
+      throw new Error("Supabase 返回数据解析失败。");
+    }
+  } finally {
+    hidePageLoading();
   }
 }
