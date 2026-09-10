@@ -68,6 +68,13 @@
             </button>
 
 
+            <button type="button" onclick="showHistorySection('bodyMetricsHistorySection', this)">
+
+                📏 身体数据
+
+            </button>
+
+
         </div>
 
 
@@ -120,6 +127,33 @@
 
                 <button id="loadMoreOtherActivitiesButton" type="button" class="secondary-btn history-load-more"
                     onclick="loadMoreOtherActivities()">
+                    加载更多
+                </button>
+
+
+            </div>
+
+</section>
+
+
+        <!-- =====================================================
+             身体数据历史
+        ====================================================== -->
+
+        <section id="bodyMetricsHistorySection" class="history-section hidden">
+
+
+            <div class="card">
+
+
+                <h2>
+                    📏 身体数据历史
+                </h2>
+
+                <div id="bodyMetricsHistoryList"></div>
+
+                <button id="loadMoreBodyMetricsButton" type="button" class="secondary-btn history-load-more"
+                    onclick="loadMoreBodyMetrics()">
                     加载更多
                 </button>
 

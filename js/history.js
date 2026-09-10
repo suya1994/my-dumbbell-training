@@ -91,6 +91,8 @@ let historyWorkouts = [];
 
 let historyOtherActivities = [];
 
+let historyBodyMetrics = [];
+
 /* =========================================================
    当前分页位置
 =============================== */
@@ -99,6 +101,8 @@ let historyWorkoutOffset = 0;
 
 let historyOtherActivityOffset = 0;
 
+let historyBodyMetricOffset = 0;
+
 /* =========================================================
    是否还有更多数据
 =============================== */
@@ -106,6 +110,8 @@ let historyOtherActivityOffset = 0;
 let historyHasMoreWorkouts = false;
 
 let historyHasMoreOtherActivities = false;
+
+let historyHasMoreBodyMetrics = false;
 
 /* =========================================================
    DOM 工具
@@ -222,6 +228,8 @@ async function loadHistoryPage() {
 
   historyOtherActivityOffset = 0;
 
+  historyBodyMetricOffset = 0;
+
   /*
      重置数据。
   */
@@ -229,6 +237,8 @@ async function loadHistoryPage() {
   historyWorkouts = [];
 
   historyOtherActivities = [];
+
+  historyBodyMetrics = [];
 
   /*
      重置分页状态。
@@ -238,6 +248,8 @@ async function loadHistoryPage() {
 
   historyHasMoreOtherActivities = false;
 
+  historyHasMoreBodyMetrics = false;
+
   /*
      数据并行读取。
   */
@@ -246,6 +258,8 @@ async function loadHistoryPage() {
     loadHistoryWorkouts(true),
 
     loadHistoryOtherActivities(true),
+
+    loadHistoryBodyMetrics(true),
   ]);
 
   /*
@@ -255,6 +269,8 @@ async function loadHistoryPage() {
   renderWorkoutHistory();
 
   renderOtherActivityHistory();
+
+  renderBodyMetricsHistory();
 
   console.log("✅ History 页面第一次加载完成");
 }
@@ -403,7 +419,7 @@ async function loadHistoryOtherActivities(reset = false) {
       "，还有更多：",
       historyHasMoreOtherActivities,
     );
-  } catch (error) {
+} catch (error) {
     console.error("❌ 其它运动历史读取失败：", error);
 
     if (reset) {
@@ -415,7 +431,88 @@ async function loadHistoryOtherActivities(reset = false) {
 }
 
 /* =========================================================
-   获取历史训练实际时间
+    ③ 身体数据
+========================================================= */
+
+async function loadHistoryBodyMetrics(reset = false) {
+  try {
+    if (reset) {
+      historyBodyMetricOffset = 0;
+
+      historyBodyMetrics = [];
+
+      historyHasMoreBodyMetrics = false;
+    }
+
+    if (!reset && historyBodyMetricOffset < 0) {
+      return;
+    }
+
+    console.log(`📏 正在读取身体数据：offset=${historyBodyMetricOffset}`);
+
+    const query = historyPaginationQuery(
+      "body_metrics" + "?select=*" + "&order=record_date.desc,id.desc",
+      historyBodyMetricOffset,
+    );
+
+    const data = await supabaseRequest(query);
+
+    const records = Array.isArray(data) ? data : [];
+
+    /*
+       21 条：
+
+       → 前 20 条显示
+       → 第 21 条说明还有下一页
+    */
+
+    historyHasMoreBodyMetrics = records.length > HISTORY_PAGE_SIZE;
+
+    const visibleRecords = records.slice(0, HISTORY_PAGE_SIZE);
+
+    historyBodyMetrics = historyBodyMetrics.concat(visibleRecords);
+
+    historyBodyMetricOffset += visibleRecords.length;
+
+    console.log(
+      "📏 身体数据当前已加载：",
+      historyBodyMetrics.length,
+      "条",
+      "，还有更多：",
+      historyHasMoreBodyMetrics,
+    );
+  } catch (error) {
+    console.error("❌ 身体数据历史读取失败：", error);
+
+    if (reset) {
+      historyBodyMetrics = [];
+
+      historyHasMoreBodyMetrics = false;
+    }
+  }
+}
+
+/* =========================================================
+    身体数据是否有效
+
+    与 metrics.js 规则保持一致：
+
+    null / undefined / "" / 0
+    → 无效
+========================================================= */
+
+function isHistoryBodyMetricValid(value) {
+  if (value === null || value === undefined || value === "") {
+    return false;
+  }
+
+  const number = Number(value);
+
+  return Number.isFinite(number) && number > 0;
+}
+
+/* =========================================================
+    获取历史训练实际时间
 ========================================================= */
 
 function getHistoryWorkoutDuration(record) {
@@ -779,13 +876,177 @@ async function loadMoreOtherActivities() {
     button.textContent = "正在加载……";
   }
 
-  await loadHistoryOtherActivities(false);
+await loadHistoryOtherActivities(false);
 
   renderOtherActivityHistory();
 }
 
 /* =========================================================
-   页面初始化
+    身体数据历史
+========================================================= */
+
+function renderBodyMetricsHistory() {
+  const box = document.getElementById("bodyMetricsHistoryList");
+
+  if (!box) {
+    return;
+  }
+
+  if (!historyBodyMetrics.length) {
+    box.innerHTML = `
+      <div class="muted">
+        目前还没有身体数据记录。
+      </div>
+    `;
+
+    renderBodyMetricsLoadMoreButton();
+
+    return;
+  }
+
+  box.innerHTML = historyBodyMetrics
+    .map((record) => {
+      const recordId = String(record.id ?? "");
+
+      const date = record.record_date || "";
+
+      const values = [];
+
+      if (isHistoryBodyMetricValid(record.weight_kg)) {
+        values.push(`体重 ${record.weight_kg} kg`);
+      }
+
+      if (isHistoryBodyMetricValid(record.waist_cm)) {
+        values.push(`腰围 ${record.waist_cm} cm`);
+      }
+
+      if (isHistoryBodyMetricValid(record.hip_cm)) {
+        values.push(`臀围 ${record.hip_cm} cm`);
+      }
+
+      return `
+          <div class="history-item">
+
+            <div class="history-title">
+              📏 ${historyEscapeHtml(date)}
+            </div>
+
+            <div class="muted">
+              ${values.length ? values.join(" · ") : "当天没有有效身体数据"}
+            </div>
+
+            <br>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="handleDeleteBodyMetricFromHistory(
+                '${historyEscapeHtml(recordId)}',
+                '${historyEscapeHtml(date)}'
+              )"
+            >
+              🗑 删除这条数据
+            </button>
+
+          </div>
+        `;
+    })
+    .join("");
+
+  renderBodyMetricsLoadMoreButton();
+}
+
+/* =========================================================
+    身体数据：加载更多按钮
+========================================================= */
+
+function renderBodyMetricsLoadMoreButton() {
+  const button = document.getElementById("loadMoreBodyMetricsButton");
+
+  if (!button) {
+    return;
+  }
+
+  if (!historyHasMoreBodyMetrics) {
+    button.classList.add("hidden");
+
+    return;
+  }
+
+  button.classList.remove("hidden");
+
+  button.disabled = false;
+
+  button.textContent = "加载更多";
+}
+
+/* =========================================================
+    加载更多身体数据
+========================================================= */
+
+async function loadMoreBodyMetrics() {
+  const button = document.getElementById("loadMoreBodyMetricsButton");
+
+  if (button) {
+    button.disabled = true;
+
+    button.textContent = "正在加载……";
+  }
+
+  await loadHistoryBodyMetrics(false);
+
+  renderBodyMetricsHistory();
+}
+
+/* =========================================================
+    删除身体数据
+========================================================= */
+
+async function handleDeleteBodyMetricFromHistory(metricId, recordDate) {
+  if (!metricId) {
+    alert("找不到这条身体数据的 ID。");
+
+    return;
+  }
+
+  const displayDate = recordDate
+    ? `${recordDate} 的身体数据`
+    : "这条身体数据";
+
+  const confirmed = confirm(
+    `确定要删除「${displayDate}」吗？\n\n` +
+      `删除后对应的统计和图表会同步更新。\n` +
+      `此操作无法恢复。`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    console.log("🗑 正在删除身体数据：", metricId);
+
+    await supabaseRequest(
+      `body_metrics?id=eq.${encodeURIComponent(metricId)}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    await loadHistoryBodyMetrics(true);
+
+    renderBodyMetricsHistory();
+
+    alert("身体数据已删除。");
+  } catch (error) {
+    console.error("❌ 删除身体数据失败：", error);
+
+    alert("删除失败，请检查数据库权限或网络连接。");
+  }
+}
+
+/* =========================================================
+    页面初始化
 ========================================================= */
 
 document.addEventListener("DOMContentLoaded", async function () {
