@@ -764,74 +764,78 @@ function updateMonthlySummary(data) {
 }
 
 /* =========================================================
-   获取所有月份
+   获取最近 N 次有效记录
+
+   按指标独立过滤：
+   - 只保留该指标有效（> 0）的记录
+   - 从最新开始取 N 条
+   - 最终按日期从早到晚返回
+
+   例如：
+   体重记录 30 次，腰围记录 20 次
+
+   → 体重图 30 个点
+   → 腰围图 20 个点（自动跳过没有腰围的日期）
 ========================================================= */
 
-function getAvailableMetricMonths(data) {
-  const monthSet = new Set();
+function getRecentMetricRecords(data, field, limit) {
+  const maxCount = Number.isFinite(limit) ? Number(limit) : 30;
 
-  data.forEach((item) => {
-    if (!item.record_date) {
-      return;
-    }
+  return data
 
-    const value = String(item.record_date).slice(0, 7);
+    .filter((item) => {
+      return isValidMetricValue(item[field]);
+    })
 
-    if (/^\d{4}-\d{2}$/.test(value)) {
-      monthSet.add(value);
-    }
-  });
+    /*
+       从最新到最旧
+    */
 
-  const months = Array.from(monthSet).sort();
+    .sort((a, b) => {
+      const dateA = String(a.record_date ?? "");
 
-  return months.map((monthKey) => {
-    const parts = monthKey.split("-");
+      const dateB = String(b.record_date ?? "");
 
-    const year = Number(parts[0]);
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA);
+      }
 
-    const month = Number(parts[1]);
+      return String(b.id ?? "").localeCompare(String(a.id ?? ""));
+    })
 
-    return {
-      key: monthKey,
+    .slice(0, maxCount)
 
-      label: `${year}年${month}月`,
+    /*
+       反过来：
+       从最旧到最新
+    */
 
-      year,
-
-      month,
-    };
-  });
+    .reverse();
 }
 
 /* =========================================================
-   计算某个月某项指标平均值
+   获取最近 30 次趋势数据
 ========================================================= */
 
-function getMonthlyAverage(data, monthKey, field) {
-  const list = data.filter((item) => {
-    return item.record_date && String(item.record_date).startsWith(monthKey);
-  });
-
-  return calculateAverage(list, field);
-}
-
-/* =========================================================
-   获取月度趋势数据
-========================================================= */
-
-function getMonthlyTrendData(data, field) {
-  const months = getAvailableMetricMonths(data);
-
-  const labels = months.map((item) => item.label);
-
-  const values = months.map((item) => {
-    return getMonthlyAverage(data, item.key, field);
-  });
+function getRecentTrendData(data, field) {
+  const records = getRecentMetricRecords(data, field);
 
   return {
-    labels,
+    records,
 
-    values,
+    labels: records.map((item) => {
+      const date = parseMetricDate(item.record_date);
+
+      if (!date) {
+        return String(item.record_date ?? "");
+      }
+
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }),
+
+    values: records.map((item) => {
+      return Number(item[field]);
+    }),
   };
 }
 
@@ -882,7 +886,7 @@ function updateMonthlyTrendChart(data) {
 
   const config = getMonthlyMetricConfig(currentMonthlyMetric);
 
-  const trend = getMonthlyTrendData(data, config.field);
+  const trend = getRecentTrendData(data, config.field);
 
   /*
      销毁旧图表
@@ -955,6 +959,18 @@ function updateMonthlyTrendChart(data) {
 
         tooltip: {
           callbacks: {
+            title: function (context) {
+              const index = context[0]?.dataIndex ?? -1;
+
+              const record = trend.records[index];
+
+              if (record && record.record_date) {
+                return String(record.record_date);
+              }
+
+              return "";
+            },
+
             label: function (context) {
               const value = Number(context.parsed.y);
 
