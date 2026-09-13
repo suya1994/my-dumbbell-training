@@ -343,8 +343,10 @@
 
                     <div class="muted">
 
-                         选择是否是新的 ChatGPT 对话。
-                         网站会根据你的选择自动决定需要提供多少历史数据。
+                         点击下面按钮生成 3 个模块：
+                         首次对话请「复制全部 3 个模块」发给 ChatGPT；
+                         之后每次完成训练，只需复制本次的「模块2」发给 ChatGPT，
+                         网站会自动带入最新训练情况和动作历史。
 
                     </div>
 
@@ -362,15 +364,54 @@
                     <br>
 
 
-                    <textarea id="aiPrompt" class="note" rows="18" placeholder="点击上面的按钮后，这里会生成训练历史分析提示词……"></textarea>
+                    <p class="ai-module-title">模块1 · 当前AI设置</p>
 
+                    <textarea id="aiPromptSettings" class="note" rows="6" placeholder="点击上面的按钮后，这里会生成「当前AI设置」……"></textarea>
 
                     <br>
 
+                    <button class="primary-btn" onclick="copyAIPromptModule('aiPromptSettings')">
 
-                    <button class="primary-btn" onclick="copyAIPrompt()">
+                         📋 复制模块1
 
-                         📋 复制给 ChatGPT
+                    </button>
+
+                    <br>
+                    <br>
+
+                    <p class="ai-module-title">模块2 · 最近一次训练情况 + 历史动作表现 + 身体数据</p>
+
+                    <textarea id="aiPromptTraining" class="note" rows="14" placeholder="点击上面的按钮后，这里会生成「最近一次训练情况」等数据……"></textarea>
+
+                    <br>
+
+                    <button class="primary-btn" onclick="copyAIPromptModule('aiPromptTraining')">
+
+                         📋 复制模块2
+
+                    </button>
+
+                    <br>
+                    <br>
+
+                    <p class="ai-module-title">模块3 · 最终输出格式</p>
+
+                    <textarea id="aiPromptOutput" class="note" rows="10" placeholder="点击上面的按钮后，这里会生成「最终输出格式」……"></textarea>
+
+                    <br>
+
+                    <button class="primary-btn" onclick="copyAIPromptModule('aiPromptOutput')">
+
+                         📋 复制模块3
+
+                    </button>
+
+                    <br>
+                    <br>
+
+                    <button class="primary-btn" onclick="copyAIModulesAll()">
+
+                         📋 复制全部 3 个模块（首次对话）
 
                     </button>
 

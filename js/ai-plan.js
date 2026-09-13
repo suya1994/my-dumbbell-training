@@ -1102,21 +1102,21 @@ async function getLatestTrainingWithResultsForAI() {
    ↓
    每个动作保留最近若干次历史表现
 
-   这里保留最近6次该动作表现。
+   这里保留最近5次该动作表现。
 
-   不是“最近6次训练”。
+   不是“最近5次训练”。
 
    而是：
 
-   “这个动作最近6次出现时的表现”。
+   “这个动作最近5次出现时的表现”。
 ============================================================ */
 
-async function getExercisePerformanceHistoryForAI(perExerciseLimit = 6) {
+async function getExercisePerformanceHistoryForAI(perExerciseLimit = 5) {
   try {
     const safeLimit =
       Number.isFinite(Number(perExerciseLimit)) && Number(perExerciseLimit) > 0
         ? Number(perExerciseLimit)
-        : 6;
+        : 5;
 
     console.log(`📊 正在读取历史动作表现（每个动作最近${safeLimit}次）……`);
 
@@ -1352,7 +1352,7 @@ async function getExercisePerformanceHistoryForAI(perExerciseLimit = 6) {
     /* ========================================================
        7. 每个动作按训练编号倒序
 
-       并限制最近6次“这个动作”的表现。
+       并限制最近5次“这个动作”的表现。
     ======================================================== */
 
     const result = [];
@@ -1429,7 +1429,7 @@ function formatAISettingsForPrompt(trainingSettings) {
   const restrictionsText = trainingSettings.restrictions || "暂无";
 
   return `
-【当前AI训练设置】
+【当前AI设置】
 
 每周力量训练目标：
 ${weeklyTargetText}
@@ -1460,7 +1460,7 @@ ${restrictionsText}
 
 function formatBodyDataForPrompt(bodyData) {
   if (!bodyData || typeof bodyData !== "object") {
-    return "【身体数据】暂无记录。";
+    return "【身体数据】\n\n暂无记录。";
   }
 
   const latest = bodyData.latest || {};
@@ -1469,48 +1469,39 @@ function formatBodyDataForPrompt(bodyData) {
 
   const month = bodyData.month_change || {};
 
-  function formatLatest(value, unit = "") {
+  function latestText(value, unit = "") {
     if (value === null || value === undefined || value === "") {
-      return "暂无";
+      return "无";
     }
 
     return `${value}${unit}`;
   }
 
-  function formatChange(data, unit = "") {
+  function changeText(data, unit = "") {
     if (!data || data.change === null || data.change === undefined) {
-      return "暂无对比数据";
+      return "无记录";
     }
 
-    return `${data.change}${unit}`;
+    return `${data.change > 0 ? "+" : ""}${data.change}${unit}`;
   }
 
   return `
 【身体数据】
 
-身高：162cm
+最新：体重 ${latestText(latest.weight_kg, "kg")}，腰围 ${latestText(
+    latest.waist_cm,
+    "cm",
+  )}，臀围 ${latestText(latest.hip_cm, "cm")}
+上周变化：体重 ${changeText(week.weight, "kg")}，腰围 ${changeText(
+    week.waist,
+    "cm",
+  )}，臀围 ${changeText(week.hip, "cm")}
+上月变化：体重 ${changeText(month.weight, "kg")}，腰围 ${changeText(
+    month.waist,
+    "cm",
+  )}，臀围 ${changeText(month.hip, "cm")}
 
-最新一次：
-体重：${formatLatest(latest.weight_kg, " kg")}
-腰围：${formatLatest(latest.waist_cm, " cm")}
-臀围：${formatLatest(latest.hip_cm, " cm")}
-
-相比上周身体变化：
-体重：${formatChange(week.weight, " kg")}
-腰围：${formatChange(week.waist, " cm")}
-臀围：${formatChange(week.hip, " cm")}
-
-相比上月身体变化：
-体重：${formatChange(month.weight, " kg")}
-腰围：${formatChange(month.waist, " cm")}
-臀围：${formatChange(month.hip, " cm")}
-
-说明：
-- 最新一次数据中，每个指标分别寻找最近一次有效记录。
-- 体重、腰围、臀围不要求在同一天记录。
-- “相比上周”是与上一个自然周（周一至周日）中平均数据比较。
-- “相比上月”是与上一个自然月平均数据比较。
-- 正数表示增加，负数表示减少。
+说明：每个指标分别取最近一次有效记录；正数表示增加，负数表示减少。
 `.trim();
 }
 
@@ -1606,7 +1597,7 @@ function formatExercisePerformanceHistoryForPrompt(history) {
   const lines = [];
 
   lines.push(
-    "【历史动作表现】【每个动作最多显示最近6次的运动情况，难度为我完成运动后的感受】",
+    "【历史动作表现】【每个动作最多显示最近5次的运动情况，难度为我完成运动后的感受】",
   );
 
   data.forEach((exercise) => {
@@ -1657,22 +1648,19 @@ function formatExercisePerformanceHistoryForPrompt(history) {
 
 async function generateAITrainingPrompt() {
   try {
-    console.log("🤖 开始生成AI训练提示词……");
+    console.log("🤖 开始生成AI训练分析……");
     /* ========================================================
 
-       数据读取
+       生成 3 个模块：
 
-       每次生成Prompt都使用完整的AI训练上下文：
+       模块1 · 当前AI设置
+         - AI的职责、当前训练目标、每周目标、时长、限制等
 
-       ① 当前训练状态
+       模块2 · 最近一次训练情况 + 历史动作表现 + 身体数据
+         - 每次完成训练后变化的内容，后续对话只需发本模块
 
-       ② 身体数据
-
-       ③ 最近一次训练
-
-       ④ 历史动作表现
-
-       ⑤ 当前AI训练设置
+       模块3 · 最终输出格式
+         - 告诉AI必须按什么格式输出训练计划
 
     ======================================================== */
 
@@ -1695,7 +1683,7 @@ async function generateAITrainingPrompt() {
 
       getLatestTrainingWithResultsForAI(),
 
-      getExercisePerformanceHistoryForAI(6),
+      getExercisePerformanceHistoryForAI(5),
     ]);
 
     const nextNumber = currentState.next_workout_number;
@@ -1712,22 +1700,7 @@ async function generateAITrainingPrompt() {
 
     const settingsSection = formatAISettingsForPrompt(trainingSettings);
 
-    /* ========================================================
-       当前状态
-    ======================================================== */
-
-    const currentStateSection = `
-【当前训练状态】
-
-最近一次已保存训练：
-第${currentState.latest_saved_workout_number}次
-
-下一次训练：
-第${nextNumber}次
-
-请以数据库当前状态为准，
-不要自行修改训练编号。
-`.trim();
+    
 
     /* ========================================================
        身体数据
@@ -1748,33 +1721,6 @@ async function generateAITrainingPrompt() {
     const exerciseHistorySection =
       formatExercisePerformanceHistoryForPrompt(exerciseHistory);
 
-    /* ========================================================
-   最近7天其它运动
-======================================================== */
-
-    const recent7DayActivity = getRecent7DayOtherExerciseForAI();
-
-    const recent7DayActivityText = recent7DayActivity
-      .map((day) => {
-        return `${day.date}：其它运动：${day.otherExercise}`;
-      })
-      .join("\n");
-
-    const recent7DayActivitySection = `
-【最近7天其它活动情况】
-
-以下数据用于帮助AI判断最近的整体活动量，
-尤其用于判断力量训练安排是否需要考虑近期活动量和恢复情况。
-
-${recent7DayActivityText}
-
-说明：
-- 应结合最近一次力量训练、历史动作表现、身体数据和训练目标综合判断。
-`.trim();
-
-    /* =========================================================
-   最近 7 天其它运动
-========================================================= */
 
     /* ========================================================
        动作输出格式
@@ -1869,19 +1815,34 @@ actual_duration_minutes：
        最终Prompt
     ======================================================== */
 
-    const prompt = [
+    /* ========================================================
+       组装 3 个模块
+    ======================================================== */
+
+    const moduleSettings = [
+      `【模块1 · 当前AI设置】`,
+
       promptHeader,
 
       settingsSection,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
-      currentStateSection,
-
-      bodyDataSection,
+    const moduleTraining = [
+      `【模块2 · 最近一次训练情况 + 历史动作表现 + 身体数据】`,
 
       latestTrainingSection,
 
       exerciseHistorySection,
-      recent7DayActivitySection,
+
+      bodyDataSection,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const moduleOutput = [
+      `【模块3 · 最终输出格式】`,
 
       outputRules,
 
@@ -1891,22 +1852,20 @@ actual_duration_minutes：
       .join("\n\n");
 
     /* ========================================================
-       写入页面
+       写入页面（3 个文本框）
     ======================================================== */
 
-    const box = document.getElementById("aiPrompt");
+    writeAIModule("aiPromptSettings", moduleSettings);
 
-    if (box) {
-      box.value = prompt.trim();
-    } else {
-      console.warn("没有找到 #aiPrompt。");
-    }
+    writeAIModule("aiPromptTraining", moduleTraining);
+
+    writeAIModule("aiPromptOutput", moduleOutput);
 
     /* ========================================================
        日志
     ======================================================== */
 
-    console.log("✅ AI训练Prompt生成完成。");
+    console.log("✅ AI训练分析（3个模块）生成完成。");
 
     console.log({
       latestTraining: latestTraining ? latestTraining.workout_number : null,
@@ -1916,13 +1875,29 @@ actual_duration_minutes：
       nextWorkoutNumber: nextNumber,
     });
 
-    return prompt.trim();
+    return [moduleSettings, moduleTraining, moduleOutput]
+      .filter(Boolean)
+      .join("\n\n");
   } catch (error) {
-    console.error("❌ 生成AI训练提示词失败：", error);
+    console.error("❌ 生成AI训练分析失败：", error);
 
-    alert("生成 AI 训练提示词失败：\n\n" + (error.message || String(error)));
+    alert("生成 AI 训练分析失败：\n\n" + (error.message || String(error)));
 
     return null;
+  }
+}
+
+/* ============================================================
+   写入 AI 模块文本框
+=========================================================== */
+
+function writeAIModule(id, text) {
+  const box = document.getElementById(id);
+
+  if (box) {
+    box.value = text.trim();
+  } else {
+    console.warn(`没有找到 #${id}。`);
   }
 }
 
@@ -1930,19 +1905,19 @@ actual_duration_minutes：
    ⑯ 复制Prompt
 ============================================================ */
 
-async function copyAIPrompt() {
-  const box = document.getElementById("aiPrompt");
+async function copyAIPromptModule(id) {
+  const box = document.getElementById(id);
 
-  if (!box || !box.value) {
-    alert("请先生成给 ChatGPT 的训练提示词。");
+  if (!box || !box.value.trim()) {
+    alert("请先生成对应的训练分析模块。");
 
     return;
   }
 
   try {
-    await navigator.clipboard.writeText(box.value);
+    await navigator.clipboard.writeText(box.value.trim());
 
-    alert("已经复制好了。现在把它发给 ChatGPT，让 ChatGPT 制定下一次训练。");
+    alert("模块已复制。");
   } catch (error) {
     console.error(error);
 
@@ -1951,12 +1926,42 @@ async function copyAIPrompt() {
 
       document.execCommand("copy");
 
-      alert("已经复制好了。现在把它发给 ChatGPT。");
+      alert("模块已复制。");
     } catch (copyError) {
       console.error(copyError);
 
-      alert("复制失败，请手动复制提示词。");
+      alert("复制失败，请手动复制文本。");
     }
+  }
+}
+
+/* ============================================================
+   ⑯-2 复制全部 3 个模块（首次对话使用）
+=========================================================== */
+
+async function copyAIModulesAll() {
+  const parts = ["aiPromptSettings", "aiPromptTraining", "aiPromptOutput"]
+    .map((id) => {
+      const box = document.getElementById(id);
+
+      return box && box.value.trim() ? box.value.trim() : "";
+    })
+    .filter(Boolean);
+
+  if (!parts.length) {
+    alert("请先生成 AI 训练分析。");
+
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(parts.join("\n\n"));
+
+    alert("3 个模块已全部复制，首次对话发给 ChatGPT 即可。");
+  } catch (error) {
+    console.error(error);
+
+    alert("复制失败，请手动分别复制 3 个模块。");
   }
 }
 
@@ -2822,60 +2827,4 @@ async function importAITrainingPlan() {
         "原有训练计划没有主动删除。",
     );
   }
-}
-
-/* =========================================================
-   获取最近 7 天其它运动
-   提供给 AI 教练参考
-========================================================= */
-
-function getRecent7DayOtherExerciseForAI() {
-  const result = [];
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-
-    date.setDate(today.getDate() - i);
-
-    const dateString =
-      date.getFullYear() +
-      "-" +
-      String(date.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(date.getDate()).padStart(2, "0");
-
-    /* ================================
-       其它运动
-    ================================ */
-
-    const dayOtherActivities = Array.isArray(otherActivities)
-      ? otherActivities.filter(
-          (activity) => activity.activity_date === dateString,
-        )
-      : [];
-
-    let otherExerciseText = "无";
-
-    if (dayOtherActivities.length) {
-      otherExerciseText = dayOtherActivities
-        .map((activity) => {
-          const type = activity.activity_type || "其它运动";
-
-          const duration = Number(activity.duration_minutes) || 0;
-
-          return `${type} ${duration} 分钟`;
-        })
-        .join("、");
-    }
-
-    result.push({
-      date: dateString,
-      otherExercise: otherExerciseText,
-    });
-  }
-
-  return result;
 }
