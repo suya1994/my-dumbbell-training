@@ -1979,6 +1979,69 @@ function cleanAIPlanText(text) {
 }
 
 /* ============================================================
+   修复 AI 计划 JSON 中的裸换行
+
+   ChatGPT 输出的 notes 等字段可能是多行文本：
+
+   "notes": "第一行
+   第二行"
+
+   这在 JSON 中是非法的，
+   因为字符串内不允许裸换行。
+
+   这里把字符串值内部的
+   裸 \n 和 \r
+   转义为 \n
+   让 JSON 可以正常解析。
+============================================================ */
+
+function repairAiPlanNewlines(input) {
+  let result = "";
+
+  let inString = false;
+
+  let escaped = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+
+    if (escaped) {
+      result += ch;
+
+      escaped = false;
+
+      continue;
+    }
+
+    if (ch === "\\") {
+      result += ch;
+
+      escaped = true;
+
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+
+      result += ch;
+
+      continue;
+    }
+
+    if (inString && (ch === "\n" || ch === "\r")) {
+      result += "\\n";
+
+      continue;
+    }
+
+    result += ch;
+  }
+
+  return result;
+}
+
+/* ============================================================
    ⑱ 从ChatGPT返回内容提取JSON
 ============================================================ */
 
@@ -1988,6 +2051,10 @@ function extractAIPlanJSON(text) {
   if (!source) {
     throw new Error("没有检测到任何内容。");
   }
+
+  source = source.replace(/^\uFEFF/, "");
+
+  source = source.replace(/\r\n?/g, "\n");
 
   source = source
     .replace(/[“”]/g, '"')
@@ -2012,6 +2079,14 @@ function extractAIPlanJSON(text) {
 
   try {
     return JSON.parse(source);
+  } catch (error) {}
+
+  /*
+     字符串值内有裸换行 → 转义为 \n 后再试
+  */
+
+  try {
+    return JSON.parse(repairAiPlanNewlines(source));
   } catch (error) {}
 
   /* ========================================================
@@ -2074,6 +2149,14 @@ function extractAIPlanJSON(text) {
 
   try {
     return JSON.parse(jsonText);
+  } catch (error) {}
+
+  /*
+     字符串值内有裸换行 → 转义为 \n 后再试
+  */
+
+  try {
+    return JSON.parse(repairAiPlanNewlines(jsonText));
   } catch (error) {
     console.error("提取出的JSON：", jsonText);
 
