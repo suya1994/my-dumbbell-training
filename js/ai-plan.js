@@ -1820,8 +1820,6 @@ actual_duration_minutes：
     ======================================================== */
 
     const moduleSettings = [
-      `【模块1 · 当前AI设置】`,
-
       promptHeader,
 
       settingsSection,
@@ -1830,8 +1828,6 @@ actual_duration_minutes：
       .join("\n\n");
 
     const moduleTraining = [
-      `【模块2 · 最近一次训练情况 + 历史动作表现 + 身体数据】`,
-
       latestTrainingSection,
 
       exerciseHistorySection,
@@ -1842,7 +1838,7 @@ actual_duration_minutes：
       .join("\n\n");
 
     const moduleOutput = [
-      `【模块3 · 最终输出格式】`,
+      `【最终输出格式】`,
 
       outputRules,
 
