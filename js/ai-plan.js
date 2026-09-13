@@ -2061,38 +2061,64 @@ function extractAIPlanJSON(text) {
 
   source = source.replace(/\r\n?/g, "\n");
 
-  source = source
+  /* ========================================================
+     先尝试直接解析。
+
+     注意：原样 JSON 里的字符串值可能包含合法的
+     中文全角引号“”、中文冒号：、中文逗号，，
+     必须优先用原样解析，不能提前替换标点，
+     否则会破坏原本合法的 JSON。
+  ======================================================== */
+
+  const rawCandidates = [source, cleanAIPlanText(source)];
+
+  for (const candidate of rawCandidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (error) {}
+  }
+
+  /* ========================================================
+     字符串值内有裸换行 → 转义为 \n 后再试
+  ======================================================== */
+
+  for (const candidate of rawCandidates) {
+    try {
+      return JSON.parse(repairAiPlanNewlines(candidate));
+    } catch (error) {}
+  }
+
+  /* ========================================================
+     全角标点容错
+
+     只有原样解析都失败后，
+     才把英文引号、冒号、逗号误写成中文全角的情况
+     替换成英文标点再次尝试。
+  ======================================================== */
+
+  const normalized = source
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
     .replace(/：/g, ":")
-    .replace(/，/g, ",")
-    .trim();
+    .replace(/，/g, ",");
 
-  /* ========================================================
-     直接解析
-  ======================================================== */
+  const normalizedCandidates = [
+    normalized,
 
-  try {
-    return JSON.parse(source);
-  } catch (error) {}
+    cleanAIPlanText(normalized),
+  ];
 
-  /* ========================================================
-     清理代码块
-  ======================================================== */
+  for (const candidate of normalizedCandidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (error) {}
+  }
 
-  source = cleanAIPlanText(source);
-
-  try {
-    return JSON.parse(source);
-  } catch (error) {}
-
-  /*
-     字符串值内有裸换行 → 转义为 \n 后再试
-  */
-
-  try {
-    return JSON.parse(repairAiPlanNewlines(source));
-  } catch (error) {}
+  for (const candidate of normalizedCandidates) {
+    try {
+      return JSON.parse(repairAiPlanNewlines(candidate));
+    } catch (error) {}
+  }
 
   /* ========================================================
      从说明文字中提取JSON对象
@@ -2152,21 +2178,32 @@ function extractAIPlanJSON(text) {
 
   const jsonText = source.slice(firstBrace, endIndex + 1);
 
-  try {
-    return JSON.parse(jsonText);
-  } catch (error) {}
+  const extractedCandidates = [
+    jsonText,
 
-  /*
-     字符串值内有裸换行 → 转义为 \n 后再试
-  */
+    cleanAIPlanText(jsonText),
 
-  try {
-    return JSON.parse(repairAiPlanNewlines(jsonText));
-  } catch (error) {
-    console.error("提取出的JSON：", jsonText);
+    jsonText
+      .replace(/[“”]/g, '"')
+      .replace(/：/g, ":")
+      .replace(/，/g, ","),
+  ];
 
-    throw new Error("找到了一段JSON，但JSON格式仍然无法解析。");
+  for (const candidate of extractedCandidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (error) {}
   }
+
+  for (const candidate of extractedCandidates) {
+    try {
+      return JSON.parse(repairAiPlanNewlines(candidate));
+    } catch (error) {}
+  }
+
+  console.error("提取出的JSON：", jsonText);
+
+  throw new Error("找到了一段JSON，但JSON格式仍然无法解析。");
 }
 
 /* ============================================================
