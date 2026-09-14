@@ -1498,11 +1498,22 @@ function formatBodyDataForPrompt(bodyData) {
   }
 
   function changeText(data, unit = "") {
-    if (!data || data.change === null || data.change === undefined) {
+    if (
+      !data ||
+      data.change === null ||
+      data.change === undefined ||
+      data.change === ""
+    ) {
       return "无记录";
     }
 
-    return `${data.change > 0 ? "+" : ""}${data.change}${unit}`;
+    const value = Number(data.change);
+
+    if (!Number.isFinite(value)) {
+      return "无记录";
+    }
+
+    return `${value > 0 ? "+" : ""}${value}${unit}`;
   }
 
   return `
@@ -1567,35 +1578,6 @@ ${latestTraining.body_note || "暂无"}
 动作表现：
 
 ${JSON.stringify(latestTraining.exercises || [], null, 2)}
-
-汇总：
-
-已完成：
-${latestTraining.completed?.length ? latestTraining.completed.join("、") : "无"}
-
-未完成：
-${
-  latestTraining.not_completed?.length
-    ? latestTraining.not_completed.join("、")
-    : "无"
-}
-
-轻松：
-${latestTraining.easy?.length ? latestTraining.easy.join("、") : "无"}
-
-正常：
-${latestTraining.normal?.length ? latestTraining.normal.join("、") : "无"}
-
-吃力：
-${latestTraining.difficult?.length ? latestTraining.difficult.join("、") : "无"}
-
-特别规则：
-- difficulty 是用户实际训练时选择的难度。
-- easy = 轻松。
-- normal = 正常。
-- hard = 吃力。
-- incomplete = 未完成。
-- actual_duration_minutes 是用户实际训练花费时间。
 `.trim();
 }
 
@@ -1622,8 +1604,6 @@ function formatExercisePerformanceHistoryForPrompt(history) {
 
   data.forEach((exercise) => {
     lines.push(`【${exercise.exercise_name}】`);
-
-    lines.push(`历史出现次数：${exercise.appearances}`);
 
     const historyList = getSafeArray(exercise.history);
 
