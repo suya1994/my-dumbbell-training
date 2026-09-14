@@ -1398,7 +1398,6 @@ async function getExercisePerformanceHistoryForAI(perExerciseLimit = 3) {
   }
 }
 
-/* ============================================================
 function isExerciseStaleForAI(item) {
   if (!item || !item.workout_date) {
     return false;
@@ -1418,8 +1417,10 @@ function isExerciseStaleForAI(item) {
 
   return days > 30;
 }
+
+/* ============================================================
    ⑪ 生成固定力量训练教练规则 + 每周训练目标
-============================================================ */
+=========================================================== */
 
 function formatFixedCoachRulesForPrompt(trainingSettings) {
   if (!trainingSettings || typeof trainingSettings !== "object") {
