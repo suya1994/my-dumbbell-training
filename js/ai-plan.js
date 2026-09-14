@@ -1424,20 +1424,16 @@ function isExerciseStaleForAI(item) {
 
 function formatFixedCoachRulesForPrompt(trainingSettings) {
   if (!trainingSettings || typeof trainingSettings !== "object") {
-    return "【固定力量训练教练规则】\n\n目前没有提供教练规则。";
+    return "目前没有提供教练规则。";
   }
 
   const behavior = String(trainingSettings.behavior || "").trim();
 
   if (!behavior) {
-    return "【固定力量训练教练规则】\n\n目前没有设置教练规则。";
+    return "目前没有设置教练规则。";
   }
 
-  return `
-【固定力量训练教练规则】
-
-${behavior}
-`.trim();
+  return behavior;
 }
 
 function formatTrainingTargetForPrompt(trainingSettings) {
