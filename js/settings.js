@@ -2,38 +2,26 @@
    settings.js
    私人哑铃训练系统 - 设置模块
 
-   第4步：Supabase 数据库版
-
    负责：
 
    1. 读取 user_settings
-   2. 保存训练目标
-   3. 保存 AI 教练设置
-   4. 提供 getAISettings() 给 ai-plan.js 使用
-   5. 动作限制支持添加 / 删除
-   6. 不再使用 localStorage
-============================================================ */
+   2. 保存每周力量训练次数
+   3. 保存每次期望训练时间
+   4. 保存固定力量训练教练规则（ai_behavior）
+   5. 提供 getAISettings() 给 ai-plan.js 使用
+   ============================================================ */
 
 /* ============================================================
    默认 AI 设置
-============================================================ */
+   ============================================================ */
 
 const DEFAULT_AI_SETTINGS = {
   weekly_strength_target: 3,
+
   expected_duration_minutes: 30,
-
-  goals: ["腰腹收紧 / 核心稳定", "臀部塑形", "手臂", "背部"],
-
-  focus:
-    "重点关注动作完成度、训练难度、左右侧力量差异、训练量变化以及身体感受。",
 
   behavior:
     "根据训练历史动态调整训练，不为了变化而变化；优先保证动作安全和训练可执行性；如果当前训练方案合理，可以继续使用，不强行更换。",
-
-  limitations: "深蹲、罗马尼亚硬拉、俯身哑铃划船",
-
-  restrictions:
-    "腰部容易疲劳，需要保护腰部；左手力量比右手弱；训练时间控制在20～25分钟；目前使用两个5kg哑铃、瑜伽垫、椅子和桌子。",
 };
 
 /* ============================================================
@@ -44,54 +32,23 @@ const DEFAULT_AI_SETTINGS = {
    getAISettings()
 
    获取。
-============================================================ */
+   ============================================================ */
 
 let currentAISettings = null;
 
 /* ============================================================
    将数据库记录转换成网站使用的设置格式
-============================================================ */
+   ============================================================ */
 
 function normalizeAISettings(row) {
   if (!row || typeof row !== "object") {
     return {
       weekly_strength_target: DEFAULT_AI_SETTINGS.weekly_strength_target,
 
-      goals: [...DEFAULT_AI_SETTINGS.goals],
-
-      focus: DEFAULT_AI_SETTINGS.focus,
+      expected_duration_minutes: DEFAULT_AI_SETTINGS.expected_duration_minutes,
 
       behavior: DEFAULT_AI_SETTINGS.behavior,
-
-      limitations: DEFAULT_AI_SETTINGS.limitations,
-
-      restrictions: DEFAULT_AI_SETTINGS.restrictions,
     };
-  }
-
-  /* ========================================================
-       AI目标
-    ======================================================== */
-
-  let goals = [];
-
-  if (Array.isArray(row.ai_goals)) {
-    goals = row.ai_goals
-      .map(function (item) {
-        return String(item || "").trim();
-      })
-      .filter(Boolean);
-  } else if (typeof row.ai_goals === "string") {
-    goals = row.ai_goals
-      .split(/[、,，\n]/)
-      .map(function (item) {
-        return item.trim();
-      })
-      .filter(Boolean);
-  }
-
-  if (!goals.length) {
-    goals = [...DEFAULT_AI_SETTINGS.goals];
   }
 
   /* ========================================================
@@ -111,27 +68,19 @@ function normalizeAISettings(row) {
   }
 
   /* ========================================================
-       最终设置
+       固定力量训练教练规则
     ======================================================== */
+
+  const behavior = String(
+    row.ai_behavior ?? DEFAULT_AI_SETTINGS.behavior,
+  ).trim();
 
   return {
     weekly_strength_target: weeklyTarget,
 
     expected_duration_minutes: expectedDuration,
 
-    goals,
-
-    focus: String(row.ai_focus ?? DEFAULT_AI_SETTINGS.focus).trim(),
-
-    behavior: String(row.ai_behavior ?? DEFAULT_AI_SETTINGS.behavior).trim(),
-
-    limitations: String(
-      row.ai_limitations ?? DEFAULT_AI_SETTINGS.limitations,
-    ).trim(),
-
-    restrictions: String(
-      row.ai_restrictions ?? DEFAULT_AI_SETTINGS.restrictions,
-    ).trim(),
+    behavior: behavior || DEFAULT_AI_SETTINGS.behavior,
   };
 }
 
@@ -142,7 +91,7 @@ function normalizeAISettings(row) {
 
    const settings = getAISettings();
 
-============================================================ */
+   ============================================================ */
 
 function getAISettings() {
   if (!currentAISettings) {
@@ -154,21 +103,13 @@ function getAISettings() {
 
     expected_duration_minutes: currentAISettings.expected_duration_minutes,
 
-    goals: [...currentAISettings.goals],
-
-    focus: currentAISettings.focus,
-
     behavior: currentAISettings.behavior,
-
-    limitations: currentAISettings.limitations,
-
-    restrictions: currentAISettings.restrictions,
   };
 }
 
 /* ============================================================
    从 Supabase 读取设置
-============================================================ */
+   ============================================================ */
 
 async function loadAISettings() {
   try {
@@ -178,12 +119,6 @@ async function loadAISettings() {
 
     /* ====================================================
            数据库还没有记录
-
-           正常情况下第3步已经插入了默认记录。
-
-           如果没有：
-
-           自动创建默认记录。
         ==================================================== */
 
     if (!result || !result.length) {
@@ -231,7 +166,7 @@ async function loadAISettings() {
 
 /* ============================================================
    创建默认设置
-============================================================ */
+   ============================================================ */
 
 async function createDefaultAISettings() {
   const payload = {
@@ -239,15 +174,7 @@ async function createDefaultAISettings() {
 
     expected_duration_minutes: DEFAULT_AI_SETTINGS.expected_duration_minutes,
 
-    ai_goals: DEFAULT_AI_SETTINGS.goals,
-
-    ai_focus: DEFAULT_AI_SETTINGS.focus,
-
     ai_behavior: DEFAULT_AI_SETTINGS.behavior,
-
-    ai_limitations: DEFAULT_AI_SETTINGS.limitations,
-
-    ai_restrictions: DEFAULT_AI_SETTINGS.restrictions,
   };
 
   const result = await supabaseRequest("user_settings", {
@@ -267,16 +194,12 @@ async function createDefaultAISettings() {
 
 /* ============================================================
    将设置显示到页面
-============================================================ */
+   ============================================================ */
 
 function populateAISettingsForm(settings) {
   if (!settings) {
     return;
   }
-
-  /* ========================================================
-       每周训练目标
-    ======================================================== */
 
   const weeklyTarget = document.getElementById("weeklyStrengthTarget");
 
@@ -290,117 +213,106 @@ function populateAISettingsForm(settings) {
     expectedDuration.value = settings.expected_duration_minutes;
   }
 
-  const goals = document.getElementById("aiGoals");
-
-  if (goals) {
-    goals.value = settings.goals.join("、");
-  }
-
-  /* ========================================================
-       AI重点关注
-    ======================================================== */
-
-  const focus = document.getElementById("aiFocus");
-
-  if (focus) {
-    focus.value = settings.focus;
-  }
-
-  /* ========================================================
-       AI教练行为
-    ======================================================== */
-
   const behavior = document.getElementById("aiBehavior");
 
   if (behavior) {
     behavior.value = settings.behavior;
   }
-
-  /* ========================================================
-       AI训练限制
-    ======================================================== */
-
-  const restrictions = document.getElementById("aiRestrictions");
-
-  if (restrictions) {
-    restrictions.value = settings.restrictions;
-  }
-
-  /* ========================================================
-       动作限制
-
-       settings.html 已经有：
-
-       loadAILimitationsUI()
-
-       所以这里不直接操作 DOM。
-
-       等页面初始化完成后，
-       它会自己读取 getAISettings()。
-    ======================================================== */
 }
 
 /* ============================================================
-   保存每周训练目标
-============================================================ */
+   保存 AI 设置
+   ============================================================ */
 
-async function saveTrainingSettings() {
-  const input = document.getElementById("weeklyStrengthTarget");
-
-  if (!input) {
-    return;
-  }
-
-  const value = Number(input.value);
-
-  if (!Number.isFinite(value) || value < 1 || value > 7) {
-    alert("每周力量训练次数必须是 1～7 次。");
-    return;
-  }
-
-  const durationInput = document.getElementById("expectedDurationMinutes");
-  const expectedDuration = Number(durationInput?.value);
-
-  if (
-    !Number.isFinite(expectedDuration) ||
-    expectedDuration <= 0 ||
-    expectedDuration > 180
-  ) {
-    alert("每次期望训练时间必须是有效的分钟数。");
-    return;
-  }
-
+async function saveAISettings() {
   try {
+    /* ====================================================
+           每周力量训练次数
+        ==================================================== */
+
+    const weeklyTargetInput = document.getElementById("weeklyStrengthTarget");
+
+    const value = Number(weeklyTargetInput?.value);
+
+    if (!Number.isFinite(value) || value < 1 || value > 7) {
+      alert("每周力量训练次数必须是 1～7 次。");
+
+      return;
+    }
+
+    /* ====================================================
+           每次期望训练时间
+        ==================================================== */
+
+    const durationInput = document.getElementById("expectedDurationMinutes");
+
+    const expectedDuration = Number(durationInput?.value);
+
+    if (
+      !Number.isFinite(expectedDuration) ||
+      expectedDuration <= 0 ||
+      expectedDuration > 180
+    ) {
+      alert("每次期望训练时间必须是有效的分钟数。");
+
+      return;
+    }
+
+    /* ====================================================
+           固定力量训练教练规则
+        ==================================================== */
+
+    const behavior = document.getElementById("aiBehavior")?.value.trim() || "";
+
+    /* ====================================================
+           确保数据库记录存在
+        ==================================================== */
+
     const id = await ensureSettingsRow();
 
-    const updated = await supabaseRequest("user_settings?id=eq." + id, {
+    /* ====================================================
+           写入 Supabase
+        ==================================================== */
+
+    await supabaseRequest("user_settings?id=eq." + id, {
       method: "PATCH",
 
       body: {
         weekly_strength_target: value,
+
         expected_duration_minutes: expectedDuration,
+
+        ai_behavior: behavior,
       },
     });
 
     /* ====================================================
-       更新本地缓存
-    ==================================================== */
+           更新本地缓存
+        ==================================================== */
 
-    currentAISettings.weekly_strength_target = value;
-    currentAISettings.expected_duration_minutes = expectedDuration;
+    currentAISettings = {
+      __id: id,
 
-    alert("训练设置已经保存。💪");
+      weekly_strength_target: value,
+
+      expected_duration_minutes: expectedDuration,
+
+      behavior: behavior || DEFAULT_AI_SETTINGS.behavior,
+    };
+
+    /* ====================================================
+           刷新页面
+        ==================================================== */
 
     updateSettingsStatus();
 
-    console.log("训练设置已保存到 Supabase：", {
-      weekly_strength_target: value,
-      expected_duration_minutes: expectedDuration,
-    });
-  } catch (error) {
-    console.error("保存训练设置失败：", error);
+    alert("AI教练设置已经保存。🤖");
 
-    alert("保存训练设置失败：\n\n" + (error.message || String(error)));
+    console.log("AI设置已保存到 Supabase：", getAISettings());
+  } catch (error) {
+    console.error("保存 AI 设置失败：", error);
+
+    alert("AI设置保存失败：\n\n" + (error.message || String(error)));
   }
 }
 
@@ -409,7 +321,7 @@ async function saveTrainingSettings() {
 
    同时保存数据库 id，
    方便后续 PATCH。
-============================================================ */
+   ============================================================ */
 
 async function ensureSettingsRow() {
   if (currentAISettings && currentAISettings.__id) {
@@ -434,10 +346,6 @@ async function ensureSettingsRow() {
     throw new Error("无法创建用户设置。");
   }
 
-  /*
-       再读取一次 ID
-    */
-
   const rows = await supabaseRequest(
     "user_settings" + "?select=id" + "&order=id.asc" + "&limit=1",
   );
@@ -452,141 +360,9 @@ async function ensureSettingsRow() {
 }
 
 /* ============================================================
-   保存 AI 教练设置
-============================================================ */
-
-async function saveAISettings() {
-  try {
-    /* ====================================================
-           读取 AI目标
-        ==================================================== */
-    const goalsText = document.getElementById("aiGoals")?.value.trim() || "";
-
-    const goals = goalsText
-      .split(/[、,，\n]/)
-      .map(function (item) {
-        return item.trim();
-      })
-      .filter(Boolean);
-
-    /* ====================================================
-           AI重点关注
-        ==================================================== */
-
-    const focus = document.getElementById("aiFocus")?.value.trim() || "";
-
-    /* ====================================================
-           AI教练行为
-        ==================================================== */
-
-    const behavior = document.getElementById("aiBehavior")?.value.trim() || "";
-
-    /* ====================================================
-           训练限制
-        ==================================================== */
-
-    const restrictions =
-      document.getElementById("aiRestrictions")?.value.trim() || "";
-
-    /* ====================================================
-           不会 / 不适合的动作
-
-           settings.html 当前维护：
-
-           window.__currentAILimitations
-        ==================================================== */
-
-    let limitations = "";
-
-    if (typeof window.__currentAILimitations === "string") {
-      limitations = window.__currentAILimitations.trim();
-    } else if (
-      currentAISettings &&
-      typeof currentAISettings.limitations === "string"
-    ) {
-      limitations = currentAISettings.limitations.trim();
-    }
-
-    /* ====================================================
-           如果用户一个目标都没有
-
-           不阻止保存。
-
-           AI 可以理解为暂时没有特别目标。
-        ==================================================== */
-
-    /* ====================================================
-           确保数据库记录存在
-        ==================================================== */
-
-    const id = await ensureSettingsRow();
-
-    /* ====================================================
-           写入 Supabase
-        ==================================================== */
-
-    const updated = await supabaseRequest("user_settings?id=eq." + id, {
-      method: "PATCH",
-
-      body: {
-        ai_goals: goals,
-
-        ai_focus: focus,
-
-        ai_behavior: behavior,
-
-        ai_limitations: limitations,
-
-        ai_restrictions: restrictions,
-      },
-    });
-
-    /* ====================================================
-           更新本地缓存
-        ==================================================== */
-
-    currentAISettings = {
-      __id: id,
-
-      weekly_strength_target:
-        currentAISettings?.weekly_strength_target ??
-        DEFAULT_AI_SETTINGS.weekly_strength_target,
-
-      expected_duration_minutes:
-        currentAISettings?.expected_duration_minutes ??
-        DEFAULT_AI_SETTINGS.expected_duration_minutes,
-
-      goals: [...goals],
-
-      focus,
-
-      behavior,
-
-      limitations,
-
-      restrictions,
-    };
-
-    /* ====================================================
-           刷新页面
-        ==================================================== */
-
-    updateSettingsStatus();
-
-    alert("AI私人教练设置已经保存。🤖");
-
-    console.log("AI设置已保存到 Supabase：", currentAISettings);
-  } catch (error) {
-    console.error("保存 AI 设置失败：", error);
-
-    alert("AI设置保存失败：\n\n" + (error.message || String(error)));
-  }
-}
-
-/* ============================================================
    HTML 转义
 
-   防止动作名称包含：
+   防止文本包含：
 
    <
    >
@@ -594,7 +370,7 @@ async function saveAISettings() {
    '
 
    时破坏页面 HTML。
-============================================================ */
+   ============================================================ */
 
 function escapeSettingsHTML(value) {
   return String(value || "")
@@ -607,7 +383,7 @@ function escapeSettingsHTML(value) {
 
 /* ============================================================
    当前设置状态
-============================================================ */
+   ============================================================ */
 
 function updateSettingsStatus(customMessage) {
   const box = document.getElementById("settingsStatus");
@@ -626,17 +402,11 @@ function updateSettingsStatus(customMessage) {
 
   const settings = getAISettings();
 
-  const goalsText = settings.goals.length
-    ? settings.goals.join("、")
-    : "暂未设置";
-
-  const limitationsText = settings.limitations ? settings.limitations : "暂无";
-
   box.innerHTML = `
 
         <div class="settings-status-item">
 
-            <strong>每周训练目标：</strong>
+            <strong>每周力量训练次数：</strong>
 
             ${settings.weekly_strength_target} 次
 
@@ -644,54 +414,17 @@ function updateSettingsStatus(customMessage) {
 
         <div class="settings-status-item">
 
-    <strong>每次期望训练时间：</strong>
+            <strong>每次期望训练时间：</strong>
 
-    ${settings.expected_duration_minutes} 分钟
-
-</div>
-
-
-        <div class="settings-status-item">
-
-            <strong>AI训练目标：</strong>
-
-            ${escapeSettingsHTML(goalsText)}
+            ${settings.expected_duration_minutes} 分钟
 
         </div>
 
-
         <div class="settings-status-item">
 
-            <strong>AI重点关注：</strong>
-
-            ${escapeSettingsHTML(settings.focus || "暂无")}
-
-        </div>
-
-
-        <div class="settings-status-item">
-
-            <strong>AI教练行为：</strong>
+            <strong>固定力量训练教练规则：</strong>
 
             ${escapeSettingsHTML(settings.behavior || "暂无")}
-
-        </div>
-
-
-        <div class="settings-status-item">
-
-            <strong>不会 / 不适合的动作：</strong>
-
-            ${escapeSettingsHTML(limitationsText)}
-
-        </div>
-
-
-        <div class="settings-status-item">
-
-            <strong>训练限制 / 其它要求：</strong>
-
-            ${escapeSettingsHTML(settings.restrictions || "暂无")}
 
         </div>
 
@@ -700,26 +433,13 @@ function updateSettingsStatus(customMessage) {
 
 /* ============================================================
    页面初始化
-============================================================ */
+   ============================================================ */
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("正在读取 AI 教练设置……");
 
   try {
     await loadAISettings();
-
-    /*
-               settings.html 里的动作限制 UI
-               在 settings.js 加载之后再读取。
-
-               这里主动调用，
-               避免因为脚本加载顺序导致默认值
-               没有显示。
-            */
-
-    if (typeof loadAILimitationsUI === "function") {
-      loadAILimitationsUI();
-    }
   } catch (error) {
     console.error("设置页面初始化失败：", error);
   }

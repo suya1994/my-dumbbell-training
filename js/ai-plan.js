@@ -170,19 +170,7 @@ async function getTrainingSettingsForAI() {
         ? expectedDuration
         : null,
 
-      goals: Array.isArray(settings.goals)
-        ? settings.goals
-            .map((item) => String(item || "").trim())
-            .filter(Boolean)
-        : [],
-
-      focus: String(settings.focus || "").trim(),
-
       behavior: String(settings.behavior || "").trim(),
-
-      limitations: String(settings.limitations || "").trim(),
-
-      restrictions: String(settings.restrictions || "").trim(),
     };
   } catch (error) {
     console.error("读取训练设置失败：", error);
@@ -1102,21 +1090,21 @@ async function getLatestTrainingWithResultsForAI() {
    ↓
    每个动作保留最近若干次历史表现
 
-   这里保留最近5次该动作表现。
+   这里保留最近3次该动作表现。
 
-   不是“最近5次训练”。
+   不是“最近3次训练”。
 
    而是：
 
-   “这个动作最近5次出现时的表现”。
+   “这个动作最近3次出现时的表现”。
 ============================================================ */
 
-async function getExercisePerformanceHistoryForAI(perExerciseLimit = 5) {
+async function getExercisePerformanceHistoryForAI(perExerciseLimit = 3) {
   try {
     const safeLimit =
       Number.isFinite(Number(perExerciseLimit)) && Number(perExerciseLimit) > 0
         ? Number(perExerciseLimit)
-        : 5;
+        : 3;
 
     console.log(`📊 正在读取历史动作表现（每个动作最近${safeLimit}次）……`);
 
@@ -1352,7 +1340,10 @@ async function getExercisePerformanceHistoryForAI(perExerciseLimit = 5) {
     /* ========================================================
        7. 每个动作按训练编号倒序
 
-       并限制最近5次“这个动作”的表现。
+       并限制最近3次“这个动作”的表现。
+
+       出现在30天之前且之后没有练过的动作，
+       直接忽略。
     ======================================================== */
 
     const result = [];
@@ -1361,6 +1352,16 @@ async function getExercisePerformanceHistoryForAI(perExerciseLimit = 5) {
       history.sort(
         (a, b) => Number(b.workout_number) - Number(a.workout_number),
       );
+
+      /*
+         最近一次出现在一个月（30天）之前，
+         并且之后没有再训练过的动作，
+         从历史动作表现中忽略。
+      */
+
+      if (isExerciseStaleForAI(history[0])) {
+        return;
+      }
 
       const limited = history.slice(0, safeLimit);
 
@@ -1398,15 +1399,60 @@ async function getExercisePerformanceHistoryForAI(perExerciseLimit = 5) {
 }
 
 /* ============================================================
-   ⑪ 生成AI设置文本
-============================================================ */
-
-function formatAISettingsForPrompt(trainingSettings) {
-  if (!trainingSettings || typeof trainingSettings !== "object") {
-    return "当前没有提供AI训练设置。";
+function isExerciseStaleForAI(item) {
+  if (!item || !item.workout_date) {
+    return false;
   }
 
-  const weeklyTargetText =
+  const dateText = String(item.workout_date);
+
+  const parsed = new Date(dateText.slice(0, 10) + "T00:00:00");
+
+  if (!Number.isFinite(parsed.getTime())) {
+    return false;
+  }
+
+  const now = new Date();
+
+  const days = (now - parsed) / (24 * 60 * 60 * 1000);
+
+  return days > 30;
+}
+   ⑪ 生成固定力量训练教练规则 + 每周训练目标
+============================================================ */
+
+function formatFixedCoachRulesForPrompt(trainingSettings) {
+  if (!trainingSettings || typeof trainingSettings !== "object") {
+    return "【固定力量训练教练规则】\n\n目前没有提供教练规则。";
+  }
+
+  const behavior = String(trainingSettings.behavior || "").trim();
+
+  if (!behavior) {
+    return "【固定力量训练教练规则】\n\n目前没有设置教练规则。";
+  }
+
+  return `
+【固定力量训练教练规则】
+
+${behavior}
+`.trim();
+}
+
+function formatTrainingTargetForPrompt(trainingSettings) {
+  if (!trainingSettings || typeof trainingSettings !== "object") {
+    return `
+【每周训练目标】
+
+每周力量训练次数：
+未设置 次
+
+每次期望训练时间：
+未设置 分钟
+`.trim();
+  }
+
+  const weeklyText =
     trainingSettings.weekly_strength_target !== null
       ? `${trainingSettings.weekly_strength_target} 次`
       : "未设置";
@@ -1416,41 +1462,14 @@ function formatAISettingsForPrompt(trainingSettings) {
       ? `${trainingSettings.expected_duration_minutes} 分钟`
       : "未设置";
 
-  const goalsText = trainingSettings.goals?.length
-    ? trainingSettings.goals.join("、")
-    : "未设置";
-
-  const focusText = trainingSettings.focus || "未设置";
-
-  const behaviorText = trainingSettings.behavior || "未设置";
-
-  const limitationsText = trainingSettings.limitations || "暂无";
-
-  const restrictionsText = trainingSettings.restrictions || "暂无";
-
   return `
-【当前AI设置】
+【每周训练目标】
 
-每周力量训练目标：
-${weeklyTargetText}
+每周力量训练次数：
+${weeklyText}
 
-期望每次训练时间：
+每次期望训练时间：
 ${expectedDurationText}
-
-训练目标：
-${goalsText}
-
-AI重点关注：
-${focusText}
-
-AI教练行为：
-${behaviorText}
-
-目前不会 / 不适合的动作：
-${limitationsText}
-
-训练限制 / 其它要求：
-${restrictionsText}
 `.trim();
 }
 
@@ -1597,7 +1616,7 @@ function formatExercisePerformanceHistoryForPrompt(history) {
   const lines = [];
 
   lines.push(
-    "【历史动作表现】【每个动作最多显示最近5次的运动情况，难度为我完成运动后的感受】",
+    "【历史动作表现】【每个动作最多显示最近3次的运动情况，难度为我完成运动后的感受】",
   );
 
   data.forEach((exercise) => {
@@ -1653,7 +1672,7 @@ async function generateAITrainingPrompt() {
 
        生成 3 个模块：
 
-       模块1 · 当前AI设置
+       模块1 · 固定力量训练教练规则
          - AI的职责、当前训练目标、每周目标、时长、限制等
 
        模块2 · 最近一次训练情况 + 历史动作表现 + 身体数据
@@ -1683,7 +1702,7 @@ async function generateAITrainingPrompt() {
 
       getLatestTrainingWithResultsForAI(),
 
-      getExercisePerformanceHistoryForAI(5),
+      getExercisePerformanceHistoryForAI(3),
     ]);
 
     const nextNumber = currentState.next_workout_number;
@@ -1698,7 +1717,9 @@ async function generateAITrainingPrompt() {
    AI设置
 ======================================================== */
 
-    const settingsSection = formatAISettingsForPrompt(trainingSettings);
+    const coachRulesSection = formatFixedCoachRulesForPrompt(trainingSettings);
+
+    const trainingTargetSection = formatTrainingTargetForPrompt(trainingSettings);
 
     
 
@@ -1822,12 +1843,14 @@ actual_duration_minutes：
     const moduleSettings = [
       promptHeader,
 
-      settingsSection,
+      coachRulesSection,
     ]
       .filter(Boolean)
       .join("\n\n");
 
     const moduleTraining = [
+      trainingTargetSection,
+
       latestTrainingSection,
 
       exerciseHistorySection,

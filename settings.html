@@ -58,21 +58,21 @@
 
 
         <!-- =====================================================
-             第一部分：训练目标
+             AI教练规则设置
         ====================================================== -->
 
         <div class="card">
 
 
             <h2>
-                🏋️ 训练目标
+                🤖 AI教练规则设置
             </h2>
 
 
             <div class="muted">
 
-                设置你每周希望完成的力量训练次数。
-                这个目标会用于训练统计和 AI 教练分析。
+                设置每周训练目标，以及 AI 教练固定使用的训练规则。
+                这些设置会用于训练统计和 AI 教练的训练分析。
 
             </div>
 
@@ -99,256 +99,52 @@
 
                 </div>
 
-                <br>
-
-                <div class="setting-group">
-
-                    <label for="expectedDurationMinutes" class="setting-label">
-
-                        每次期望训练时间
-
-                    </label>
-
-                    <input id="expectedDurationMinutes" class="note" type="number" placeholder="例如 25">
-
-                    <div class="setting-help">
-
-                        AI 教练制定训练计划时，会尽量控制在这个时间范围内。
-
-                    </div>
-
-                </div>
-
-
             </div>
 
 
             <br>
-
-
-            <button type="button" class="primary-btn setting-save" onclick="saveTrainingSettings()">
-
-                💾 保存训练目标
-
-            </button>
-
-
-        </div>
-
-
-
-        <!-- =====================================================
-             第二部分：AI私人教练设置
-        ====================================================== -->
-
-        <div class="card">
-
-
-            <h2>
-                🤖 AI私人教练设置
-            </h2>
-
-
-            <div class="muted">
-
-                这些设置会影响 AI 教练之后对你的训练分析和训练计划制定。
-                你可以根据自己的情况随时修改。
-
-            </div>
-
-
-            <br>
-
-
-
-            <!-- =================================================
-                 AI训练目标
-            ================================================== -->
 
 
             <div class="setting-group">
 
-                <label for="aiGoals" class="setting-label">
+                <label for="expectedDurationMinutes" class="setting-label">
 
-                    AI训练目标
+                    每次期望训练时间
 
                 </label>
 
+                <input id="expectedDurationMinutes" class="note" type="number" placeholder="例如 25">
+
                 <div class="setting-help">
 
-                    告诉 AI 教练你目前最希望实现什么目标，可以自由填写。
-                    例如：腰腹收紧、臀部塑形、增加肌肉、提高力量等。
+                    AI 教练制定训练计划时，会尽量控制在这个时间范围内。
 
                 </div>
 
-                <br>
-
-                <textarea id="aiGoals" class="note ai-textarea" rows="5"
-                    placeholder="例如：腰腹收紧 / 核心稳定、臀部塑形、手臂、背部；同时希望增加肌肉和力量……"></textarea>
-
             </div>
-
 
 
             <br>
 
 
-
-            <!-- =================================================
-                 AI重点关注
-            ================================================== -->
-
             <div class="setting-group">
-
-
-                <label for="aiFocus" class="setting-label">
-
-                    AI重点关注
-
-                </label>
-
-
-                <div class="setting-help">
-
-                    告诉 AI 教练，你希望它在每次训练分析时重点观察哪些数据和问题。
-
-                </div>
-
-
-                <br>
-
-
-                <textarea id="aiFocus" class="note ai-textarea" rows="5"
-                    placeholder="例如：动作完成度、训练难度、左右侧力量差异……"></textarea>
-
-
-            </div>
-
-
-
-            <br>
-
-
-
-            <!-- =================================================
-                 AI教练行为
-            ================================================== -->
-
-            <div class="setting-group">
-
 
                 <label for="aiBehavior" class="setting-label">
 
-                    AI教练行为
+                    固定力量训练教练规则
 
                 </label>
 
+                <textarea id="aiBehavior" class="note ai-textarea" rows="12"
+                    placeholder="填写 AI 教练始终遵循的训练规则，例如：根据训练历史动态调整，不为了变化而变化；优先保证动作安全和训练可执行性；如果当前方案合理，可以继续使用……"></textarea>
 
                 <div class="setting-help">
 
-                    这里决定 AI 教练应该如何分析和调整你的训练，而不是关注什么数据。
+                    AI 教练在每次训练分析和制定计划时，都会始终按照这里的规则执行。
 
                 </div>
-
-
-                <br>
-
-
-                <textarea id="aiBehavior" class="note ai-textarea" rows="6"
-                    placeholder="例如：根据训练历史动态调整训练，不为了变化而变化……"></textarea>
-
 
             </div>
-
-
-
-            <br>
-
-
-
-            <!-- =================================================
-                 不会 / 不适合的动作
-            ================================================== -->
-
-            <div class="setting-group">
-
-
-                <label for="aiLimitationsInput" class="setting-label">
-
-                    我目前不会 / 不适合的动作
-
-                </label>
-
-
-                <div class="setting-help">
-
-                    输入一个动作后点击“添加”。AI 教练之后不会随意安排这些动作。
-
-                </div>
-
-
-                <br>
-
-
-                <div class="input-row">
-
-
-                    <input id="aiLimitationsInput" class="note" type="text" placeholder="例如：深蹲">
-
-
-                    <button type="button" class="add-btn" onclick="addAILimitation()">
-
-                        ＋ 添加
-
-                    </button>
-
-
-                </div>
-
-
-                <div id="aiLimitationsList" class="limitation-list">
-
-                </div>
-
-
-            </div>
-
-
-
-            <br>
-
-
-
-            <!-- =================================================
-                 训练限制 / 其它要求
-            ================================================== -->
-
-            <div class="setting-group">
-
-
-                <label for="aiRestrictions" class="setting-label">
-
-                    训练限制 / 其它要求
-
-                </label>
-
-
-                <div class="setting-help">
-
-                    可以填写腰部保护、训练时间、器械条件、训练习惯等其它要求。
-
-                </div>
-
-
-                <br>
-
-
-                <textarea id="aiRestrictions" class="note ai-textarea" rows="6"
-                    placeholder="例如：腰部容易疲劳，需要保护腰部；单次训练控制在20～25分钟……"></textarea>
-
-
-            </div>
-
 
 
             <br>
@@ -356,7 +152,7 @@
 
             <button type="button" class="primary-btn setting-save" onclick="saveAISettings()">
 
-                💾 保存 AI 教练设置
+                💾 保存设置
 
             </button>
 
@@ -424,290 +220,6 @@
     <script src="js/settings.js"></script>
 
     <script src="js/app.js"></script>
-
-
-
-    <!-- =====================================================
-         动作限制输入辅助逻辑
-    ====================================================== -->
-
-    <script>
-
-        /* =====================================================
-           临时保存动作限制
-
-           最终保存时由 settings.js 统一写入。
-
-           为了兼容当前 settings.js 的结构，
-           这里直接操作 aiLimitations 字段。
-        ===================================================== */
-
-        let currentAILimitations = [];
-
-
-        /* =====================================================
-           初始化动作限制
-        ===================================================== */
-
-        function loadAILimitationsUI() {
-
-            const settings =
-                typeof getAISettings === "function"
-                    ? getAISettings()
-                    : null;
-
-
-            if (!settings) {
-
-                currentAILimitations = [];
-
-                renderAILimitations();
-
-                return;
-
-            }
-
-
-            const text =
-                String(settings.limitations || "").trim();
-
-
-            if (!text) {
-
-                currentAILimitations = [];
-
-            } else {
-
-                currentAILimitations =
-                    text
-                        .split(/[、,，\n]/)
-                        .map(function (item) {
-
-                            return item.trim();
-
-                        })
-                        .filter(Boolean);
-
-            }
-
-
-            renderAILimitations();
-
-        }
-
-
-        /* =====================================================
-           添加动作限制
-        ===================================================== */
-
-        function addAILimitation() {
-
-            const input =
-                document.getElementById("aiLimitationsInput");
-
-
-            if (!input) {
-                return;
-            }
-
-
-            const value =
-                input.value.trim();
-
-
-            if (!value) {
-
-                return;
-
-            }
-
-
-            /*
-               避免重复添加
-            */
-
-            const exists =
-                currentAILimitations.some(function (item) {
-
-                    return item === value;
-
-                });
-
-
-            if (!exists) {
-
-                currentAILimitations.push(value);
-
-            }
-
-
-            input.value = "";
-
-            renderAILimitations();
-
-            syncAILimitationsToTextarea();
-
-        }
-
-
-        /* =====================================================
-           删除动作限制
-        ===================================================== */
-
-        function removeAILimitation(index) {
-
-            if (
-                index < 0 ||
-                index >= currentAILimitations.length
-            ) {
-
-                return;
-
-            }
-
-
-            currentAILimitations.splice(index, 1);
-
-            renderAILimitations();
-
-            syncAILimitationsToTextarea();
-
-        }
-
-
-        /* =====================================================
-           渲染动作限制
-        ===================================================== */
-
-        function renderAILimitations() {
-
-            const box =
-                document.getElementById("aiLimitationsList");
-
-
-            if (!box) {
-                return;
-            }
-
-
-            if (!currentAILimitations.length) {
-
-                box.innerHTML =
-                    '<div class="limitation-empty">暂未添加限制动作</div>';
-
-                return;
-
-            }
-
-
-            box.innerHTML =
-                currentAILimitations
-                    .map(function (item, index) {
-
-                        return `
-
-                            <div class="limitation-tag">
-
-                                <span>
-                                    ${escapeSettingsHTML(item)}
-                                </span>
-
-                                <button
-                                    type="button"
-                                    class="limitation-remove"
-                                    onclick="removeAILimitation(${index})"
-                                    aria-label="删除">
-
-                                    ×
-
-                                </button>
-
-                            </div>
-
-                        `;
-
-                    })
-                    .join("");
-
-        }
-
-
-        /* =====================================================
-           同步到 settings.js 使用的文本字段
-        ===================================================== */
-
-        function syncAILimitationsToTextarea() {
-
-            const value =
-                currentAILimitations.join("、");
-
-
-            /*
-               settings.js 当前保存动作限制使用：
-
-               aiLimitations
-
-               这里不需要真的有 textarea，
-               保存时直接替换字段。
-            */
-
-            window.__currentAILimitations =
-                value;
-
-        }
-
-
-
-
-        /* =====================================================
-           页面加载后初始化
-        ===================================================== */
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
-
-                /*
-                   settings.js 已经先执行，
-                   所以这里直接读取设置。
-                */
-
-                loadAILimitationsUI();
-
-
-                /*
-                   输入框按 Enter 直接添加
-                */
-
-                const input =
-                    document.getElementById(
-                        "aiLimitationsInput"
-                    );
-
-
-                if (input) {
-
-                    input.addEventListener(
-                        "keydown",
-                        function (event) {
-
-                            if (event.key === "Enter") {
-
-                                event.preventDefault();
-
-                                addAILimitation();
-
-                            }
-
-                        }
-                    );
-
-                }
-
-            }
-        );
-
-    </script>
 
 
 </body>
