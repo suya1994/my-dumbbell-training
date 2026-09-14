@@ -1689,12 +1689,6 @@ async function generateAITrainingPrompt() {
     const nextNumber = currentState.next_workout_number;
 
     /* ========================================================
-       Prompt头部
-    ======================================================== */
-
-    const promptHeader = `你是我的私人哑铃训练教练。`;
-
-    /* ========================================================
    AI设置
 ======================================================== */
 
@@ -1822,8 +1816,6 @@ actual_duration_minutes：
     ======================================================== */
 
     const moduleSettings = [
-      promptHeader,
-
       coachRulesSection,
     ]
       .filter(Boolean)
