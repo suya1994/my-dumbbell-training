@@ -2088,7 +2088,9 @@ function extractAIPlanJSON(text) {
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
     .replace(/：/g, ":")
-    .replace(/，/g, ",");
+    .replace(/，/g, ",")
+    .replace(/[\u2028\u2029]/g, "\n")
+    .replace(/[\u00A0\u3000\u200B\u200C\u200D\uFEFF]/g, " ");
 
   const normalizedCandidates = [
     normalized,
