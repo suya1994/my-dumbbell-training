@@ -1390,7 +1390,7 @@ textarea {
   /*
      底部导航
 
-     4 个平均铺满
+     5 个平均铺满（首页 / 训练计划 / 动作库 / 统计 / 更多）
   */
 
   .bottom-nav {
@@ -1518,4 +1518,592 @@ textarea {
       calc(6px + env(safe-area-inset-bottom));
   }
 
+}
+
+/* =========================================================
+   第四版：实际值编辑（完成训练）
+========================================================= */
+
+.actual-editor {
+  margin-top: 10px;
+
+  border: 1px solid #ececec;
+
+  border-radius: 12px;
+
+  padding: 10px 12px;
+
+  background: #fafafa;
+}
+
+
+.actual-editor summary {
+  cursor: pointer;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  color: #666;
+}
+
+
+.actual-grid {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 8px;
+
+  margin-top: 10px;
+}
+
+
+.actual-grid label {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+
+  font-size: 12px;
+
+  color: #777;
+}
+
+
+.actual-grid input,
+.actual-grid select {
+  width: 100%;
+
+  border: 1px solid #ddd;
+
+  border-radius: 9px;
+
+  padding: 8px;
+
+  background: #fff;
+
+  font-family: inherit;
+
+  font-size: 16px;
+}
+
+
+.actual-editor-actions {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 8px;
+
+  margin-top: 10px;
+}
+
+
+.actual-editor-actions .secondary-btn {
+  width: auto;
+
+  padding: 8px 12px;
+
+  font-size: 12px;
+}
+
+
+.modified-badge {
+  font-size: 12px;
+
+  color: #999;
+}
+
+
+.modified-badge.is-modified {
+  color: #b26a00;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   第四版：训练计划页
+========================================================= */
+
+.cycle-pending {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 12px;
+}
+
+
+.cycle-pending-code,
+.cycle-template-code {
+  flex: 0 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 46px;
+
+  height: 46px;
+
+  border-radius: 14px;
+
+  background: #222;
+
+  color: #fff;
+
+  font-size: 22px;
+
+  font-weight: 700;
+}
+
+
+.cycle-pending-info,
+.cycle-template-info {
+  flex: 1 1 auto;
+
+  min-width: 0;
+}
+
+
+.cycle-template {
+  border: 1px solid #eee;
+
+  border-radius: 14px;
+
+  padding: 12px;
+
+  margin-bottom: 10px;
+
+  background: #fff;
+}
+
+
+.cycle-template.is-disabled {
+  opacity: .62;
+
+  background: #fafafa;
+}
+
+
+.cycle-template-head {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 12px;
+}
+
+
+.cycle-template-actions {
+  display: grid;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  gap: 8px;
+
+  margin-top: 12px;
+}
+
+
+.cycle-template-actions .secondary-btn {
+  padding: 9px 6px;
+
+  font-size: 12px;
+}
+
+
+.tag {
+  display: inline-block;
+
+  margin-right: 6px;
+
+  padding: 2px 8px;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  background: #f1f1f1;
+
+  color: #666;
+}
+
+
+.tag-ok {
+  background: #e8f5e9;
+
+  color: #2e7d32;
+}
+
+
+.tag-off {
+  background: #f1f1f1;
+
+  color: #888;
+}
+
+
+.tag-pending {
+  background: #fff3e0;
+
+  color: #b26a00;
+}
+
+
+.form-grid {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 10px;
+}
+
+
+.form-grid label {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+
+  font-size: 12px;
+
+  color: #777;
+}
+
+
+.form-grid .span-2 {
+  grid-column: span 2;
+}
+
+
+.form-grid input,
+.form-grid select {
+  width: 100%;
+
+  border: 1px solid #ddd;
+
+  border-radius: 10px;
+
+  padding: 9px;
+
+  background: #fff;
+
+  font-family: inherit;
+
+  font-size: 16px;
+}
+
+
+.editor-notes-label {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+
+  margin-top: 10px;
+
+  font-size: 12px;
+
+  color: #777;
+}
+
+
+.editor-rows {
+  margin-top: 12px;
+}
+
+
+.editor-row {
+  border: 1px solid #eee;
+
+  border-radius: 12px;
+
+  padding: 12px;
+
+  margin-bottom: 10px;
+
+  background: #fcfcfc;
+}
+
+
+.editor-row-head {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 10px;
+}
+
+
+.editor-row-tools {
+  display: flex;
+
+  gap: 6px;
+}
+
+
+.mini-btn {
+  border: 0;
+
+  border-radius: 8px;
+
+  padding: 6px 10px;
+
+  background: #f1f1f1;
+
+  color: #555;
+
+  font-family: inherit;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.mini-btn:disabled {
+  opacity: .4;
+
+  cursor: default;
+}
+
+
+.version-item {
+  border: 1px solid #eee;
+
+  border-radius: 12px;
+
+  padding: 10px 12px;
+
+  margin-bottom: 8px;
+
+  background: #fff;
+}
+
+
+.version-item summary {
+  cursor: pointer;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  color: #555;
+}
+
+
+.version-exercises {
+  margin: 8px 0 0 18px;
+
+  padding: 0;
+
+  font-size: 13px;
+
+  color: #666;
+}
+
+
+@media (max-width: 480px) {
+
+  .cycle-template-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .actual-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+/* =========================================================
+   第四版：动作库页
+========================================================= */
+
+.filter-label {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+
+  font-size: 12px;
+
+  color: #777;
+}
+
+
+.filter-label input {
+  width: 100%;
+
+  border: 1px solid #ddd;
+
+  border-radius: 10px;
+
+  padding: 10px;
+
+  font-family: inherit;
+}
+
+
+.exercise-group-title {
+  margin: 18px 0 8px;
+
+  font-size: 15px;
+
+  color: #555;
+}
+
+
+.exercise-card {
+  border: 1px solid #eee;
+
+  border-radius: 12px;
+
+  padding: 12px;
+
+  margin-bottom: 8px;
+
+  background: #fff;
+}
+
+
+.exercise-card.is-disabled,
+.exercise.is-disabled {
+  opacity: .6;
+}
+
+
+.exercise-toggle {
+  margin-top: 10px;
+
+  padding: 8px 10px;
+
+  font-size: 12px;
+}
+
+
+.alias-line {
+  color: #8a6d3b;
+}
+
+
+.tag-primary {
+  background: #e3f2fd;
+
+  color: #1565c0;
+}
+
+
+.tag-secondary {
+  background: #f3e5f5;
+
+  color: #6a1b9a;
+}
+
+
+/* =========================================================
+   第四版：肌肉级别统计表
+========================================================= */
+
+.stats-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  margin-top: 10px;
+
+  font-size: 13px;
+}
+
+
+.stats-table th,
+.stats-table td {
+  border-bottom: 1px solid #eee;
+
+  padding: 7px 4px;
+
+  text-align: left;
+}
+
+
+.stats-table th {
+  color: #777;
+
+  font-weight: 600;
+
+  font-size: 12px;
+}
+
+
+.stats-table .num {
+  text-align: right;
+
+  font-variant-numeric: tabular-nums;
+}
+
+
+.core-summary {
+  margin-top: 12px;
+
+  padding: 10px 12px;
+
+  border-radius: 12px;
+
+  background: #fafafa;
+
+  font-size: 13px;
+
+  line-height: 1.8;
+
+  color: #555;
+}
+
+
+.recent-weeks {
+  display: grid;
+
+  gap: 6px;
+}
+
+
+.recent-week-item {
+  border-bottom: 1px solid #f0f0f0;
+
+  padding: 6px 0;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   第四版：历史详情快照
+========================================================= */
+
+.history-detail-header {
+  border-bottom: 1px solid #eee;
+
+  padding-bottom: 8px;
+
+  margin-bottom: 8px;
+
+  font-size: 13px;
+
+  line-height: 1.7;
 }

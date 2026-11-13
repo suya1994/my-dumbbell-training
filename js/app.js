@@ -183,6 +183,10 @@ function showTab(id, button) {
 
   if (id === "aiTab") {
     console.log("已进入 AI私人教练 Tab");
+
+    if (typeof renderAICycleContext === "function") {
+      renderAICycleContext();
+    }
   }
 
   console.log("Tab 切换完成：", id);

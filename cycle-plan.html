@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#f5f5f5">
+    <title>训练计划 - 我的私人哑铃训练</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/loading.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="page-header">
+            <div class="page-title">
+                <h1>🔁 训练计划</h1>
+                <p class="muted">A/B 多计划管理 · 选择动作并排序 · 计划参数独立于动作库默认值</p>
+            </div>
+        </div>
+
+        <div id="planStatus" class="status hidden"></div>
+
+        <section class="card">
+            <h2>➕ 新建训练计划</h2>
+            <p class="muted">A 计划可选 A/D 动作，B 计划可选 B/D 动作。每类可创建多个计划。</p>
+            <div class="form-grid" style="margin-top:10px;">
+                <label>
+                    <span>计划类型</span>
+                    <select id="newPlanCode">
+                        <option value="A">A｜上半身 + 核心（可含热身/拉伸D）</option>
+                        <option value="B">B｜下半身 + 腹部（可含热身/拉伸D）</option>
+                    </select>
+                </label>
+                <label>
+                    <span>计划名称</span>
+                    <input id="newPlanName" type="text" placeholder="例如：A-上肢基础">
+                </label>
+            </div>
+            <br>
+            <button type="button" class="primary-btn" onclick="createTrainingPlan()">创建计划</button>
+        </section>
+
+        <section class="card">
+            <h2>📋 计划列表</h2>
+            <p class="muted">点击“编辑内容”可选择动作、排序并设置本计划的组数/次数/时长/侧别。</p>
+            <div id="planList">
+                <div class="loading">正在读取训练计划……</div>
+            </div>
+        </section>
+
+        <section id="planEditorCard" class="card hidden">
+            <h2 id="planEditorTitle">✏️ 编辑计划内容</h2>
+            <div id="planEditorMeta" class="muted" style="margin-bottom:10px;"></div>
+
+            <div class="form-grid" style="margin-bottom:12px;">
+                <label>
+                    <span>计划名称</span>
+                    <input id="editPlanName" type="text">
+                </label>
+                <label>
+                    <span>显示顺序</span>
+                    <input id="editPlanSort" type="number" min="1" step="1">
+                </label>
+            </div>
+
+            <div class="card" style="margin:0 0 12px 0;padding:12px;background:#fafafa;">
+                <h3 style="margin:0 0 8px 0;font-size:16px;">添加动作到本计划</h3>
+                <p class="muted" style="margin-bottom:8px;">可搜索、按分组筛选，并一次勾选多个动作批量添加。添加时复制动作库默认参数到每条记录，可在下方单独修改。</p>
+
+                <div class="form-grid" style="margin-bottom:8px;">
+                    <label class="span-2">
+                        <span>搜索动作</span>
+                        <input id="exercisePickerSearch" type="search" placeholder="输入动作名称关键词" oninput="onExercisePickerSearch(this.value)">
+                    </label>
+                </div>
+
+                <div id="exercisePickerGroupFilters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
+
+                <div id="exercisePickerList" style="max-height:280px;overflow:auto;border:1px solid #e5e5e5;border-radius:10px;padding:8px;background:#fff;"></div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+                    <button type="button" class="primary-btn" onclick="addSelectedExercisesToPlan()">➕ 添加选中动作</button>
+                    <button type="button" class="secondary-btn" onclick="clearExercisePickerSelection()">清空选择</button>
+                    <span id="exercisePickerSelectedCount" class="muted">已选 0 个</span>
+                </div>
+            </div>
+
+            <div id="planItemsEditor"></div>
+
+            <br>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="primary-btn" onclick="savePlanEditor()" style="flex:1;min-width:140px;">💾 保存计划与动作</button>
+                <button type="button" class="secondary-btn" onclick="closePlanEditor()" style="flex:1;min-width:140px;">取消</button>
+            </div>
+        </section>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon">🏠</span>
+            <span class="bottom-nav-label">首页</span>
+        </a>
+        <a href="cycle-plan.html" class="bottom-nav-item active">
+            <span class="bottom-nav-icon">🔁</span>
+            <span class="bottom-nav-label">训练计划</span>
+        </a>
+        <a href="metrics.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon">📏</span>
+            <span class="bottom-nav-label">身体数据</span>
+        </a>
+        <a href="analysis.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon">📊</span>
+            <span class="bottom-nav-label">统计</span>
+        </a>
+    </nav>
+
+    <div class="footer">私人哑铃增肌 / 塑形训练系统</div>
+
+    <script src="js/config.js"></script>
+    <script src="js/loading.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/cycle-plan.js"></script>
+</body>
+
+</html>

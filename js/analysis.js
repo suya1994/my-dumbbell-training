@@ -30,8 +30,6 @@
 
 let analysisRecords = [];
 
-let analysisOtherActivities = [];
-
 /* =========================================================
    每周力量训练目标
 
@@ -122,109 +120,25 @@ function parseLocalDate(dateString) {
 
 function getCurrentMonday() {
   const now = new Date();
-
   const day = now.getDay();
-
   const diff = day === 0 ? -6 : 1 - day;
-
   const monday = new Date(now);
-
   monday.setDate(now.getDate() + diff);
-
   monday.setHours(0, 0, 0, 0);
-
   return monday;
 }
 
 /* =========================================================
-   当前月份
-========================================================= */
-
-function getCurrentMonthStart() {
-  const now = new Date();
-
-  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-}
-
-/* =========================================================
-   获取每周目标
-
-   ★ 第4步-B 修正
-
-   以前这里读取：
-
-   localStorage.weekly_min_goal
-
-   现在已经完全取消。
-
-   analysisWeeklyStrengthTarget
-   就是从 Supabase 读取的最新值。
+   每周力量训练目标相关逻辑已移除（统计概况仅显示次数）
 ========================================================= */
 
 function getWeeklyStrengthTarget() {
-  const value = Number(analysisWeeklyStrengthTarget);
-
-  if (Number.isFinite(value) && value >= 1 && value <= 7) {
-    return value;
-  }
-
-  return 3;
+  return 0;
 }
 
-/* =========================================================
-   从 Supabase 读取最新每周力量训练目标
-========================================================= */
-
 async function loadWeeklyStrengthTarget() {
-  try {
-    console.log("🎯 正在读取每周力量训练目标……");
-
-    const result = await supabaseRequest(
-      "user_settings" +
-        "?select=weekly_strength_target" +
-        "&order=id.asc" +
-        "&limit=1",
-    );
-
-    if (
-      result &&
-      result.length &&
-      result[0].weekly_strength_target !== null &&
-      result[0].weekly_strength_target !== undefined
-    ) {
-      const value = Number(result[0].weekly_strength_target);
-
-      if (Number.isFinite(value) && value >= 1 && value <= 7) {
-        analysisWeeklyStrengthTarget = value;
-
-        console.log("🎯 当前每周力量训练目标：", analysisWeeklyStrengthTarget);
-
-        return analysisWeeklyStrengthTarget;
-      }
-    }
-
-    console.warn(
-      "⚠️ user_settings 中没有有效的 weekly_strength_target，使用默认值 3。",
-    );
-
-    analysisWeeklyStrengthTarget = 3;
-
-    return analysisWeeklyStrengthTarget;
-  } catch (error) {
-    console.error("❌ 读取每周力量训练目标失败：", error);
-
-    /*
-       数据库读取失败时使用兜底值。
-
-       注意：
-       这只是异常情况下的保护，
-       正常情况下不会走这里。
-    */
-
-    analysisWeeklyStrengthTarget = 3;
-
-    return analysisWeeklyStrengthTarget;
-  }
+  analysisWeeklyStrengthTarget = 0;
+  return 0;
 }
 
 /* =========================================================
@@ -235,37 +149,32 @@ async function loadAnalysisData() {
   try {
     console.log("📊 正在读取统计数据……");
 
-    /* =====================================================
-       ① 先读取最新每周力量训练目标
-    ===================================================== */
-
+    // 每周目标逻辑已移除，概况仅统计次数
     await loadWeeklyStrengthTarget();
 
     /* =====================================================
-       ② 力量训练
+       ② 力量训练（适配新结构：workout_sessions）
     ===================================================== */
 
-    const workouts = await supabaseRequest(
-      "workouts" + "?select=*" + "&order=workout_date.desc,workout_number.desc",
-    );
+    let workouts = [];
+    try {
+      workouts = await supabaseRequest(
+        "workout_sessions?select=id,session_no,workout_date,completion_percent,total_items,done_items&order=workout_date.desc,session_no.desc,id.desc",
+      );
+    } catch (e) {
+      console.warn("读取 workout_sessions 失败，尝试兼容旧表 workouts：", e);
+      try {
+        workouts = await supabaseRequest(
+          "workouts?select=*&order=workout_date.desc,workout_number.desc",
+        );
+      } catch (_) {
+        workouts = [];
+      }
+    }
 
     analysisRecords = Array.isArray(workouts) ? workouts : [];
 
     console.log("📊 力量训练读取完成：", analysisRecords.length);
-
-    /* =====================================================
-       ③ 其它运动
-    ===================================================== */
-
-    const otherActivities = await supabaseRequest(
-      "other_activities" + "?select=*" + "&order=activity_date.desc,id.desc",
-    );
-
-    analysisOtherActivities = Array.isArray(otherActivities)
-      ? otherActivities
-      : [];
-
-    console.log("🏃 其它运动读取完成：", analysisOtherActivities.length);
 
     /* =====================================================
        数据全部读取完成之后再更新页面
@@ -331,114 +240,7 @@ function getMonthRecords() {
 
 function updateWeeklyOverview() {
   const list = getWeekRecords();
-
-  const monday = getCurrentMonday();
-
-  const now = new Date();
-
-  /* =====================================================
-       其它运动
-  ===================================================== */
-
-  const otherList = analysisOtherActivities.filter((activity) => {
-    const date = parseLocalDate(activity.activity_date);
-
-    if (!date) {
-      return false;
-    }
-
-    return date >= monday && date <= now;
-  });
-
-  /* =====================================================
-       基础统计
-  ===================================================== */
-
-  const workoutCount = list.length;
-
-  /* =====================================================
-       ★ 使用 Supabase 最新目标
-
-       不再读取 localStorage
-  ===================================================== */
-
-  const weeklyGoal = getWeeklyStrengthTarget();
-
-  const remainingStrength = Math.max(0, weeklyGoal - workoutCount);
-
-  const otherMinutes = otherList.reduce((sum, activity) => {
-    return sum + (Number(activity.duration_minutes) || 0);
-  }, 0);
-
-  const strengthMinutes = list.reduce((sum, record) => {
-    return sum + (Number(record.actual_duration_minutes) || 0);
-  }, 0);
-
-  /* =====================================================
-       平均完成度
-  ===================================================== */
-
-  const completionValues = list
-    .map((record) => {
-      const value = Number(record.completion_percent);
-
-      return Number.isFinite(value) ? value : null;
-    })
-    .filter((value) => value !== null);
-
-  const averageCompletion = completionValues.length
-    ? Math.round(
-        completionValues.reduce((sum, value) => {
-          return sum + value;
-        }, 0) / completionValues.length,
-      )
-    : null;
-
-  /* =====================================================
-       最高完成度
-  ===================================================== */
-
-  const bestCompletion = completionValues.length
-    ? Math.max(...completionValues)
-    : null;
-
-  /* =====================================================
-       更新页面
-  ===================================================== */
-
-  setText("weeklyOverviewWorkouts", `${workoutCount} 次`);
-
-  setText("weeklyOverviewRemainingStrength", `${remainingStrength} 次`);
-
-  setText("weeklyOverviewStrengthMinutes", `${strengthMinutes} 分钟`);
-
-  setText("weeklyOverviewOtherMinutes", `${otherMinutes} 分钟`);
-
-  setText(
-    "weeklyOverviewAverageCompletion",
-    averageCompletion !== null ? `${averageCompletion}%` : "—",
-  );
-
-  setText(
-    "weeklyOverviewBestCompletion",
-    bestCompletion !== null ? `${bestCompletion}%` : "—",
-  );
-
-  /* =====================================================
-       控制台调试
-
-       以后如果数字不对，可以直接看这里：
-       
-       每周目标
-       本周已完成
-       本周剩余
-  ===================================================== */
-
-  console.log("📊 本周力量训练统计：", {
-    weeklyTarget: weeklyGoal,
-    workoutCount: workoutCount,
-    remainingStrength: remainingStrength,
-  });
+  setText("weeklyOverviewWorkouts", `${list.length} 次`);
 }
 
 /* =========================================================
@@ -447,79 +249,7 @@ function updateWeeklyOverview() {
 
 function updateMonthlyOverview() {
   const list = getMonthRecords();
-
-  const now = new Date();
-
-  const year = now.getFullYear();
-
-  const month = now.getMonth();
-
-  const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-
-  /* =====================================================
-       其它运动
-  ===================================================== */
-
-  const otherList = analysisOtherActivities.filter((activity) => {
-    return (
-      activity.activity_date &&
-      String(activity.activity_date).startsWith(prefix)
-    );
-  });
-
-  const workoutCount = list.length;
-
-  const otherMinutes = otherList.reduce((sum, activity) => {
-    return sum + (Number(activity.duration_minutes) || 0);
-  }, 0);
-
-  const strengthMinutes = list.reduce((sum, record) => {
-    return sum + (Number(record.actual_duration_minutes) || 0);
-  }, 0);
-
-  /* =====================================================
-       完成度
-  ===================================================== */
-
-  const completionValues = list
-    .map((record) => {
-      const value = Number(record.completion_percent);
-
-      return Number.isFinite(value) ? value : null;
-    })
-    .filter((value) => value !== null);
-
-  const averageCompletion = completionValues.length
-    ? Math.round(
-        completionValues.reduce((sum, value) => {
-          return sum + value;
-        }, 0) / completionValues.length,
-      )
-    : null;
-
-  const bestCompletion = completionValues.length
-    ? Math.max(...completionValues)
-    : null;
-
-  /* =====================================================
-       更新页面
-  ===================================================== */
-
-  setText("monthlyOverviewWorkouts", `${workoutCount} 次`);
-
-  setText("monthlyOverviewStrengthMinutes", `${strengthMinutes} 分钟`);
-
-  setText("monthlyOverviewOtherMinutes", `${otherMinutes} 分钟`);
-
-  setText(
-    "monthlyOverviewAverageCompletion",
-    averageCompletion !== null ? `${averageCompletion}%` : "—",
-  );
-
-  setText(
-    "monthlyOverviewBestCompletion",
-    bestCompletion !== null ? `${bestCompletion}%` : "—",
-  );
+  setText("monthlyOverviewWorkouts", `${list.length} 次`);
 }
 
 /* =========================================================
@@ -545,18 +275,14 @@ function updateTrendAnalysis() {
 ========================================================= */
 
 let weeklyStrengthChart = null;
+let yearlyStrengthChart = null;
 
-let weeklyOtherChart = null;
 
 
-let monthlyStrengthChart = null;
-
-let monthlyOtherChart = null;
 
 
 let yearlyStrengthChart = null;
 
-let yearlyOtherChart = null;
 
 
 /* =========================================================
@@ -611,20 +337,6 @@ function getStrengthCountByDate(dateString) {
   return analysisRecords.filter((record) => {
     return String(record.workout_date) === dateString;
   }).length;
-}
-
-/* =========================================================
-   某天其它运动分钟
-========================================================= */
-
-function getOtherMinutesByDate(dateString) {
-  return analysisOtherActivities
-    .filter((activity) => {
-      return String(activity.activity_date) === dateString;
-    })
-    .reduce((sum, activity) => {
-      return sum + (Number(activity.duration_minutes) || 0);
-    }, 0);
 }
 
 /* =========================================================
@@ -770,16 +482,8 @@ function updateWeeklyCharts() {
   updateWeeklyOverview();
 
   const dates = getCurrentWeekDates();
-
   const labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-
-  const strengthData = dates.map((date) => {
-    return getStrengthCountByDate(date);
-  });
-
-  const otherData = dates.map((date) => {
-    return getOtherMinutesByDate(date);
-  });
+  const strengthData = dates.map((date) => getStrengthCountByDate(date));
 
   weeklyStrengthChart = createTrendChart(
     "weeklyStrengthChart",
@@ -789,16 +493,6 @@ function updateWeeklyCharts() {
     strengthData,
     "次数",
     "力量训练",
-  );
-
-  weeklyOtherChart = createTrendChart(
-    "weeklyOtherChart",
-    weeklyOtherChart,
-    "bar",
-    labels,
-    otherData,
-    "分钟",
-    "其它运动",
   );
 }
 
@@ -810,18 +504,8 @@ function updateMonthlyCharts() {
   updateMonthlyOverview();
 
   const dates = getCurrentMonthDates();
-
-  const labels = dates.map((date) => {
-    return Number(date.slice(-2));
-  });
-
-  const strengthData = dates.map((date) => {
-    return getStrengthCountByDate(date);
-  });
-
-  const otherData = dates.map((date) => {
-    return getOtherMinutesByDate(date);
-  });
+  const labels = dates.map((date) => Number(date.slice(-2)));
+  const strengthData = dates.map((date) => getStrengthCountByDate(date));
 
   monthlyStrengthChart = createTrendChart(
     "monthlyStrengthChart",
@@ -832,16 +516,6 @@ function updateMonthlyCharts() {
     "次数",
     "力量训练",
   );
-
-  monthlyOtherChart = createTrendChart(
-    "monthlyOtherChart",
-    monthlyOtherChart,
-    "bar",
-    labels,
-    otherData,
-    "分钟",
-    "其它运动",
-  );
 }
 
 /* =========================================================
@@ -850,29 +524,13 @@ function updateMonthlyCharts() {
 
 function getAvailableYears() {
   const years = new Set();
-
   analysisRecords.forEach((record) => {
     if (record.workout_date) {
       const year = Number(String(record.workout_date).slice(0, 4));
-
-      if (Number.isFinite(year)) {
-        years.add(year);
-      }
+      if (Number.isFinite(year)) years.add(year);
     }
   });
-
-  analysisOtherActivities.forEach((activity) => {
-    if (activity.activity_date) {
-      const year = Number(String(activity.activity_date).slice(0, 4));
-
-      if (Number.isFinite(year)) {
-        years.add(year);
-      }
-    }
-  });
-
   years.add(new Date().getFullYear());
-
   return Array.from(years).sort((a, b) => b - a);
 }
 
@@ -918,53 +576,19 @@ function updateYearSelector() {
 
 function getYearlyData(year) {
   const strength = [];
-
-  const other = [];
-
   const yearPrefix = String(year);
-
   const yearRecords = analysisRecords.filter((record) => {
-    return (
-      record.workout_date && String(record.workout_date).startsWith(yearPrefix)
-    );
-  });
-
-  const yearOtherActivities = analysisOtherActivities.filter((activity) => {
-    return (
-      activity.activity_date &&
-      String(activity.activity_date).startsWith(yearPrefix)
-    );
+    return record.workout_date && String(record.workout_date).startsWith(yearPrefix);
   });
 
   for (let month = 0; month < 12; month++) {
     const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-
-    /* 力量训练 */
-
     const monthStrength = yearRecords.filter((record) => {
       return String(record.workout_date).startsWith(prefix);
     }).length;
-
-    /* 其它运动 */
-
-    const monthOther = yearOtherActivities
-      .filter((activity) => {
-        return String(activity.activity_date).startsWith(prefix);
-      })
-      .reduce((sum, activity) => {
-        return sum + (Number(activity.duration_minutes) || 0);
-      }, 0);
-
     strength.push(monthStrength);
-
-    other.push(monthOther);
   }
-
-  return {
-    strength,
-
-    other,
-  };
+  return { strength };
 }
 
 /* =========================================================
@@ -995,10 +619,6 @@ function updateYearlyCharts() {
     "12月",
   ];
 
-  /* =====================================================
-       年度图表
-  ===================================================== */
-
   yearlyStrengthChart = createTrendChart(
     "yearlyStrengthChart",
     yearlyStrengthChart,
@@ -1009,88 +629,16 @@ function updateYearlyCharts() {
     "力量训练",
   );
 
-  yearlyOtherChart = createTrendChart(
-    "yearlyOtherChart",
-    yearlyOtherChart,
-    "line",
-    labels,
-    data.other,
-    "分钟",
-    "其它运动",
-  );
-
   /* =====================================================
-       年度统计数据
+       年度统计数据（概况仅次数）
   ===================================================== */
 
   const yearPrefix = String(year);
-
   const yearRecords = analysisRecords.filter((record) => {
-    return (
-      record.workout_date && String(record.workout_date).startsWith(yearPrefix)
-    );
+    return record.workout_date && String(record.workout_date).startsWith(yearPrefix);
   });
 
-  const yearOther = analysisOtherActivities.filter((activity) => {
-    return (
-      activity.activity_date &&
-      String(activity.activity_date).startsWith(yearPrefix)
-    );
-  });
-
-  const totalWorkouts = yearRecords.length;
-
-  const totalMinutes = yearRecords.reduce((sum, record) => {
-    return sum + (Number(record.actual_duration_minutes) || 0);
-  }, 0);
-
-  const otherMinutes = yearOther.reduce((sum, activity) => {
-    return sum + (Number(activity.duration_minutes) || 0);
-  }, 0);
-
-  /* =====================================================
-       年度完成度
-  ===================================================== */
-
-  const completionValues = yearRecords
-    .map((record) => {
-      const value = Number(record.completion_percent);
-
-      return Number.isFinite(value) ? value : null;
-    })
-    .filter((value) => value !== null);
-
-  const averageCompletion = completionValues.length
-    ? Math.round(
-        completionValues.reduce((sum, value) => {
-          return sum + value;
-        }, 0) / completionValues.length,
-      )
-    : null;
-
-  const bestCompletion = completionValues.length
-    ? Math.max(...completionValues)
-    : null;
-
-  /* =====================================================
-       更新页面
-  ===================================================== */
-
-  setText("totalWorkouts", `${totalWorkouts} 次`);
-
-  setText("totalMinutes", `${totalMinutes} 分钟`);
-
-  setText("yearOtherMinutes", `${otherMinutes} 分钟`);
-
-  setText(
-    "totalAverage",
-    averageCompletion !== null ? `${averageCompletion}%` : "—",
-  );
-
-  setText(
-    "bestCompletion",
-    bestCompletion !== null ? `${bestCompletion}%` : "—",
-  );
+  setText("totalWorkouts", `${yearRecords.length} 次`);
 }
 
 /* =========================================================

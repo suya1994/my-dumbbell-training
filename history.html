@@ -63,13 +63,6 @@
             </button>
 
 
-            <button type="button" onclick="showHistorySection('otherActivityHistorySection', this)">
-
-                🏃 其它运动
-
-            </button>
-
-
             <button type="button" onclick="showHistorySection('bodyMetricsHistorySection', this)">
 
                 📏 身体数据
@@ -110,34 +103,6 @@
         </section>
 
 
-
-        <!-- =====================================================
-             其它运动历史
-        ====================================================== -->
-
-        <section id="otherActivityHistorySection" class="history-section hidden">
-
-
-            <div class="card">
-
-
-                <h2>
-                    🏃 其它运动历史
-                </h2>
-
-                <div id="otherActivityList"></div>
-
-                <button id="loadMoreOtherActivitiesButton" type="button" class="secondary-btn history-load-more"
-                    onclick="loadMoreOtherActivities()">
-                    加载更多
-                </button>
-
-
-            </div>
-
-</section>
-
-
         <!-- =====================================================
              身体数据历史
         ====================================================== -->
@@ -174,8 +139,8 @@
 
 
             <!-- ================================
-         首页
-    ================================= -->
+            首页
+            ================================= -->
 
             <a href="index.html" class="bottom-nav-item">
 
@@ -191,8 +156,24 @@
 
 
             <!-- ================================
-         身体数据
-    ================================= -->
+            训练计划
+            ================================= -->
+
+            <a href="cycle-plan.html" class="bottom-nav-item">
+
+                <span class="bottom-nav-icon">
+                    🔁
+                </span>
+
+                <span class="bottom-nav-label">
+                    训练计划
+                </span>
+
+            </a>
+
+            <!-- ================================
+            训练统计
+            ================================= -->
 
             <a href="metrics.html" class="bottom-nav-item">
 
@@ -201,15 +182,11 @@
                 </span>
 
                 <span class="bottom-nav-label">
-                    身体
+                    身体数据
                 </span>
 
             </a>
 
-
-            <!-- ================================
-         训练统计
-    ================================= -->
 
             <a href="analysis.html" class="bottom-nav-item">
 
@@ -221,27 +198,9 @@
                     统计
                 </span>
 
-            </a>
+            </a></nav>
 
 
-            <!-- ================================
-         历史记录
-    ================================= -->
-
-            <a href="history.html" class="bottom-nav-item active">
-
-                <span class="bottom-nav-icon">
-                    📚
-                </span>
-
-                <span class="bottom-nav-label">
-                    历史
-                </span>
-
-            </a>
-
-
-        </nav>
 
 
         <!-- =====================================================
@@ -271,6 +230,8 @@
     <script src="js/loading.js"></script>
 
     <script src="js/api.js"></script>
+
+    <script src="js/v4-core.js"></script>
 
     <script src="js/history.js"></script>
 

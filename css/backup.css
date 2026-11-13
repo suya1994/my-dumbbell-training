@@ -86,3 +86,34 @@
 .backup-note strong { color: #586775; }
 
 @media (max-width: 480px) { .backup-card-heading h2 { font-size: 17px; } }
+
+.preview-warning {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: #fff6e8;
+    color: #8a5a12;
+}
+
+.preview-table-wrap {
+    margin-top: 10px;
+    overflow-x: auto;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    color: #47604f;
+}
+
+.preview-table th,
+.preview-table td {
+    padding: 6px 5px;
+    border-bottom: 1px solid #dfece4;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.preview-table th { color: #688073; font-weight: 600; }
+.preview-table .num { text-align: right; font-variant-numeric: tabular-nums; }

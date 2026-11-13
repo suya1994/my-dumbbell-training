@@ -1,1017 +1,538 @@
-/* ================================
-   plan.js
-   AI训练计划读取与显示
+/*
+ * js/plan.js
+ * 首页：显示下一次训练计划（A/B 自动循环）+ 每个动作完成/未完成标记 + 训练次数统计
+ */
 
-   核心逻辑：
+let homePlans = [];
+let homeExercises = [];
+let homeEquipmentCatalog = [];
+let homeCurrentPlan = null;
+let homeCurrentItems = [];
+let homeCompletedCount = 0;
 
-   1. 首页当前应该训练哪一次？
-      = 最近一次已经保存的训练 + 1
+const HOME_NEXT_PLAN_CODE_KEY = "homeNextPlanCode"; // 'A' or 'B'
+const TRAINING_COUNTER_PATH = "training_counter?select=id,completed_count&id=eq.1";
 
-   2. training_plans 可以提前存在很多次，
-      但首页只显示当前应该训练的编号。
+const HOME_GROUP_LABELS = {
+  A: "A｜上半身 + 核心",
+  B: "B｜下半身 + 腹部",
+  D: "D｜热身 + 拉伸",
+};
 
-   3. 当前训练未完成：
-      首页始终显示当前训练。
+function escapeHtml(text) {
+  return String(text ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
-   4. 当前训练完成：
-      首页进入下一次训练。
+function setStatus(text, type = "") {
+  const box = document.getElementById("connectionStatus");
+  if (!box) return;
+  box.textContent = text;
+  box.className = "status " + type;
+}
 
-   5. 每个动作只记录：
-      轻松 / 正常 / 吃力 / 未完成
+function homeEquipmentLabel(equipmentCatalogId) {
+  const row = homeEquipmentCatalog.find(
+    (e) => String(e.id) === String(equipmentCatalogId),
+  );
+  if (!row) return "未设置";
+  const type = String(row.equipment_type || "").trim();
+  const rawSpec = row.spec_value;
+  const spec = rawSpec == null ? "" : String(rawSpec).trim();
+  if (!type && !spec) return "未设置";
+  if (type === "无") return "无";
+  if (type === "哑铃") {
+    if (!spec) return "哑铃";
+    return /kg$/i.test(spec) ? `哑铃 ${spec}` : `哑铃 ${spec}kg`;
+  }
+  if (type === "弹力绳") {
+    if (!spec) return "弹力绳";
+    return /磅$/.test(spec) ? `弹力绳 ${spec}` : `弹力绳 ${spec}磅`;
+  }
+  return `${type}${spec ? " " + spec : ""}`.trim() || "未设置";
+}
 
-   6. 删除训练计划：
-      删除第 N 次时，
-      从第 N 次开始删除所有尚未产生 workouts
-      历史的训练计划。
+function homeExerciseById(id) {
+  return homeExercises.find((e) => String(e.id) === String(id)) || null;
+}
 
-      一旦遇到已经产生 workouts 历史的训练，
-      立即停止删除，保护训练历史。
-================================ */
+function homeFormatDosage(item) {
+  const sets = item?.sets;
+  const reps = item?.reps;
+  const seconds = item?.duration_seconds;
+  const side = item?.side === "each_side" ? "每侧" : "双侧/不分侧";
+  const repsText =
+    reps != null ? `${reps}次${item?.side === "each_side" ? "/侧" : ""}` : null;
+  const secText =
+    seconds != null
+      ? `${seconds}秒${item?.side === "each_side" ? "/侧" : ""}`
+      : null;
+  if (sets != null && (repsText || secText)) {
+    const detail = [repsText, secText].filter(Boolean).join(" + ");
+    return `${sets}组 × ${detail}（${side}）`;
+  }
+  const parts = [];
+  if (sets != null) parts.push(`${sets}组`);
+  if (repsText) parts.push(repsText);
+  if (secText) parts.push(secText);
+  if (!parts.length) return "未设置";
+  return `${parts.join(" ")}（${side}）`;
+}
 
-/* =========================================================
-   获取最近一次已经保存的训练编号
-========================================================= */
+function homeGetNextPlanCode() {
+  const v = String(localStorage.getItem(HOME_NEXT_PLAN_CODE_KEY) || "A").toUpperCase();
+  return v === "B" ? "B" : "A";
+}
 
-async function getLatestSavedWorkoutNumber() {
+function homeSetNextPlanCode(code) {
+  localStorage.setItem(HOME_NEXT_PLAN_CODE_KEY, code === "B" ? "B" : "A");
+}
+
+function homePickPlanForCode(code) {
+  const normalized = code === "B" ? "B" : "A";
+  const candidates = homePlans
+    .filter((p) => String(p.plan_code || "").toUpperCase() === normalized)
+    .sort((a, b) => {
+      const sa = (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0);
+      if (sa !== 0) return sa;
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+  return candidates[0] || null;
+}
+
+function homePickCyclePlan() {
+  const preferred = homeGetNextPlanCode();
+  let plan = homePickPlanForCode(preferred);
+  if (!plan) plan = homePickPlanForCode(preferred === "A" ? "B" : "A");
+  if (!plan) {
+    const sorted = [...homePlans].sort((a, b) => {
+      const ca = String(a.plan_code || "").localeCompare(String(b.plan_code || ""));
+      if (ca !== 0) return ca;
+      const sa = (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0);
+      if (sa !== 0) return sa;
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+    plan = sorted[0] || null;
+  }
+  return plan;
+}
+
+function homeStatusKey(planId) {
+  return `homeActionStatus_${planId}`;
+}
+
+function homeGetActionStatusMap(planId) {
   try {
-    const workouts = await supabaseRequest(
-      "workouts" +
-        "?select=workout_number,workout_date,completion_percent" +
-        "&order=workout_number.desc" +
-        "&limit=1",
-    );
-
-    if (!workouts || !workouts.length) {
-      return 0;
-    }
-
-    const number = Number(workouts[0].workout_number);
-
-    if (!Number.isFinite(number)) {
-      return 0;
-    }
-
-    return number;
-  } catch (error) {
-    console.error("读取最近已保存训练失败：", error);
-
-    throw error;
+    const raw = localStorage.getItem(homeStatusKey(planId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_) {
+    return {};
   }
 }
 
-/* =========================================================
-   获取当前应该训练的编号
-========================================================= */
-
-async function getCurrentWorkoutNumber() {
-  const latestSaved = await getLatestSavedWorkoutNumber();
-
-  return latestSaved + 1;
-}
-
-/* =========================================================
-   检查某个训练编号是否已经产生训练历史
-========================================================= */
-
-async function hasWorkoutHistory(workoutNumber) {
+function homeSetActionStatusMap(planId, map) {
   try {
-    const workouts = await supabaseRequest(
-      "workouts" +
-        "?select=id,workout_number,workout_date" +
-        "&workout_number=eq." +
-        encodeURIComponent(workoutNumber) +
-        "&limit=1",
-    );
-
-    return Array.isArray(workouts) && workouts.length > 0;
-  } catch (error) {
-    console.error("检查训练历史失败：", error);
-
-    throw error;
-  }
+    localStorage.setItem(homeStatusKey(planId), JSON.stringify(map || {}));
+  } catch (_) {}
 }
 
-/* =========================================================
-   读取当前训练计划
-========================================================= */
+function homeGetItemStatus(itemId) {
+  if (!homeCurrentPlan) return null;
+  const map = homeGetActionStatusMap(homeCurrentPlan.id);
+  const v = map[String(itemId)];
+  return v === "done" || v === "todo" ? v : null;
+}
+
+function setHomeItemStatus(itemId, status) {
+  if (!homeCurrentPlan) return;
+  const map = homeGetActionStatusMap(homeCurrentPlan.id);
+  if (status === "done" || status === "todo") {
+    map[String(itemId)] = status;
+  } else {
+    delete map[String(itemId)];
+  }
+  homeSetActionStatusMap(homeCurrentPlan.id, map);
+  renderHomePlanViewFromState();
+}
 
 async function loadCurrentPlan() {
   try {
-    const currentWorkoutNumber = await getCurrentWorkoutNumber();
+    setStatus("正在读取训练计划……");
+    const [plans, exercises, equipment, completedCount] = await Promise.all([
+      supabaseRequest(
+        "training_plans?select=id,plan_code,name,sort_order&order=plan_code.asc,sort_order.asc,id.asc",
+      ),
+      supabaseRequest(
+        "exercises?select=id,name,group_code,equipment_catalog_id,instructions,is_active&order=group_code.asc,name.asc,id.asc",
+      ),
+      supabaseRequest(
+        "equipment_catalog?select=id,equipment_type,spec_value&order=id.asc",
+      ),
+      homeLoadCompletedCount().catch((e) => {
+        console.error("读取训练次数失败：", e);
+        return null;
+      }),
+    ]);
 
-    console.log("当前应该训练：", currentWorkoutNumber);
+    homePlans = Array.isArray(plans) ? plans : [];
+    homeExercises = Array.isArray(exercises) ? exercises : [];
+    homeEquipmentCatalog = Array.isArray(equipment) ? equipment : [];
+    if (completedCount != null) homeCompletedCount = completedCount;
 
-    const plans = await supabaseRequest(
-      "training_plans" +
-        "?select=*" +
-        "&workout_number=eq." +
-        encodeURIComponent(currentWorkoutNumber) +
-        "&limit=1",
-    );
-
-    /* =====================================================
-       没有当前训练计划
-    ===================================================== */
-
-    if (!plans || !plans.length) {
-      currentPlan = null;
-
-      currentExercises = [];
-
-      completed = [];
-
-      exerciseDifficulty = [];
-
-      showWaitingForAIPlan(currentWorkoutNumber);
-
-      setTrainingPlanActions(false);
-
-      setStatus("☁️ 数据库已连接，等待AI生成下一次训练计划", "ok");
-
+    if (!homePlans.length) {
+      homeCurrentPlan = null;
+      homeCurrentItems = [];
+      renderHomeNoPlans();
+      setStatus("☁️ 已连接数据库，但还没有训练计划", "ok");
       return;
     }
 
-    /* =====================================================
-       当前训练计划
-    ===================================================== */
-
-    currentPlan = plans[0];
-
-    /* =====================================================
-       读取训练动作
-    ===================================================== */
-
-    const exercises = await supabaseRequest(
-      "training_plan_exercises" +
-        "?select=*" +
-        "&plan_id=eq." +
-        encodeURIComponent(currentPlan.id) +
-        "&order=exercise_order.asc",
-    );
-
-    currentExercises = Array.isArray(exercises) ? exercises : [];
-
-    /* =====================================================
-       初始化动作状态
-    ===================================================== */
-
-    completed = new Array(currentExercises.length).fill(false);
-
-    exerciseDifficulty = new Array(currentExercises.length).fill(null);
-
-    /* =====================================================
-       显示训练计划
-    ===================================================== */
-
-    renderCurrentPlan();
-
-    /* =====================================================
-       显示删除按钮
-    ===================================================== */
-
-    setTrainingPlanActions(true);
-
-    /* =====================================================
-       更新连接状态
-    ===================================================== */
-
-    setStatus("☁️ 已连接训练数据库", "ok");
-
-    const saveButton = document.getElementById("saveButton");
-
-    if (saveButton) {
-      saveButton.disabled = false;
-
-      saveButton.textContent = "保存今天训练";
+    const plan = homePickCyclePlan();
+    if (!plan) {
+      renderHomeNoPlans();
+      setStatus("☁️ 未找到可用训练计划", "ok");
+      return;
     }
 
-    console.log(
-      "当前训练计划：",
-      currentPlan.workout_number,
-      currentPlan.title,
+    if (String(plan.plan_code).toUpperCase() === "A" || String(plan.plan_code).toUpperCase() === "B") {
+      homeSetNextPlanCode(String(plan.plan_code).toUpperCase());
+    }
+
+    const items = await supabaseRequest(
+      `training_plan_items?select=id,plan_id,exercise_id,sort_order,sets,reps,duration_seconds,side&plan_id=eq.${encodeURIComponent(plan.id)}&order=sort_order.asc,id.asc`,
     );
+
+    homeCurrentPlan = plan;
+    homeCurrentItems = Array.isArray(items) ? items : [];
+
+    renderHomePlanViewFromState();
+
+    if (completedCount == null) {
+      setStatus("☁️ 已读取训练计划（训练次数读取失败，请确认已创建 training_counter 表）", "error");
+    } else {
+      setStatus(`☁️ 已读取训练计划 · 已完成 ${homeCompletedCount} 次训练`, "ok");
+    }
   } catch (error) {
-    console.error("训练计划读取失败：", error);
-
-    setTrainingPlanActions(false);
-
-    setStatus("⚠️ 训练计划读取失败：" + error.message, "error");
+    console.error("读取训练计划失败：", error);
+    renderHomeLoadError(error);
+    setStatus("⚠️ 训练计划读取失败：" + (error?.message || String(error)), "error");
   }
 }
 
-/* =========================================================
-   控制删除按钮显示 / 隐藏
+function renderHomeNoPlans() {
+  const title = document.getElementById("nextTrainingTitle");
+  const sub = document.getElementById("nextTrainingExpected");
+  const box = document.getElementById("todayPlanContent") || document.getElementById("todayPlan");
+  const save = document.getElementById("saveButton");
+  const nextNo = homeCompletedCount + 1;
+  if (title) title.textContent = `第${nextNo}次训练计划`;
+  if (sub) sub.textContent = "暂无训练计划";
+  if (box) {
+    box.innerHTML = `
+      <h2>还没有训练计划</h2>
+      <div class="muted">请先在“训练计划”页面创建 A/B 计划并添加动作。</div>
+      <br>
+      <button type="button" class="primary-btn" onclick="window.location.href='cycle-plan.html'">前往创建训练计划</button>
+    `;
+  }
+  if (save) {
+    save.disabled = true;
+    save.textContent = "完成本次训练";
+  }
+}
 
-   删除按钮 UI 位于 index.html：
+function renderHomeLoadError(error) {
+  const sub = document.getElementById("nextTrainingExpected");
+  const box = document.getElementById("todayPlanContent") || document.getElementById("todayPlan");
+  const save = document.getElementById("saveButton");
+  if (sub) sub.textContent = "读取失败";
+  if (box) {
+    box.innerHTML = `
+      <h2>读取训练计划失败</h2>
+      <div class="muted">${escapeHtml(error?.message || String(error))}</div>
+      <br>
+      <button type="button" class="secondary-btn" onclick="loadCurrentPlan()">重试</button>
+    `;
+  }
+  if (save) save.disabled = true;
+}
 
-   #trainingPlanActions
-========================================================= */
+function renderHomePlanViewFromState() {
+  const plan = homeCurrentPlan;
+  const items = homeCurrentItems;
+  if (!plan) {
+    renderHomeNoPlans();
+    return;
+  }
+
+  const title = document.getElementById("nextTrainingTitle");
+  const sub = document.getElementById("nextTrainingExpected");
+  const countEl = document.getElementById("trainingCompletedCount");
+  const code = String(plan.plan_code || "").toUpperCase();
+  const nextAfterThis = code === "A" ? "B" : "A";
+  const nextNo = homeCompletedCount + 1;
+  const progress = homeGetProgress(items);
+
+  if (title) title.textContent = `第${nextNo}次训练计划 · ${code}｜${plan.name || "未命名计划"}`;
+  if (sub) sub.textContent = `共 ${items.length} 个动作 · 完成后将进入 ${nextAfterThis} 计划`;
+  if (countEl) countEl.textContent = `已完成 ${homeCompletedCount} 次训练 · 默认按 A → B 循环`;
+
+  const box = document.getElementById("todayPlanContent") || document.getElementById("todayPlan");
+  if (box) {
+    box.innerHTML = `
+      <h2>第${nextNo}次训练 · ${escapeHtml(code)}｜${escapeHtml(plan.name || "未命名计划")}</h2>
+      <div class="muted">默认按 A → B 循环。请为每个动作标记“完成”或“未完成”，全部标记后才能完成本次训练。</div>
+      <br>
+      ${renderHomePlanItems(items)}
+    `;
+  }
+
+  const save = document.getElementById("saveButton");
+  if (save) {
+    if (!items.length) {
+      save.disabled = true;
+      save.textContent = "完成本次训练";
+    } else if (!progress.allMarked) {
+      save.disabled = true;
+      save.textContent = `请先标记所有动作（${progress.marked}/${progress.total}）`;
+    } else {
+      save.disabled = false;
+      save.textContent = "完成本次训练";
+    }
+  }
+}
+
+function renderHomePlanItems(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return `
+      <div class="analysis">
+        <div class="muted">该计划还没有动作。请到“训练计划”页面编辑并添加动作。</div>
+      </div>
+    `;
+  }
+
+  const progress = homeGetProgress(items);
+
+  return `
+    <div class="exercise-detail" style="margin-bottom:10px;">
+      <strong>本次进度：</strong>已标记 ${progress.marked} / ${progress.total}（完成 ${progress.done}，未完成 ${progress.todo}）
+      ${!progress.allMarked && progress.total ? '<div class="muted" style="margin-top:4px;">需为每个动作选择“完成”或“未完成”后才能完成本次训练。</div>' : ""}
+    </div>
+    ${items
+      .map((item, index) => {
+        const ex = homeExerciseById(item.exercise_id);
+        const name = ex?.name || `动作 #${item.exercise_id}`;
+        const group = ex?.group_code || "?";
+        const equipment = homeEquipmentLabel(ex?.equipment_catalog_id);
+        const inactive = ex && ex.is_active === false;
+        const dosage = homeFormatDosage(item);
+        const instructions = ex?.instructions ? escapeHtml(ex.instructions) : "";
+        const status = homeGetItemStatus(item.id);
+        const isDone = status === "done";
+        const isTodo = status === "todo";
+
+        return `
+          <div class="exercise" style="margin-top:10px;${inactive ? "opacity:.7;" : ""}">
+            <div class="exercise-row">
+              <div class="exercise-info" style="width:100%;">
+                <div class="exercise-name">
+                  ${index + 1}. ${escapeHtml(name)}
+                  ${inactive ? '<span class="tag tag-off">动作已停用</span>' : ""}
+                  ${isDone ? '<span class="tag tag-ok">已完成</span>' : ""}
+                  ${isTodo ? '<span class="tag tag-off">未完成</span>' : ""}
+                </div>
+                <div class="exercise-detail" style="margin-top:4px;">
+                  <span class="tag tag-primary">${escapeHtml(HOME_GROUP_LABELS[group] || group)}</span>
+                  <span class="tag tag-secondary">器械：${escapeHtml(equipment)}</span>
+                </div>
+                <div class="exercise-detail" style="margin-top:6px;"><strong>计划目标：</strong>${escapeHtml(dosage)}</div>
+                ${instructions ? `<div class="exercise-detail" style="margin-top:4px;"><strong>要点：</strong>${instructions}</div>` : ""}
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                  <button type="button" class="${isDone ? "primary-btn" : "secondary-btn"}" style="flex:1;" onclick="setHomeItemStatus(${item.id}, '${isDone ? "null" : "done"}')">完成</button>
+                  <button type="button" class="${isTodo ? "primary-btn" : "secondary-btn"}" style="flex:1;" onclick="setHomeItemStatus(${item.id}, '${isTodo ? "null" : "todo"}')">未完成</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      })
+      .join("")}
+  `;
+}
+
+function homeGetProgress(items) {
+  const total = Array.isArray(items) ? items.length : 0;
+  let done = 0;
+  let todo = 0;
+  let marked = 0;
+  (items || []).forEach((it) => {
+    const s = homeGetItemStatus(it.id);
+    if (s === "done") { done += 1; marked += 1; }
+    if (s === "todo") { todo += 1; marked += 1; }
+  });
+  return { total, done, todo, marked, allMarked: total > 0 && marked === total };
+}
+
+function homeTodayString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+async function homeLoadCompletedCount() {
+  const rows = await supabaseRequest(TRAINING_COUNTER_PATH);
+  if (Array.isArray(rows) && rows.length) {
+    const n = Number(rows[0].completed_count);
+    return Number.isFinite(n) && n >= 0 ? Math.trunc(n) : 0;
+  }
+  // 初始化计数行
+  await supabaseRequest("training_counter", {
+    method: "POST",
+    body: { id: 1, completed_count: 0 },
+    prefer: "return=representation,resolution=merge-duplicates",
+  });
+  return 0;
+}
+
+async function homeIncrementCompletedCount(expectedNext) {
+  const updated = await supabaseRequest("training_counter?id=eq.1", {
+    method: "PATCH",
+    body: { completed_count: expectedNext, updated_at: new Date().toISOString() },
+  });
+  if (Array.isArray(updated) && updated.length) {
+    const n = Number(updated[0].completed_count);
+    if (Number.isFinite(n)) return Math.trunc(n);
+  }
+  return expectedNext;
+}
+
+async function homeSyncCompletedCountFromSessions() {
+  try {
+    const sessions = await supabaseRequest("workout_sessions?select=id");
+    const count = Array.isArray(sessions) ? sessions.length : 0;
+    await supabaseRequest("training_counter?id=eq.1", {
+      method: "PATCH",
+      body: { completed_count: count, updated_at: new Date().toISOString() },
+      prefer: "return=minimal",
+    });
+    return count;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function homeSaveWorkoutSession() {
+  const plan = homeCurrentPlan;
+  const items = homeCurrentItems || [];
+  const progress = homeGetProgress(items);
+  const sessionNo = homeCompletedCount + 1;
+  const completionPercent = progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
+
+  const sessionRows = await supabaseRequest("workout_sessions", {
+    method: "POST",
+    body: {
+      session_no: sessionNo,
+      workout_date: homeTodayString(),
+      plan_id: plan?.id ?? null,
+      plan_code: plan?.plan_code ?? null,
+      plan_name: plan?.name ?? null,
+      total_items: progress.total,
+      done_items: progress.done,
+      completion_percent: completionPercent,
+    },
+  });
+  const session = Array.isArray(sessionRows) ? sessionRows[0] : null;
+  if (!session?.id) throw new Error("保存训练记录失败（未返回会话ID）。");
+
+  if (items.length) {
+    const payload = items.map((item, index) => {
+      const ex = homeExerciseById(item.exercise_id);
+      const status = homeGetItemStatus(item.id) || "todo";
+      return {
+        session_id: session.id,
+        sort_order: index + 1,
+        exercise_id: item.exercise_id ?? null,
+        exercise_name: ex?.name || `动作 #${item.exercise_id}`,
+        group_code: ex?.group_code || null,
+        equipment_label: homeEquipmentLabel(ex?.equipment_catalog_id),
+        sets: item.sets ?? null,
+        reps: item.reps ?? null,
+        duration_seconds: item.duration_seconds ?? null,
+        side: item.side ?? null,
+        status,
+      };
+    });
+    await supabaseRequest("workout_session_items", {
+      method: "POST",
+      body: payload,
+    });
+  }
+
+  return { session, sessionNo };
+}
+
+async function completeCurrentHomePlan() {
+  if (!homeCurrentPlan) return;
+  const progress = homeGetProgress(homeCurrentItems);
+  if (!progress.allMarked) {
+    setStatus("请先为每个动作选择“完成”或“未完成”。", "error");
+    renderHomePlanViewFromState();
+    return;
+  }
+
+  const code = String(homeCurrentPlan.plan_code || "A").toUpperCase();
+  const next = code === "A" ? "B" : "A";
+
+  const saveBtn = document.getElementById("saveButton");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "正在保存训练记录…";
+  }
+
+  try {
+    const { sessionNo } = await homeSaveWorkoutSession();
+    try {
+      homeCompletedCount = await homeIncrementCompletedCount(sessionNo);
+    } catch (e) {
+      // 记录已保存但计数更新失败，尝试按会话数同步
+      const synced = await homeSyncCompletedCountFromSessions();
+      if (synced != null) homeCompletedCount = synced;
+      else homeCompletedCount = sessionNo;
+    }
+
+    try {
+      localStorage.removeItem(homeStatusKey(homeCurrentPlan.id));
+    } catch (_) {}
+    homeSetNextPlanCode(next);
+
+    setStatus(`✅ 已完成第 ${sessionNo} 次训练（${code} 计划），下一次将显示 ${next} 计划`, "ok");
+    await loadCurrentPlan();
+  } catch (error) {
+    console.error("完成训练失败：", error);
+    const msg = String(error?.message || error || "");
+    if (msg.includes("workout_sessions") || msg.includes("PGRST205") || msg.includes("does not exist")) {
+      setStatus("⚠️ 保存失败：请先在 Supabase 创建训练历史表（workout_sessions / workout_session_items）。", "error");
+    } else {
+      setStatus("⚠️ 完成训练失败：" + msg, "error");
+    }
+    renderHomePlanViewFromState();
+  }
+}
 
 function setTrainingPlanActions(show) {
   const actions = document.getElementById("trainingPlanActions");
-
-  if (!actions) {
-    return;
-  }
-
+  if (!actions) return;
   actions.classList.toggle("hidden", !show);
 }
 
-/* =========================================================
-   等待AI训练计划
-========================================================= */
-
-function showWaitingForAIPlan(workoutNumber) {
-  const box = document.getElementById("todayPlan");
-
-  if (!box) {
-    return;
-  }
-
-  const content = document.getElementById("todayPlanContent") || box;
-
-  content.innerHTML = `
-
-    <h2>
-      🤖 等待下一次训练计划
-    </h2>
-
-    <div class="muted">
-
-      第 ${workoutNumber} 次训练
-      还没有生成。
-
-    </div>
-
-    <br>
-
-    <div class="analysis">
-
-      你的下一次训练不会按照固定规则自动生成。
-
-      <br><br>
-
-      我会根据你之前的训练记录、
-      每个动作的完成情况、
-      每个动作的训练难度、
-      训练频率、
-      身体感受以及身体数据，
-
-      <br><br>
-
-      由 ChatGPT 分析后生成下一次训练计划。
-
-    </div>
-
-    <br>
-
-    <div class="muted">
-
-      💡 生成计划后，
-      将计划导入网站即可开始下一次训练。
-
-    </div>
-
-  `;
-
-  const saveButton = document.getElementById("saveButton");
-
-  if (saveButton) {
-    saveButton.disabled = true;
-
-    saveButton.textContent = "等待下一次训练计划";
-  }
-}
-
-/* =========================================================
-   难度按钮
-========================================================= */
-
-function renderDifficultyButtons(index) {
-  const difficulty = exerciseDifficulty[index];
-
-  const options = [
-    {
-      value: "easy",
-      label: "轻松",
-    },
-
-    {
-      value: "normal",
-      label: "正常",
-    },
-
-    {
-      value: "hard",
-      label: "吃力",
-    },
-
-    {
-      value: "incomplete",
-      label: "未完成",
-    },
-  ];
-
-  return `
-    <div
-      class="difficulty-buttons"
-      id="difficultyBox${index}">
-
-      ${options
-        .map((option) => {
-          const selected = difficulty === option.value;
-
-          return `
-            <button
-              type="button"
-              class="
-                difficulty-btn
-                difficulty-${option.value}
-                ${selected ? "selected" : ""}
-              "
-              onclick="setExerciseDifficulty(
-                ${index},
-                '${option.value}'
-              )">
-
-              ${option.label}
-
-            </button>
-          `;
-        })
-        .join("")}
-
-    </div>
-  `;
-}
-
-/* =========================================================
-   显示训练计划
-========================================================= */
-
-function renderCurrentPlan() {
-  const box = document.getElementById("todayPlan");
-
-  if (!box || !currentPlan) {
-    return;
-  }
-
-  const exercisesHTML = currentExercises
-    .map(
-      (exercise, index) => `
-
-        <div
-          class="exercise"
-          id="exercise${index}">
-
-          <div class="exercise-row">
-
-            <div class="exercise-info">
-
-              <div class="exercise-name">
-
-                ${index + 1}️⃣
-                ${escapeHtml(exercise.exercise_name)}
-
-              </div>
-
-              <div class="exercise-detail">
-
-                ${
-                  exercise.weight_kg !== null
-                    ? exercise.weight_kg + "kg × "
-                    : ""
-                }
-
-                ${escapeHtml(exercise.reps || "")}
-
-                次 ×
-
-                ${exercise.sets || 0}
-
-                组
-
-                ${
-                  exercise.notes
-                    ? `
-                      <br>
-                      ${escapeHtml(exercise.notes)}
-                    `
-                    : ""
-                }
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div class="difficulty-label">
-
-            完成情况
-
-          </div>
-
-          ${renderDifficultyButtons(index)}
-
-        </div>
-
-      `,
-    )
-    .join("");
-
-  /* =====================================================
-     当前训练计划
-     
-     删除按钮已经移到 index.html，
-     这里不再生成删除按钮。
-  ===================================================== */
-
-  const content = document.getElementById("todayPlanContent");
-
-  const target = content || box;
-
-  target.innerHTML = `
-
-    <h2>
-
-      第
-      ${currentPlan.workout_number}
-      次训练
-
-    </h2>
-
-    <div class="muted">
-
-      ${escapeHtml(currentPlan.title || "")}
-
-    </div>
-
-    <div class="muted">
-
-      重点：
-
-      ${escapeHtml(currentPlan.focus || "")}
-
-    </div>
-
-    <div class="muted">
-
-      建议训练时间：
-
-      ${currentPlan.duration_minutes || 25}
-
-      分钟
-
-    </div>
-
-    <br>
-
-    <div class="progress">
-
-      <div
-        id="progressBar"
-        class="progress-bar">
-      </div>
-
-    </div>
-
-    <div
-      id="progressText"
-      class="muted">
-
-      0 /
-      ${currentExercises.length}
-      个动作完成
-
-    </div>
-
-    ${exercisesHTML}
-
-  `;
-
-  updateProgress();
-}
-
-/* =========================================================
-   删除当前及以后所有尚未产生历史的训练计划
-
-   规则：
-
-   删除第 N 次时：
-
-   第 N 次
-   第 N+1 次
-   第 N+2 次
-   ...
-
-   只要没有 workouts 历史：
-   → 删除
-
-   一旦发现某一次已经有 workouts：
-   → 停止
-
-   已经产生历史的训练计划以及之后的计划全部保留。
-
-   不删除：
-
-   - workouts
-   - workout_exercise_records
-========================================================= */
-
-async function deleteCurrentTrainingPlan() {
-  if (!currentPlan) {
-    alert("目前没有可以删除的训练计划。");
-
-    return;
-  }
-
-  const startNumber = Number(currentPlan.workout_number);
-
-  if (!Number.isFinite(startNumber)) {
-    alert("当前训练计划编号无效，无法删除。");
-
-    return;
-  }
-
-  if (!currentPlan.id) {
-    alert("当前训练计划缺少 plan_id，无法删除。");
-
-    return;
-  }
-
-  /* =====================================================
-     查找从当前训练开始的所有训练计划
-  ===================================================== */
-
-  let plansToCheck = [];
-
-  try {
-    plansToCheck = await supabaseRequest(
-      "training_plans" +
-        "?select=id,workout_number,title" +
-        "&workout_number=gte." +
-        encodeURIComponent(startNumber) +
-        "&order=workout_number.asc",
-    );
-  } catch (error) {
-    console.error("读取待删除训练计划失败：", error);
-
-    alert("读取待删除训练计划失败：\n\n" + (error.message || String(error)));
-
-    return;
-  }
-
-  if (!Array.isArray(plansToCheck)) {
-    plansToCheck = [];
-  }
-
-  try {
-    const plansToDelete = [];
-
-    /* =====================================================
-       按训练编号从前往后检查
-
-       一旦遇到已经有 workouts 的训练，
-       就停止。
-
-       这样可以保证：
-       第8、9、10没有历史 → 删除
-       第11有历史 → 停止
-       第12以后 → 保留
-    ===================================================== */
-
-    for (const plan of plansToCheck) {
-      const workoutNumber = Number(plan.workout_number);
-
-      if (!Number.isFinite(workoutNumber)) {
-        console.warn("发现无效训练编号，停止删除：", plan);
-
-        break;
-      }
-
-      const hasHistory = await hasWorkoutHistory(workoutNumber);
-
-      if (hasHistory) {
-        console.log(`第${workoutNumber}次已有训练历史，停止继续删除。`);
-
-        break;
-      }
-
-      plansToDelete.push(plan);
-    }
-
-    /* =====================================================
-       没有任何可以删除的计划
-    ===================================================== */
-
-    if (!plansToDelete.length) {
-      alert(
-        `第 ${startNumber} 次训练已经存在训练历史。\n\n` +
-          `为了保护你的训练记录，系统没有删除任何训练计划。`,
-      );
-
-      return;
-    }
-
-    console.log("准备删除训练计划：", plansToDelete);
-
-    /* =====================================================
-       最终确认
-
-       显示实际准备删除的范围
-    ===================================================== */
-
-    const firstNumber = Number(plansToDelete[0].workout_number);
-
-    const lastNumber = Number(
-      plansToDelete[plansToDelete.length - 1].workout_number,
-    );
-
-    const rangeText =
-      firstNumber === lastNumber
-        ? `第 ${firstNumber} 次`
-        : `第 ${firstNumber}～${lastNumber} 次`;
-
-    const finalConfirmed = window.confirm(
-      `确认删除 ${rangeText}训练计划？\n\n` +
-        `共 ${plansToDelete.length} 次训练计划。\n\n` +
-        `这些训练计划都没有产生训练历史。\n\n` +
-        `已有训练历史的计划不会删除。`,
-    );
-
-    if (!finalConfirmed) {
-      return;
-    }
-
-    /* =====================================================
-       逐个删除
-
-       每个计划：
-
-       ① 再检查一次 workouts
-       ② 删除 training_plan_exercises
-       ③ 再检查一次 workouts
-       ④ 删除 training_plans
-
-       双重保护。
-    ===================================================== */
-
-    let deletedCount = 0;
-
-    for (const plan of plansToDelete) {
-      const workoutNumber = Number(plan.workout_number);
-
-      const planId = plan.id;
-
-      /* ===================================================
-         删除前再次检查历史
-      =================================================== */
-
-      const historyBeforeDelete = await hasWorkoutHistory(workoutNumber);
-
-      if (historyBeforeDelete) {
-        console.warn(`第${workoutNumber}次在删除前产生了训练历史，停止删除。`);
-
-        break;
-      }
-
-      /* ===================================================
-         删除动作
-      =================================================== */
-
-      await supabaseRequest(
-        "training_plan_exercises" + "?plan_id=eq." + encodeURIComponent(planId),
-        {
-          method: "DELETE",
-        },
-      );
-
-      console.log(`🗑 第${workoutNumber}次训练动作删除完成`);
-
-      /* ===================================================
-         删除前再次检查历史
-      =================================================== */
-
-      const historyAfterExercises = await hasWorkoutHistory(workoutNumber);
-
-      if (historyAfterExercises) {
-        console.warn(
-          `第${workoutNumber}次删除动作后产生训练历史，停止删除训练计划。`,
-        );
-
-        break;
-      }
-
-      /* ===================================================
-         删除训练计划
-      =================================================== */
-
-      await supabaseRequest(
-        "training_plans" + "?id=eq." + encodeURIComponent(planId),
-        {
-          method: "DELETE",
-        },
-      );
-
-      deletedCount++;
-
-      console.log(`🗑 第${workoutNumber}次训练计划删除完成`);
-    }
-
-    /* =====================================================
-       清空当前页面状态
-    ===================================================== */
-
-    currentPlan = null;
-
-    currentExercises = [];
-
-    completed = [];
-
-    exerciseDifficulty = [];
-
-    setTrainingPlanActions(false);
-
-    /* =====================================================
-       重新读取当前训练
-
-       因为当前训练计划已经删除，
-       首页会重新显示：
-
-       最近完成训练 + 1
-    ===================================================== */
-
-    await loadCurrentPlan();
-
-    /* =====================================================
-       成功提示
-    ===================================================== */
-
-    if (deletedCount > 0) {
-      setStatus(`☁️ 已删除 ${deletedCount} 次训练计划`, "ok");
-
-      alert(
-        `删除完成！\n\n` +
-          `共删除 ${deletedCount} 次训练计划。\n\n` +
-          `已经产生训练历史的训练不会被删除。`,
-      );
-    }
-  } catch (error) {
-    console.error("❌ 删除训练计划失败：", error);
-
-    alert(
-      "删除训练计划失败：\n\n" +
-        (error.message || String(error)) +
-        "\n\n" +
-        "请检查 Supabase 数据库权限或表关联设置。",
-    );
-  }
-}
-
-/* ============================================================
-   复制最新训练计划
-
-   核心规则：
-
-   1. 不看“当前应该训练哪一次”
-   2. 直接寻找 training_plans 中最新的一次训练计划
-   3. 将最新计划完整复制
-   4. 新计划编号 = 最新计划编号 + 1
-
-   例如：
-
-   第8次已完成
-   第9次尚未生成
-
-   点击“复制此次训练计划”：
-
-   第8次 → 第9次
-
-   如果：
-
-   第8次已完成
-   第9次 AI计划已经存在
-
-   点击：
-
-   第9次 → 第10次
-============================================================ */
-
-async function copyLastTrainingPlan() {
-  try {
-    /* =====================================================
-       ① 查找数据库中最新的训练计划
-
-       注意：
-
-       这里不能使用 getCurrentWorkoutNumber()。
-
-       getCurrentWorkoutNumber() 得到的是：
-
-       最近完成训练 + 1
-
-       而我们需要的是：
-
-       training_plans 中最新的一次计划。
-    ===================================================== */
-
-    const latestPlans = await supabaseRequest(
-      "training_plans" +
-        "?select=*" +
-        "&order=workout_number.desc" +
-        "&limit=1",
-    );
-
-    /* =====================================================
-       没有任何训练计划
-    ===================================================== */
-
-    if (!latestPlans || !latestPlans.length) {
-      alert("目前还没有任何训练计划。\n\n" + "请先让 AI 生成第一次训练计划。");
-
-      return;
-    }
-
-    const sourcePlan = latestPlans[0];
-
-    const sourceWorkoutNumber = Number(sourcePlan.workout_number);
-
-    if (!Number.isFinite(sourceWorkoutNumber)) {
-      throw new Error("最新训练计划的 workout_number 无效。");
-    }
-
-    /* =====================================================
-       ② 新训练编号
-
-       最新计划 + 1
-
-       例如：
-
-       第8次 → 第9次
-       第9次 → 第10次
-    ===================================================== */
-
-    const newWorkoutNumber = sourceWorkoutNumber + 1;
-
-    /* =====================================================
-       ③ 检查新编号是否已经存在
-
-       正常情况下不应该存在。
-
-       但如果数据库出现重复或并发操作，
-       这里可以防止重复创建。
-    ===================================================== */
-
-    const existingPlans = await supabaseRequest(
-      "training_plans" +
-        "?select=id,workout_number,title" +
-        "&workout_number=eq." +
-        encodeURIComponent(newWorkoutNumber) +
-        "&limit=1",
-    );
-
-    if (existingPlans && existingPlans.length) {
-      alert(`第${newWorkoutNumber}次训练计划已经存在。\n\n` + `不会重复创建。`);
-
-      return;
-    }
-
-    /* =====================================================
-       ④ 读取最新训练计划的动作
-
-       先读取，确认原计划确实有动作，
-       再创建新的训练计划。
-
-       避免产生一个空的训练计划。
-    ===================================================== */
-
-    const sourceExercises = await supabaseRequest(
-      "training_plan_exercises" +
-        "?select=*" +
-        "&plan_id=eq." +
-        encodeURIComponent(sourcePlan.id) +
-        "&order=exercise_order.asc",
-    );
-
-    if (!Array.isArray(sourceExercises) || !sourceExercises.length) {
-      alert(
-        `第${sourceWorkoutNumber}次训练计划没有训练动作。\n\n` +
-          `无法复制空训练计划。`,
-      );
-
-      return;
-    }
-
-    /* =====================================================
-       ⑤ 创建新的训练计划
-    ===================================================== */
-
-    const created = await supabaseRequest("training_plans", {
-      method: "POST",
-
-      body: {
-        workout_number: newWorkoutNumber,
-
-        plan_date: todayString(),
-
-        title: `第${newWorkoutNumber}次训练`,
-
-        focus: sourcePlan.focus || "",
-
-        duration_minutes: sourcePlan.duration_minutes || 25,
-
-        notes: sourcePlan.notes || "",
-      },
-    });
-
-    if (!created || !created.length || !created[0].id) {
-      throw new Error("复制训练计划后没有返回新的 plan_id。");
-    }
-
-    const newPlanId = created[0].id;
-
-    /* =====================================================
-       ⑥ 复制所有训练动作
-
-       完整复制：
-
-       - 动作顺序
-       - 动作名称
-       - 器械
-       - 重量
-       - 次数
-       - 组数
-       - 动作备注
-    ===================================================== */
-
-    for (let i = 0; i < sourceExercises.length; i++) {
-      const exercise = sourceExercises[i];
-
-      await supabaseRequest("training_plan_exercises", {
-        method: "POST",
-
-        body: {
-          plan_id: newPlanId,
-
-          exercise_order: Number(exercise.exercise_order) || i + 1,
-
-          exercise_name: exercise.exercise_name,
-
-          equipment: exercise.equipment || "自重",
-
-          weight_kg:
-            exercise.weight_kg === null || exercise.weight_kg === undefined
-              ? null
-              : Number(exercise.weight_kg),
-
-          reps: exercise.reps || "",
-
-          sets: Number(exercise.sets) || 1,
-
-          notes: exercise.notes || "",
-        },
-      });
-    }
-
-    /* =====================================================
-       ⑦ 成功提示
-    ===================================================== */
-
-    alert(
-      `已经成功复制！💪\n\n` +
-        `第${sourceWorkoutNumber}次训练计划` +
-        ` → 第${newWorkoutNumber}次训练计划\n\n` +
-        `首页现在可以开始第${newWorkoutNumber}次训练。`,
-    );
-
-    /* =====================================================
-       ⑧ 重新读取首页训练计划
-
-       如果源计划已经完成：
-
-       第8次已完成
-       ↓
-       新建第9次
-       ↓
-       getCurrentWorkoutNumber()
-       ↓
-       第9次
-       ↓
-       首页显示第9次
-    ===================================================== */
-
-    await loadCurrentPlan();
-
-    if (typeof setStatus === "function") {
-      setStatus(
-        `☁️ 已复制第${sourceWorkoutNumber}次训练计划 → 第${newWorkoutNumber}次`,
-        "ok",
-      );
-    }
-  } catch (error) {
-    console.error("复制训练计划失败：", error);
-
-    alert("复制训练计划失败：\n\n" + (error.message || String(error)));
-  }
-}
+// 兼容旧调用/占位
+async function deleteCurrentTrainingPlan() {}
+async function updateHomeTrainingHeader() {}

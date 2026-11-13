@@ -96,3 +96,63 @@ async function supabaseRequest(path, options = {}) {
     hidePageLoading();
   }
 }
+
+/* =========================================================
+   调用 Supabase 远程过程指令（RPC）
+   POST /rest/v1/rpc/{function_name}
+   body: 传入函数的参数对象
+   ========================================================= */
+
+async function supabaseRpc(functionName, args = {}) {
+  let accessToken = SUPABASE_KEY;
+
+  try {
+    if (
+      typeof supabase !== "undefined" &&
+      supabase &&
+      supabase.auth &&
+      typeof supabase.auth.getSession === "function"
+    ) {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (!error && data?.session?.access_token) {
+        accessToken = data.session.access_token;
+      }
+    }
+  } catch (error) {
+    console.warn("读取 Supabase 登录 Session 失败，继续使用 anon key：", error);
+  }
+
+  showPageLoading();
+
+  try {
+    const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/" + functionName, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: "Bearer " + accessToken,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(args),
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw new Error("RPC " + functionName + " 失败：HTTP " + response.status + "：" + text);
+    }
+
+    if (!text) {
+      return { ok: false, error: functionName + "_EMPTY_RESPONSE" };
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      throw new Error("RPC " + functionName + " 返回数据解析失败。");
+    }
+  } finally {
+    hidePageLoading();
+  }
+}

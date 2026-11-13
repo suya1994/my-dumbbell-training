@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#f5f5f5">
+    <title>动作库 - 我的私人哑铃训练</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/loading.css">
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="page-header">
+            <div class="page-title">
+                <h1>💪 动作库</h1>
+                <p class="muted">按 A/B/D 分组管理动作，关联固定器械规格</p>
+            </div>
+        </div>
+
+        <div id="exerciseLibraryStatus" class="status hidden"></div>
+
+        <section class="card">
+            <h2>🏋️ 标准动作</h2>
+            <p class="muted">动作按分组管理：A 上半身+核心、B 下半身+腹部、D 热身+拉伸。可筛选、分页、编辑要点并新增动作。</p>
+
+            <br>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                <button type="button" class="secondary-btn" onclick="openAddExerciseForm()">➕ 新增动作</button>
+            </div>
+
+            <div id="addExerciseForm" class="card hidden" style="margin:0 0 16px 0;padding:12px;">
+                <h3 style="margin-top:0;">新增动作</h3>
+                <div style="display:grid;gap:12px;">
+                    <label style="display:grid;gap:6px;">
+                        <span>动作名称（必填）</span>
+                        <input id="newExerciseName" type="text" placeholder="例如：哑铃卧推">
+                    </label>
+
+                    <label style="display:grid;gap:6px;">
+                        <span>分组（必填）</span>
+                        <select id="newExerciseGroup">
+                            <option value="A">A｜上半身 + 核心</option>
+                            <option value="B">B｜下半身 + 腹部</option>
+                            <option value="D">D｜热身 + 拉伸</option>
+                        </select>
+                    </label>
+
+                    <label style="display:grid;gap:6px;">
+                        <span>器械（必填）</span>
+                        <select id="newExerciseEquipment"></select>
+                    </label>
+
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+                        <label style="display:grid;gap:6px;">
+                            <span>默认组数</span>
+                            <input id="newExerciseSets" type="number" min="1" step="1" placeholder="如 3">
+                        </label>
+                        <label style="display:grid;gap:6px;">
+                            <span>默认次数</span>
+                            <input id="newExerciseReps" type="number" min="1" step="1" placeholder="如 12">
+                        </label>
+                        <label style="display:grid;gap:6px;">
+                            <span>默认时长(秒)</span>
+                            <input id="newExerciseSeconds" type="number" min="1" step="1" placeholder="如 30">
+                        </label>
+                        <label style="display:grid;gap:6px;">
+                            <span>计量侧别</span>
+                            <select id="newExerciseSide">
+                                <option value="">未指定</option>
+                                <option value="both">双侧/不分侧</option>
+                                <option value="each_side">每侧</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <label style="display:grid;gap:6px;">
+                        <span>动作要点</span>
+                        <textarea id="newExerciseInstructions" class="note" rows="4" placeholder="填写动作要点（可选）"></textarea>
+                    </label>
+                </div>
+
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button type="button" class="primary-btn" onclick="submitNewExercise()" style="flex:1;">保存</button>
+                    <button type="button" class="secondary-btn" onclick="closeAddExerciseForm()" style="flex:1;">取消</button>
+                </div>
+            </div>
+
+            <label class="filter-label">
+                <span>搜索动作 / 分组 / 器械 / 要点</span>
+                <input
+                    id="exerciseSearch"
+                    type="search"
+                    placeholder="例如：卧推 / 弹力绳 / A / 拉伸"
+                    oninput="onExerciseFiltersChanged()">
+            </label>
+
+            <div style="display:flex;flex-direction:column;gap:8px;margin:12px 0;">
+                <div style="display:flex;gap:8px;">
+                    <button type="button" class="secondary-btn group-filter-btn" data-group="A" onclick="setExerciseGroupFilter('A')" style="flex:1;">A 上半身+核心</button>
+                    <button type="button" class="secondary-btn group-filter-btn" data-group="B" onclick="setExerciseGroupFilter('B')" style="flex:1;">B 下半身+腹部</button>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button type="button" class="secondary-btn group-filter-btn" data-group="D" onclick="setExerciseGroupFilter('D')" style="flex:1;">D 热身+拉伸</button>
+                </div>
+                <div class="muted" id="exerciseFilterHint" style="font-size:12px;">默认显示全部；点击 A/B/D 可按分组筛选，再次点击取消筛选。</div>
+            </div>
+
+            <div id="exerciseLibrarySummary" class="muted">正在读取动作库……</div>
+
+            <br>
+
+            <div id="exercisesLibrary">
+                <div class="loading">正在读取动作库……</div>
+            </div>
+
+            <div id="exercisePagination" class="exercise-pagination" style="margin-top:16px;"></div>
+        </section>
+
+        <section class="card">
+            <h2>🎒 固定器械规格</h2>
+            <p class="muted">动作库器械来自固定规格（equipment_catalog），用于新增与展示动作器械。</p>
+            <br>
+            <div id="equipmentSummary" class="muted">正在读取器械规格……</div>
+            <br>
+            <div id="equipmentCatalogList">
+                <div class="loading">正在读取器械规格……</div>
+            </div>
+        </section>
+
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon">🏠</span>
+            <span class="bottom-nav-label">首页</span>
+        </a>
+        <a href="cycle-plan.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon">🔁</span>
+            <span class="bottom-nav-label">训练计划</span>
+        </a>
+        <a href="metrics.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon">📏</span>
+            <span class="bottom-nav-label">身体数据</span>
+        </a>
+        <a href="analysis.html" class="bottom-nav-item">
+            <span class="bottom-nav-icon">📊</span>
+            <span class="bottom-nav-label">统计</span>
+        </a>
+    </nav>
+
+    <div class="footer">私人哑铃增肌 / 塑形训练系统</div>
+
+    <script src="js/config.js"></script>
+    <script src="js/loading.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/v4-core.js"></script>
+    <script src="js/exercises.js"></script>
+</body>
+
+</html>

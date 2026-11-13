@@ -57,129 +57,9 @@
 
 
 
-        <!-- =====================================================
-             AI教练规则设置
-        ====================================================== -->
-
         <div class="card">
-
-
-            <h2>
-                🤖 AI教练规则设置
-            </h2>
-
-
-            <div class="muted">
-
-                设置每周训练目标，以及 AI 教练固定使用的训练规则。
-                这些设置会用于训练统计和 AI 教练的训练分析。
-
-            </div>
-
-
-            <br>
-
-
-            <div class="setting-group">
-
-
-                <label for="weeklyStrengthTarget" class="setting-label">
-
-                    每周力量训练次数
-
-                </label>
-
-
-                <input id="weeklyStrengthTarget" class="note" type="number" min="1" max="7" step="1" placeholder="例如 3">
-
-
-                <div class="setting-help">
-
-                    推荐每周 3～4 次。
-
-                </div>
-
-            </div>
-
-
-            <br>
-
-
-            <div class="setting-group">
-
-                <label for="expectedDurationMinutes" class="setting-label">
-
-                    每次期望训练时间
-
-                </label>
-
-                <input id="expectedDurationMinutes" class="note" type="number" placeholder="例如 25">
-
-                <div class="setting-help">
-
-                    AI 教练制定训练计划时，会尽量控制在这个时间范围内。
-
-                </div>
-
-            </div>
-
-
-            <br>
-
-
-            <div class="setting-group">
-
-                <label for="aiBehavior" class="setting-label">
-
-                    固定力量训练教练规则
-
-                </label>
-
-                <textarea id="aiBehavior" class="note ai-textarea" rows="12"
-                    placeholder="填写 AI 教练始终遵循的训练规则，例如：根据训练历史动态调整，不为了变化而变化；优先保证动作安全和训练可执行性；如果当前方案合理，可以继续使用……"></textarea>
-
-                <div class="setting-help">
-
-                    AI 教练在每次训练分析和制定计划时，都会始终按照这里的规则执行。
-
-                </div>
-
-            </div>
-
-
-            <br>
-
-
-            <button type="button" class="primary-btn setting-save" onclick="saveAISettings()">
-
-                💾 保存设置
-
-            </button>
-
-
-        </div>
-
-
-
-        <!-- =====================================================
-             当前设置
-        ====================================================== -->
-
-        <div class="card">
-
-
-            <h2>
-                📋 当前设置
-            </h2>
-
-
-            <div id="settingsStatus" class="analysis">
-
-                正在读取设置……
-
-            </div>
-
-
+            <h2>⚙️ 设置</h2>
+            <div class="muted">当前暂无可配置项。</div>
         </div>
 
 
@@ -209,17 +89,7 @@
 
     <script src="js/api.js"></script>
 
-    <script src="js/plan.js"></script>
-
-    <script src="js/workout.js"></script>
-
-    <script src="js/metrics.js"></script>
-
-    <script src="js/other-activities.js"></script>
-
     <script src="js/settings.js"></script>
-
-    <script src="js/app.js"></script>
 
 
 </body>

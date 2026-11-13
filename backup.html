@@ -36,7 +36,7 @@
                 <span class="backup-icon export-icon">↓</span>
                 <div>
                     <h2>数据备份</h2>
-                    <p class="muted">导出训练记录、计划、身体数据与设置为 JSON 文件。</p>
+                    <p class="muted">导出动作库、器械规格、训练计划、训练历史、身体数据与训练次数为 JSON 文件。</p>
                 </div>
             </div>
             <button id="exportButton" class="primary-btn backup-action" type="button">下载备份文件</button>
@@ -62,16 +62,18 @@
 
             <label id="importConfirmRow" class="confirm-row hidden" for="importConfirmed">
                 <input id="importConfirmed" type="checkbox">
-                <span>我已了解：将只新增缺少的数据，相同 ID 的现有数据会被保留。</span>
+                <span>我已了解：网页只执行合并导入（不是完整恢复）；只新增缺少的数据，相同 ID 的现有数据会被保留，不会删除或覆盖。</span>
             </label>
 
             <button id="importButton" class="secondary-btn backup-action" type="button" disabled>确认导入</button>
             <p id="importStatus" class="backup-status" role="status" aria-live="polite"></p>
+
+            <div id="importReport" class="import-preview hidden" aria-live="polite"></div>
         </section>
 
         <aside class="backup-note">
             <span>🛡️</span>
-            <p><strong>安全导入：</strong>不会执行删除或更新操作。若备份中存在同 ID 数据，系统将跳过该行，保留云端原有内容。</p>
+            <p><strong>合并恢复（网页唯一开放）：</strong>只新增云端不存在的数据，相同 ID 保留云端原内容；不执行 DELETE、不覆盖业务数据。当前备份包含动作库、器械规格、训练计划、训练历史、身体数据与训练次数。仅支持本版本导出的备份文件（v3）。</p>
         </aside>
     </main>
 

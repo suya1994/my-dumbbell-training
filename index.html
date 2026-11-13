@@ -40,26 +40,40 @@
 
                          <p id="today"></p>
 
+                         <p id="trainingCompletedCount" class="muted">
+
+                              默认从 A 开始，按 A → B → A 循环
+
+                         </p>
+
+                         <h2 id="nextTrainingTitle">
+
+                              下一次训练计划
+
+                         </h2>
+
+                         <p id="nextTrainingExpected" class="muted">
+
+                              正在读取训练计划……
+
+                         </p>
+
                     </div>
 
 
-                    <!-- ================================
-                    设置
-                    首页右上角
-                    ================================= -->
-
-                    <button type="button" class="header-settings" onclick="window.location.href='settings.html'"
-                         aria-label="设置" title="设置">
-
-                         ⚙️
-
+                    <button type="button" class="header-settings" onclick="window.location.href='exercises.html'"
+                         aria-label="动作库" title="动作库">
+                         💪
                     </button>
 
-                    <button type="button" class="header-settings header-backup"
-                         onclick="window.location.href='backup.html'" aria-label="数据备份" title="数据备份">
+                    <button type="button" class="header-settings" onclick="window.location.href='history.html'"
+                         aria-label="历史记录" title="历史记录">
+                         📚
+                    </button>
 
+                    <button type="button" class="header-settings" onclick="window.location.href='backup.html'"
+                         aria-label="备份" title="备份">
                          💾
-
                     </button>
 
                </div>
@@ -80,41 +94,7 @@
 
 
 
-          <!-- =====================================================
-          复制训练计划
-          ====================================================== -->
-
-          <div id="copyPlanStatus" class="status" onclick="copyLastTrainingPlan()" style="cursor:pointer;">
-
-               📋 复制最新训练计划
-
-          </div>
-
-
-
-          <!-- =====================================================
-          删除当前训练计划
-
-          UI 放在 index.html
-
-          plan.js 只负责：
-          - 判断是否应该显示
-          - 执行删除
-
-          默认隐藏。
-          有当前训练计划时由 plan.js 显示。
-          ====================================================== -->
-
-          <div id="trainingPlanActions" class="status hidden">
-
-               <button id="deleteTrainingPlanButton" type="button" class="secondary-btn"
-                    onclick="deleteCurrentTrainingPlan()">
-
-                    🗑 删除这次训练计划
-
-               </button>
-
-          </div>
+          <div id="trainingPlanActions" class="status hidden"></div>
 
 
 
@@ -132,17 +112,6 @@
                <button class="tab active" onclick="showTab('todayTab',this)">
 
                     今日
-
-               </button>
-
-
-               <!-- ================================
-               其它运动
-               ================================= -->
-
-               <button class="tab" onclick="showTab('otherActivitiesTab',this)">
-
-                    🏃 其它运动
 
                </button>
 
@@ -188,115 +157,23 @@
 
 
 
-               <!-- ================================
-               训练感受
-               ================================= -->
-
                <div class="card">
 
                     <h2>
-                         📝 训练感受
+                         📝 本次训练
                     </h2>
 
                     <div class="muted">
-
-                         每个动作已经单独记录了训练难度。
-                         如果今天有具体情况，可以写在这里。
-
-                    </div>
-
-                    <textarea id="bodyNote" class="note" rows="4"
-                         placeholder="例如：左手还是比较弱、肩推左侧明显更吃力、腰没有不舒服、臀部发力明显……"></textarea>
-
-                    <br>
-                    <br>
-
-                    <button id="saveButton" class="primary-btn" onclick="finishWorkout()" disabled>
-
-                         请先读取训练计划
-
-                    </button>
-
-               </div>
-
-          </section>
-
-
-
-          <!-- =====================================================
-          其它运动
-          ====================================================== -->
-
-          <section id="otherActivitiesTab" class="hidden">
-
-
-               <!-- ================================
-               记录其它运动
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         🏃 记录其它运动
-                    </h2>
-
-                    <div class="muted">
-
-                         八部金刚功、跑步以及以后增加的其它运动，
-                         单独记录，不计入哑铃力量训练次数。
-
+                         在上方为每个动作标记“完成/未完成”。完成本次训练后，下一次将自动切换到下一计划（A → B → A）。
                     </div>
 
                     <br>
 
-                    <label>
-                         运动日期
-                    </label>
-
-                    <input id="otherActivityDate" class="note" type="date">
-
-
-                    <label>
-                         运动类型
-                    </label>
-
-                    <select id="otherActivityType" class="note">
-
-                         <option value="八部金刚功">
-                              八部金刚功
-                         </option>
-
-                         <option value="跑步">
-                              跑步
-                         </option>
-
-                         <option value="其它">
-                              其它
-                         </option>
-
-                    </select>
-
-
-                    <label>
-                         运动时间（分钟）
-                    </label>
-
-                    <input id="otherActivityDuration" class="note" type="number" min="1" max="1440" step="1"
-                         placeholder="例如 30">
-
-
-                    <br>
-                    <br>
-
-                    <button type="button" class="primary-btn" onclick="saveOtherActivity()">
-
-                         💾 保存运动
-
+                    <button id="saveButton" class="primary-btn" onclick="completeCurrentHomePlan()" disabled>
+                         完成本次训练
                     </button>
 
                </div>
-
-
 
           </section>
 
@@ -306,269 +183,35 @@
           AI私人教练
           ====================================================== -->
 
+          <!-- =====================================================
+          AI排课（简化版）
+          ====================================================== -->
+
           <section id="aiTab" class="hidden">
 
-
-               <!-- ================================
-               AI私人教练
-               ================================= -->
-
                <div class="card">
-
-                    <h2>
-                         🤖 AI私人教练
-                    </h2>
-
-                    <div class="muted">
-
-                         完成一次训练后，让 ChatGPT 根据你的历史训练、
-                         每个动作的训练要求、完成情况、训练难度、
-                         训练感受和身体数据，制定下一次训练。
-
-                    </div>
-
+                    <h2>🤖 AI教练</h2>
+                    <div class="muted">选择一个训练计划，生成该计划的总结并复制给 AI。</div>
                </div>
 
-
-
-               <!-- ================================
-               第一步：生成训练分析
-               ================================= -->
-
                <div class="card">
-
-                    <h2>
-                         🧠 第一步：生成训练分析
-                    </h2>
-
-                    <div class="muted">
-
-                         点击下面按钮生成 3 个模块：
-                         首次对话请「复制模块1 + 模块3」发给 ChatGPT；
-                         之后每次完成训练，只需复制本次的「模块2」发给 ChatGPT，
-                         网站会自动带入最新训练情况和动作历史。
-
+                    <h2>训练计划</h2>
+                    <div id="aiPlanList">
+                         <div class="loading">正在读取训练计划……</div>
                     </div>
-
-                    <br>
-
-
-                    <button class="primary-btn" onclick="generateAITrainingPrompt()">
-
-                         🧠 生成给 ChatGPT 的训练分析
-
-                    </button>
-
-
-                    <br>
-                    <br>
-
-
-                    <p class="ai-module-title">模块1 · 固定力量训练教练规则</p>
-
-                    <textarea id="aiPromptSettings" class="note" rows="6" placeholder="点击上面的按钮后，这里会生成「固定力量训练教练规则」……"></textarea>
-
-                    <br>
-
-                    <button class="primary-btn" onclick="copyAIPromptModule('aiPromptSettings')">
-
-                         📋 复制模块1
-
-                    </button>
-
-                    <br>
-                    <br>
-
-                    <p class="ai-module-title">模块2 · 每周训练目标 + 最近一次训练 + 历史动作表现 + 身体数据</p>
-
-                    <textarea id="aiPromptTraining" class="note" rows="14" placeholder="点击上面的按钮后，这里会生成「每周训练目标」和「最近一次训练情况」等数据……"></textarea>
-
-                    <br>
-
-                    <button class="primary-btn" onclick="copyAIPromptModule('aiPromptTraining')">
-
-                         📋 复制模块2
-
-                    </button>
-
-                    <br>
-                    <br>
-
-                    <p class="ai-module-title">模块3 · 最终输出格式</p>
-
-                    <textarea id="aiPromptOutput" class="note" rows="10" placeholder="点击上面的按钮后，这里会生成「最终输出格式」……"></textarea>
-
-                    <br>
-
-                    <button class="primary-btn" onclick="copyAIPromptModule('aiPromptOutput')">
-
-                         📋 复制模块3
-
-                    </button>
-
                </div>
 
-
-
-               <!-- ================================
-               第二步：导入训练计划
-               ================================= -->
-
                <div class="card">
-
-                    <h2>
-                         📥 第二步：导入 ChatGPT 生成的训练
-                    </h2>
-
-                    <div class="muted">
-
-                         把 ChatGPT 返回的训练计划完整粘贴到这里，
-                         网站会自动解析并生成下一次训练。
-
-                    </div>
-
-                    <br>
-
-
-                    <textarea id="aiPlanInput" class="note" rows="14" placeholder="把 ChatGPT 生成的训练计划粘贴到这里……"></textarea>
-
-
-                    <br>
-
-
-                    <button class="primary-btn" onclick="importAITrainingPlan()">
-
-                         ⬇️ 导入下一次训练计划
-
+                    <h2>计划总结</h2>
+                    <div id="aiPlanSummaryEmpty" class="muted">请先在上方点击一个训练计划。</div>
+                    <textarea id="aiPlanSummary" class="note hidden" rows="16" readonly></textarea>
+                    <br><br>
+                    <button id="aiCopyPlanSummaryBtn" type="button" class="primary-btn" onclick="copyAIPlanSummary()" disabled>
+                         📋 复制计划总结
                     </button>
-
-               </div>
-
-
-
-               <!-- ================================
-               AI训练流程
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         🔄 AI训练流程
-                    </h2>
-
-                    <div class="analysis">
-
-
-                         <strong>
-                              ① 完成训练
-                         </strong>
-
-                         <br>
-
-                         记录每个动作的完成情况和训练难度，
-                         并填写训练感受。
-
-                         <br>
-                         <br>
-
-
-                         <strong>
-                              ② 选择对话模式
-                         </strong>
-
-                         <br>
-
-                         如果是第一次把训练资料交给 ChatGPT，
-                         选择「新开 ChatGPT 对话」；
-                         如果是在继续之前的训练讨论，
-                         选择「继续当前对话」。
-
-                         <br>
-                         <br>
-
-
-                         <strong>
-                              ③ 生成训练分析
-                         </strong>
-
-                         <br>
-
-                         网站自动整理你的训练历史数据，
-                         并根据对话模式决定提供 3 次或 8 次历史训练。
-
-                         <br>
-                         <br>
-
-
-                         <strong>
-                              ④ 交给 ChatGPT
-                         </strong>
-
-                         <br>
-
-                         ChatGPT 根据真实历史决定下一次训练。
-
-                         <br>
-                         <br>
-
-
-                         <strong>
-                              ⑤ 导入训练计划
-                         </strong>
-
-                         <br>
-
-                         网站自动写入 Supabase。
-
-                         <br>
-                         <br>
-
-
-                         <strong>
-                              ⑥ 开始下一次训练
-                         </strong>
-
-                         <br>
-
-                         首页自动显示新的训练计划。
-
-                    </div>
-
-               </div>
-
-
-
-               <!-- ================================
-               AI设置入口
-               ================================= -->
-
-               <div class="card">
-
-                    <h2>
-                         ⚙️ AI设置
-                    </h2>
-
-                    <div class="muted">
-
-                         可以在设置页面修改每周训练目标，
-                         以及 AI 生成训练分析时需要重点关注的内容。
-
-                    </div>
-
-                    <br>
-
-
-                    <button type="button" class="secondary-btn" onclick="window.location.href='settings.html'">
-
-                         ⚙️ 打开设置
-
-                    </button>
-
                </div>
 
           </section>
-
-
 
      </div>
 
@@ -599,56 +242,49 @@
 
 
           <!-- ================================
-          身体数据
+          训练计划
           ================================= -->
 
-          <a href="metrics.html" class="bottom-nav-item">
+          <a href="cycle-plan.html" class="bottom-nav-item">
 
                <span class="bottom-nav-icon">
-                    📏
+                    🔁
                </span>
 
                <span class="bottom-nav-label">
-                    身体
+                    训练计划
                </span>
 
           </a>
-
 
           <!-- ================================
           训练统计
           ================================= -->
 
+          <a href="metrics.html" class="bottom-nav-item">
+
+              <span class="bottom-nav-icon">
+                  📏
+              </span>
+
+              <span class="bottom-nav-label">
+                  身体数据
+              </span>
+
+          </a>
+
+
           <a href="analysis.html" class="bottom-nav-item">
 
-               <span class="bottom-nav-icon">
-                    📊
-               </span>
+              <span class="bottom-nav-icon">
+                  📊
+              </span>
 
-               <span class="bottom-nav-label">
-                    统计
-               </span>
+              <span class="bottom-nav-label">
+                  统计
+              </span>
 
-          </a>
-
-
-          <!-- ================================
-          历史记录
-          ================================= -->
-
-          <a href="history.html" class="bottom-nav-item">
-
-               <span class="bottom-nav-icon">
-                    📚
-               </span>
-
-               <span class="bottom-nav-label">
-                    历史
-               </span>
-
-          </a>
-
-     </nav>
+          </a></nav>
 
 
 
@@ -674,18 +310,13 @@
 
      <script src="js/api.js"></script>
 
+     <script src="js/v4-core.js"></script>
+
      <script src="js/plan.js"></script>
-
-     <script src="js/workout.js"></script>
-
 
      <!-- 图表 -->
 
      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-     <script src="js/analysis.js"></script>
-
-     <script src="js/other-activities.js"></script>
 
      <script src="js/settings.js"></script>
 
