@@ -216,7 +216,7 @@ async function loadCurrentPlan() {
     if (completedCount == null) {
       setStatus("☁️ 已读取训练计划（训练次数读取失败，请确认已创建 training_counter 表）", "error");
     } else {
-      setStatus(`☁️ 已读取训练计划 · 已完成 ${homeCompletedCount} 次训练`, "ok");
+      setStatus("☁️ 已读取训练计划", "ok");
     }
   } catch (error) {
     console.error("读取训练计划失败：", error);
@@ -227,12 +227,10 @@ async function loadCurrentPlan() {
 
 function renderHomeNoPlans() {
   const title = document.getElementById("nextTrainingTitle");
-  const sub = document.getElementById("nextTrainingExpected");
   const box = document.getElementById("todayPlanContent") || document.getElementById("todayPlan");
   const save = document.getElementById("saveButton");
   const nextNo = homeCompletedCount + 1;
   if (title) title.textContent = `第${nextNo}次训练计划`;
-  if (sub) sub.textContent = "暂无训练计划";
   if (box) {
     box.innerHTML = `
       <h2>还没有训练计划</h2>
@@ -248,10 +246,8 @@ function renderHomeNoPlans() {
 }
 
 function renderHomeLoadError(error) {
-  const sub = document.getElementById("nextTrainingExpected");
   const box = document.getElementById("todayPlanContent") || document.getElementById("todayPlan");
   const save = document.getElementById("saveButton");
-  if (sub) sub.textContent = "读取失败";
   if (box) {
     box.innerHTML = `
       <h2>读取训练计划失败</h2>
@@ -272,23 +268,16 @@ function renderHomePlanViewFromState() {
   }
 
   const title = document.getElementById("nextTrainingTitle");
-  const sub = document.getElementById("nextTrainingExpected");
-  const countEl = document.getElementById("trainingCompletedCount");
   const code = String(plan.plan_code || "").toUpperCase();
-  const nextAfterThis = code === "A" ? "B" : "A";
   const nextNo = homeCompletedCount + 1;
   const progress = homeGetProgress(items);
 
   if (title) title.textContent = `第${nextNo}次训练计划 · ${code}｜${plan.name || "未命名计划"}`;
-  if (sub) sub.textContent = `共 ${items.length} 个动作 · 完成后将进入 ${nextAfterThis} 计划`;
-  if (countEl) countEl.textContent = `已完成 ${homeCompletedCount} 次训练 · 默认按 A → B 循环`;
 
   const box = document.getElementById("todayPlanContent") || document.getElementById("todayPlan");
   if (box) {
     box.innerHTML = `
       <h2>第${nextNo}次训练 · ${escapeHtml(code)}｜${escapeHtml(plan.name || "未命名计划")}</h2>
-      <div class="muted">默认按 A → B 循环。请为每个动作标记“完成”或“未完成”，全部标记后才能完成本次训练。</div>
-      <br>
       ${renderHomePlanItems(items)}
     `;
   }
@@ -322,7 +311,6 @@ function renderHomePlanItems(items) {
   return `
     <div class="exercise-detail" style="margin-bottom:10px;">
       <strong>本次进度：</strong>已标记 ${progress.marked} / ${progress.total}（完成 ${progress.done}，未完成 ${progress.todo}）
-      ${!progress.allMarked && progress.total ? '<div class="muted" style="margin-top:4px;">需为每个动作选择“完成”或“未完成”后才能完成本次训练。</div>' : ""}
     </div>
     ${items
       .map((item, index) => {

@@ -30,37 +30,7 @@
 
           <div class="header">
 
-               <div class="header-top">
-
-                    <div class="header-title">
-
-                         <h1>
-                              🏋️ 我的私人哑铃训练
-                         </h1>
-
-                         <p id="today"></p>
-
-                         <p id="trainingCompletedCount" class="muted">
-
-                              默认从 A 开始，按 A → B → A 循环
-
-                         </p>
-
-                         <h2 id="nextTrainingTitle">
-
-                              下一次训练计划
-
-                         </h2>
-
-                         <p id="nextTrainingExpected" class="muted">
-
-                              正在读取训练计划……
-
-                         </p>
-
-                    </div>
-
-
+               <div class="header-actions" style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:8px;">
                     <button type="button" class="header-settings" onclick="window.location.href='exercises.html'"
                          aria-label="动作库" title="动作库">
                          💪
@@ -75,7 +45,18 @@
                          aria-label="备份" title="备份">
                          💾
                     </button>
+               </div>
 
+               <div class="header-title">
+                    <h1>
+                         🏋️ 我的私人哑铃训练
+                    </h1>
+
+                    <p id="today"></p>
+
+                    <h2 id="nextTrainingTitle">
+                         下一次训练计划
+                    </h2>
                </div>
 
           </div>
