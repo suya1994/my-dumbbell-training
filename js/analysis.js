@@ -275,12 +275,7 @@ function updateTrendAnalysis() {
 ========================================================= */
 
 let weeklyStrengthChart = null;
-let yearlyStrengthChart = null;
-
-
-
-
-
+let monthlyStrengthChart = null;
 let yearlyStrengthChart = null;
 
 
@@ -335,7 +330,8 @@ function getCurrentMonthDates() {
 
 function getStrengthCountByDate(dateString) {
   return analysisRecords.filter((record) => {
-    return String(record.workout_date) === dateString;
+    // 兼容 YYYY-MM-DD 与带时间部分的返回值
+    return String(record.workout_date || "").slice(0, 10) === dateString;
   }).length;
 }
 

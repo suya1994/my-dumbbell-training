@@ -225,13 +225,5 @@ document.addEventListener("DOMContentLoaded", function () {
     loadCurrentPlan();
   }
 
-  /* =====================================================
-       其它运动默认日期
-    ===================================================== */
-
-  if (typeof setOtherActivityToday === "function") {
-    setOtherActivityToday();
-  }
-
   console.log("✅ 首页 app.js 初始化完成");
 });
